@@ -621,4 +621,10 @@
     <string name="settings_update_open_github_release">Открыть страницу выпуска</string>
     <string name="settings_update_fdroid_subtitle">Установлено из F-Droid — нажмите, чтобы открыть Haven в F-Droid</string>
     <string name="settings_about_rolling_release">Haven выпускает непрерывные обновления по мере готовности исправлений; проверяйте описание изменений перед обновлением.</string>
+    <string name="settings_update_download_install">Скачать и установить</string>
+    <string name="settings_update_downloading_pct">Загрузка и проверка… %1$d%%</string>
+    <string name="settings_update_downloading">Загрузка и проверка…</string>
+    <string name="settings_update_installed_shizuku">Обновление установлено через Shizuku. Перезапустите Haven для завершения.</string>
+    <string name="settings_update_installer_opened">Проверенный APK передан системному установщику.</string>
+    <string name="settings_update_install_failed">Ошибка обновления: %1$s</string>
 </resources>

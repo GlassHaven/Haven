@@ -171,6 +171,62 @@ class SettingsViewModel @Inject constructor(
     private val _updateCheckRunning = MutableStateFlow(false)
     val updateCheckRunning: StateFlow<Boolean> = _updateCheckRunning.asStateFlow()
 
+    sealed interface UpdateInstallState {
+        data object Idle : UpdateInstallState
+        data class Downloading(val percent: Int?) : UpdateInstallState
+        data object Installing : UpdateInstallState
+        data class Succeeded(val usedShizuku: Boolean) : UpdateInstallState
+        data class Failed(val message: String) : UpdateInstallState
+    }
+
+    private val _updateInstallState = MutableStateFlow<UpdateInstallState>(UpdateInstallState.Idle)
+    val updateInstallState: StateFlow<UpdateInstallState> = _updateInstallState.asStateFlow()
+
+    fun clearUpdateInstallState() {
+        val current = _updateInstallState.value
+        if (current is UpdateInstallState.Downloading || current is UpdateInstallState.Installing) {
+            return
+        }
+        _updateInstallState.value = UpdateInstallState.Idle
+    }
+
+    fun installAvailableUpdate(available: UpdateChecker.Result.Available) {
+        val current = _updateInstallState.value
+        if (current is UpdateInstallState.Downloading || current is UpdateInstallState.Installing) {
+            return
+        }
+        viewModelScope.launch {
+            _updateInstallState.value = UpdateInstallState.Downloading(null)
+            when (
+                val dl = updateChecker.downloadVerifiedApk(available) { pct ->
+                    _updateInstallState.value = UpdateInstallState.Downloading(pct)
+                }
+            ) {
+                is UpdateChecker.DownloadResult.Failed -> {
+                    _updateInstallState.value = UpdateInstallState.Failed(dl.message)
+                }
+                is UpdateChecker.DownloadResult.Ready -> {
+                    _updateInstallState.value = UpdateInstallState.Installing
+                    runCatching {
+                        sh.haven.core.local.WaylandSocketHelper.installVerifiedApkFile(
+                            appContext,
+                            dl.apkFile,
+                        )
+                    }.fold(
+                        onSuccess = { usedShizuku ->
+                            _updateInstallState.value = UpdateInstallState.Succeeded(usedShizuku)
+                        },
+                        onFailure = { err ->
+                            _updateInstallState.value = UpdateInstallState.Failed(
+                                err.message ?: err.javaClass.simpleName,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     fun setUpdateCheckEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setUpdateCheckEnabled(enabled)

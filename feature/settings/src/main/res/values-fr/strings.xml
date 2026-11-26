@@ -619,4 +619,10 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_update_open_github_release">Ouvrir la page de publication</string>
     <string name="settings_update_fdroid_subtitle">Installé depuis F-Droid — toucher pour ouvrir Haven sur F-Droid</string>
     <string name="settings_about_rolling_release">Haven publie des versions continues au fil des correctifs ; consultez les notes de version avant de mettre à jour.</string>
+    <string name="settings_update_download_install">Télécharger et installer</string>
+    <string name="settings_update_downloading_pct">Téléchargement et vérification… %1$d%%</string>
+    <string name="settings_update_downloading">Téléchargement et vérification…</string>
+    <string name="settings_update_installed_shizuku">Mise à jour installée via Shizuku. Redémarrez Haven pour terminer.</string>
+    <string name="settings_update_installer_opened">APK vérifié transmis à l\'installateur système.</string>
+    <string name="settings_update_install_failed">Échec de la mise à jour : %1$s</string>
 </resources>

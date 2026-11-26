@@ -248,6 +248,41 @@ object WaylandSocketHelper {
     }
 
     /**
+     * Install a pre-verified APK file (#874 Slice 2). Uses Shizuku `pm install`
+     * when active and permitted (deleting [apkFile] afterward), otherwise opens
+     * the system package installer via [installApkViaIntent] on the main thread.
+     *
+     * @return `true` when installed silently via Shizuku, `false` when handed
+     *         off to the system package installer.
+     */
+    suspend fun installVerifiedApkFile(context: Context, apkFile: File): Boolean {
+        val useShizuku = isShizukuAvailable() && hasShizukuPermission()
+        if (useShizuku) {
+            return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val fileSize = apkFile.length()
+                val process = newShizukuProcess("pm install -S $fileSize")
+                apkFile.inputStream().use { input ->
+                    input.copyTo(process.outputStream)
+                }
+                process.outputStream.close()
+                val exitCode = process.waitFor()
+                val stdout = process.inputStream.bufferedReader().readText().trim()
+                val stderr = process.errorStream.bufferedReader().readText().trim()
+                if (exitCode == 0 && stdout.contains("Success")) {
+                    apkFile.delete()
+                    true
+                } else {
+                    throw java.io.IOException("pm install failed: $stdout $stderr".trim())
+                }
+            }
+        }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+            installApkViaIntent(context, apkFile)
+        }
+        return false
+    }
+
+    /**
      * Try to create a symlink at /data/local/tmp/haven-wayland/wayland-0
      * pointing to the app's Wayland socket. Returns true if successful.
      */

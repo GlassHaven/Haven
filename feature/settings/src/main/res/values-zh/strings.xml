@@ -617,4 +617,10 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_update_open_github_release">打开发行版页面</string>
     <string name="settings_update_fdroid_subtitle">通过 F-Droid 安装 — 点按在 F-Droid 中打开 Haven</string>
     <string name="settings_about_rolling_release">Haven 采用滚动发布模式，修复完成后即发布新版本；更新前请先查看更新说明。</string>
+    <string name="settings_update_download_install">下载并安装</string>
+    <string name="settings_update_downloading_pct">正在下载并校验… %1$d%%</string>
+    <string name="settings_update_downloading">正在下载并校验…</string>
+    <string name="settings_update_installed_shizuku">已通过 Shizuku 安装更新，重启 Haven 即可完成。</string>
+    <string name="settings_update_installer_opened">已将校验通过的 APK 移交系统安装程序。</string>
+    <string name="settings_update_install_failed">更新失败：%1$s</string>
 </resources>

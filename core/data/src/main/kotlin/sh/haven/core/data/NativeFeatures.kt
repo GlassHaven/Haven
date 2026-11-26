@@ -70,6 +70,23 @@ class NativeFeatures(private val context: Context) {
     val anyDesktop: Boolean get() = rdp || spice
 
     /**
+     * True when the gomobile `rcbridge` package is linked into `libgojni.so`
+     * (`full` and `storage` flavours; `false` on `terminal`, #510 / #848).
+     * Probed reflectively (`-keep class sh.haven.rclone.binding.**` in R8) so
+     * `:core:data` stays decoupled from `:core:rclone`.
+     */
+    val rclone: Boolean by lazy {
+        try {
+            Class.forName("sh.haven.rclone.binding.rcbridge.Rcbridge")
+                .getMethod("touch")
+                .invoke(null)
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
      * The UML guest transport. All four pieces are required: the kernel and
      * passt/stub executables (fetched at build time, skipped on F-Droid and
      * offline builds — see core/local/fetch-uml.sh) and the launcher

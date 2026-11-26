@@ -619,4 +619,10 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_update_open_github_release">রিলিজ পেজ খুলুন</string>
     <string name="settings_update_fdroid_subtitle">F-Droid থেকে ইনস্টল করা — F-Droid-এ Haven খুলতে ট্যাপ করুন</string>
     <string name="settings_about_rolling_release">সমাধান প্রস্তুত হলেই Haven রোলিং রিলিজ প্রকাশ করে; আপডেট করার আগে রিলিজ নোট দেখে নিন।</string>
+    <string name="settings_update_download_install">ডাউনলোড ও ইনস্টল</string>
+    <string name="settings_update_downloading_pct">ডাউনলোড ও যাচাই হচ্ছে… %1$d%%</string>
+    <string name="settings_update_downloading">ডাউনলোড ও যাচাই হচ্ছে…</string>
+    <string name="settings_update_installed_shizuku">Shizuku দিয়ে আপডেট ইনস্টল হয়েছে। শেষ করতে Haven পুনরায় চালু করুন।</string>
+    <string name="settings_update_installer_opened">যাচাইকৃত APK সিস্টেম ইনস্টলারে পাঠানো হয়েছে।</string>
+    <string name="settings_update_install_failed">আপডেট ব্যর্থ: %1$s</string>
 </resources>

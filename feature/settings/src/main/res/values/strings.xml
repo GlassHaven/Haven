@@ -664,4 +664,10 @@ Every private key already stored in Haven will need to be imported or generated 
     <string name="settings_update_open_github_release">Open release page</string>
     <string name="settings_update_fdroid_subtitle">Installed from F-Droid — tap to open Haven on F-Droid</string>
     <string name="settings_about_rolling_release">Haven ships rolling releases as fixes land; check release notes before updating.</string>
+    <string name="settings_update_download_install">Download &amp; install</string>
+    <string name="settings_update_downloading_pct">Downloading and verifying… %1$d%%</string>
+    <string name="settings_update_downloading">Downloading and verifying…</string>
+    <string name="settings_update_installed_shizuku">Update installed via Shizuku. Restart Haven to finish.</string>
+    <string name="settings_update_installer_opened">Verified APK handed to the system installer.</string>
+    <string name="settings_update_install_failed">Update failed: %1$s</string>
 </resources>

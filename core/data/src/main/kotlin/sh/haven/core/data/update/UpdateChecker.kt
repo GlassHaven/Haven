@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import sh.haven.core.data.NativeFeatures
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import java.io.File
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -44,8 +47,17 @@ private const val LATEST_RELEASE_API =
 /** Enough for the release JSON; a redirected or hostile reply cannot fill memory. */
 private const val MAX_RESPONSE_BYTES = 512 * 1024
 
+/** Hard upper bound for a Haven release APK download (512 MiB). */
+private const val MAX_APK_BYTES = 512L * 1024 * 1024
+
 private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 15_000
+private const val APK_READ_TIMEOUT_MS = 60_000
+
+private val TRUSTED_ASSET_PREFIXES = listOf(
+    "https://github.com/GlassHaven/Haven/releases/download/",
+    "https://github.com/GlassOnTin/Haven/releases/download/",
+)
 
 /**
  * Launch checks no oftener than this, however many times Haven is opened.
@@ -101,6 +113,18 @@ class UpdateChecker @Inject constructor(
         OTHER,
     }
 
+    /** Which feature variant of Haven is running (`release.yml` APK suffix). */
+    enum class Flavour {
+        FULL,
+        STORAGE,
+        TERMINAL,
+    }
+
+    sealed interface DownloadResult {
+        data class Ready(val apkFile: File, val sha256: String) : DownloadResult
+        data class Failed(val message: String) : DownloadResult
+    }
+
     sealed interface Result {
         /** Installed version is the newest published one. */
         data class UpToDate(val installedVersion: String) : Result
@@ -109,6 +133,9 @@ class UpdateChecker @Inject constructor(
             val version: String,
             val releaseUrl: String,
             val releaseNotes: String = "",
+            val apkAssetName: String? = null,
+            val apkDownloadUrl: String? = null,
+            val sha256SumsUrl: String? = null,
         ) : Result
 
         /** Network, parse or API failure. [message] is fit to show the user. */
@@ -150,6 +177,15 @@ class UpdateChecker @Inject constructor(
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         }.getOrNull() ?: ""
 
+    /** Detect the running build's feature flavour from its packaged native libraries. */
+    fun installedFlavour(): Flavour {
+        val native = NativeFeatures(context)
+        return resolveFlavour(anyDesktop = native.anyDesktop, rclone = native.rclone)
+    }
+
+    /** Primary release ABI tag (`arm64`, `armv7`, `x64`), or null if unsupported. */
+    fun primaryAbiTag(): String? = resolveAbiTag(Build.SUPPORTED_ABIS.orEmpty().toList())
+
     /**
      * Ask GitHub for the newest release and compare. Runs regardless of the
      * opt-in preference — this is the "check now" path, where the user asked
@@ -161,19 +197,90 @@ class UpdateChecker @Inject constructor(
         }
 
         val installed = installedVersion()
+        val abiTag = primaryAbiTag()
+        val flavour = installedFlavour()
         val body = runCatching { fetchLatestRelease() }.getOrElse { e ->
             Log.w(TAG, "release query failed", e)
             return@withContext Result.Failed(e.message ?: e.javaClass.simpleName)
                 .also { _latestResult.value = it }
         }
 
-        parseReleaseJson(body, installed).also { result ->
+        parseReleaseJson(body, installed, abiTag = abiTag, flavour = flavour).also { result ->
             when (result) {
                 is Result.Available -> Log.i(TAG, "update available: $installed -> ${result.version}")
                 is Result.UpToDate -> Log.i(TAG, "up to date at $installed")
                 else -> Unit
             }
             _latestResult.value = result
+        }
+    }
+
+    /**
+     * Download [available]'s matching APK into `cacheDir/updates/`, verifying
+     * both `SHA256SUMS` and the X.509 signing certificate before returning
+     * [DownloadResult.Ready] (#874 Slice 2).
+     */
+    suspend fun downloadVerifiedApk(
+        available: Result.Available,
+        onProgress: (Int?) -> Unit = {},
+    ): DownloadResult = withContext(Dispatchers.IO) {
+        if (channel() != Channel.GITHUB_RELEASE) {
+            return@withContext DownloadResult.Failed("Self-update is only supported on GitHub Release installs")
+        }
+        val assetName = available.apkAssetName
+            ?: return@withContext DownloadResult.Failed("No matching APK asset for this device")
+        val apkUrl = available.apkDownloadUrl
+            ?: return@withContext DownloadResult.Failed("No matching APK download URL for this device")
+        val sumsUrl = available.sha256SumsUrl
+            ?: return@withContext DownloadResult.Failed("Release is missing SHA256SUMS")
+        if (!isTrustedReleaseAssetUrl(apkUrl) || !isTrustedReleaseAssetUrl(sumsUrl)) {
+            return@withContext DownloadResult.Failed("Untrusted release download URL")
+        }
+
+        onProgress(null)
+        val sumsManifest = runCatching { fetchSmallText(sumsUrl) }.getOrElse { e ->
+            Log.w(TAG, "SHA256SUMS fetch failed", e)
+            return@withContext DownloadResult.Failed(e.message ?: "Failed to download SHA256SUMS")
+        }
+        val expectedSha256 = parseSha256Sums(sumsManifest, assetName)
+            ?: return@withContext DownloadResult.Failed("No SHA256SUMS entry found for $assetName")
+
+        val updatesDir = File(context.cacheDir, "updates")
+        val conn = (URL(apkUrl).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = CONNECT_TIMEOUT_MS
+            readTimeout = APK_READ_TIMEOUT_MS
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "Haven/${installedVersion()}")
+        }
+        try {
+            val code = conn.responseCode
+            if (code != HttpURLConnection.HTTP_OK) {
+                return@withContext DownloadResult.Failed("APK download returned HTTP $code")
+            }
+            if (!conn.url.protocol.equals("https", ignoreCase = true)) {
+                return@withContext DownloadResult.Failed("Refusing non-HTTPS redirect for APK download")
+            }
+            val expectedLength = conn.contentLengthLong
+            if (expectedLength > MAX_APK_BYTES) {
+                return@withContext DownloadResult.Failed("APK exceeds size limit ($expectedLength bytes)")
+            }
+            conn.inputStream.use { input ->
+                stageAndVerifyApk(
+                    updatesDir = updatesDir,
+                    assetName = assetName,
+                    expectedSha256 = expectedSha256,
+                    expectedLength = expectedLength,
+                    input = input,
+                    signerDigestsOf = ::archiveSignerSha256Digests,
+                    onProgress = onProgress,
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "APK download failed", e)
+            DownloadResult.Failed(e.message ?: e.javaClass.simpleName)
+        } finally {
+            conn.disconnect()
         }
     }
 
@@ -203,14 +310,24 @@ class UpdateChecker @Inject constructor(
         return available
     }
 
-    private fun fetchLatestRelease(): String {
-        val conn = (URL(LATEST_RELEASE_API).openConnection() as HttpURLConnection).apply {
+    private fun fetchLatestRelease(): String = fetchSmallText(
+        url = LATEST_RELEASE_API,
+        accept = "application/vnd.github+json",
+        apiVersion = "2022-11-28",
+    )
+
+    private fun fetchSmallText(
+        url: String,
+        accept: String? = null,
+        apiVersion: String? = null,
+    ): String {
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
             instanceFollowRedirects = true
-            setRequestProperty("Accept", "application/vnd.github+json")
-            setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+            if (accept != null) setRequestProperty("Accept", accept)
+            if (apiVersion != null) setRequestProperty("X-GitHub-Api-Version", apiVersion)
             // GitHub rejects requests with no User-Agent.
             setRequestProperty("User-Agent", "Haven/${installedVersion()}")
         }
@@ -219,6 +336,9 @@ class UpdateChecker @Inject constructor(
             if (code != HttpURLConnection.HTTP_OK) {
                 // 403 here is nearly always the unauthenticated rate limit.
                 throw IllegalStateException("GitHub returned HTTP $code")
+            }
+            if (!conn.url.protocol.equals("https", ignoreCase = true)) {
+                throw IllegalStateException("Refusing non-HTTPS redirect")
             }
             return conn.inputStream.use { input ->
                 val buf = ByteArray(MAX_RESPONSE_BYTES)
@@ -232,6 +352,32 @@ class UpdateChecker @Inject constructor(
             }
         } finally {
             conn.disconnect()
+        }
+    }
+
+    /** Lower-case hex SHA-256 of every certificate on an uninstalled `.apk` archive. */
+    private fun archiveSignerSha256Digests(apkFile: File): List<String> {
+        val signatures: Array<Signature> = runCatching {
+            val pm = context.packageManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val info = pm.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    PackageManager.GET_SIGNING_CERTIFICATES,
+                )
+                info?.signingInfo?.let { it.apkContentsSigners ?: it.signingCertificateHistory }
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    PackageManager.GET_SIGNATURES,
+                )?.signatures
+            }
+        }.getOrNull() ?: return emptyList()
+
+        val sha = MessageDigest.getInstance("SHA-256")
+        return signatures.map { sig ->
+            sha.reset()
+            sha.digest(sig.toByteArray()).joinToString("") { "%02x".format(it) }
         }
     }
 
@@ -285,7 +431,130 @@ class UpdateChecker @Inject constructor(
             else -> Channel.OTHER
         }
 
-        fun parseReleaseJson(body: String, installed: String): Result {
+        fun resolveFlavour(anyDesktop: Boolean, rclone: Boolean): Flavour = when {
+            anyDesktop -> Flavour.FULL
+            rclone -> Flavour.STORAGE
+            else -> Flavour.TERMINAL
+        }
+
+        fun resolveAbiTag(supportedAbis: List<String>): String? {
+            for (abi in supportedAbis) {
+                when (abi) {
+                    "arm64-v8a" -> return "arm64"
+                    "x86_64" -> return "x64"
+                    "armeabi-v7a", "armeabi" -> return "armv7"
+                }
+            }
+            return null
+        }
+
+        fun expectedApkAssetName(version: String, abiTag: String, flavour: Flavour): String =
+            when (flavour) {
+                Flavour.FULL -> "haven-$version-$abiTag-release.apk"
+                Flavour.STORAGE -> "haven-$version-$abiTag-storage-release.apk"
+                Flavour.TERMINAL -> "haven-$version-$abiTag-terminal-release.apk"
+            }
+
+        fun isTrustedReleaseAssetUrl(url: String): Boolean =
+            TRUSTED_ASSET_PREFIXES.any { url.startsWith(it) }
+
+        fun parseSha256Sums(manifest: String, assetName: String): String? {
+            for (rawLine in manifest.lineSequence()) {
+                val line = rawLine.trim()
+                if (line.isEmpty()) continue
+                val spaceIdx = line.indexOf(' ')
+                if (spaceIdx != 64) continue
+                val hex = line.substring(0, 64)
+                if (!hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) continue
+                val target = line.substring(64).trimStart().removePrefix("*")
+                if (target == assetName) return hex.lowercase()
+            }
+            return null
+        }
+
+        fun stageAndVerifyApk(
+            updatesDir: File,
+            assetName: String,
+            expectedSha256: String,
+            expectedLength: Long,
+            input: InputStream,
+            signerDigestsOf: (File) -> List<String>,
+            onProgress: (Int?) -> Unit = {},
+        ): DownloadResult {
+            if ('/' in assetName || '\\' in assetName || assetName.contains("..")) {
+                return DownloadResult.Failed("Invalid asset filename")
+            }
+            updatesDir.mkdirs()
+            val partFile = File(updatesDir, "$assetName.part")
+            val finalFile = File(updatesDir, assetName)
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                var totalRead = 0L
+                var lastPct = -1
+                partFile.outputStream().use { out ->
+                    val buf = ByteArray(16 * 1024)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        if (n == 0) continue
+                        totalRead += n
+                        if (totalRead > MAX_APK_BYTES) {
+                            partFile.delete()
+                            return DownloadResult.Failed("APK exceeds size limit")
+                        }
+                        digest.update(buf, 0, n)
+                        out.write(buf, 0, n)
+                        if (expectedLength > 0L) {
+                            val pct = ((totalRead * 100L) / expectedLength).toInt().coerceIn(0, 100)
+                            if (pct != lastPct) {
+                                lastPct = pct
+                                onProgress(pct)
+                            }
+                        }
+                    }
+                }
+                if (expectedLength > 0L && totalRead != expectedLength) {
+                    partFile.delete()
+                    return DownloadResult.Failed(
+                        "Download truncated ($totalRead of $expectedLength bytes)",
+                    )
+                }
+                val actualSha256 = digest.digest().joinToString("") { "%02x".format(it) }
+                if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
+                    partFile.delete()
+                    return DownloadResult.Failed("SHA-256 mismatch for $assetName")
+                }
+                val signers = signerDigestsOf(partFile)
+                if (signers.none { it.equals(GITHUB_RELEASE_SIGNER_SHA256, ignoreCase = true) }) {
+                    partFile.delete()
+                    return DownloadResult.Failed(
+                        "Downloaded APK is not signed with the Haven release key",
+                    )
+                }
+                // Sweep older staged APKs so cacheDir does not accumulate previous updates.
+                updatesDir.listFiles()?.forEach { existing ->
+                    if (existing != partFile && existing != finalFile) {
+                        existing.delete()
+                    }
+                }
+                if (finalFile.exists()) finalFile.delete()
+                if (!partFile.renameTo(finalFile)) {
+                    partFile.copyTo(finalFile, overwrite = true)
+                    partFile.delete()
+                }
+                return DownloadResult.Ready(finalFile, actualSha256)
+            } catch (e: Exception) {
+                partFile.delete()
+                return DownloadResult.Failed(e.message ?: e.javaClass.simpleName)
+            }
+        }
+
+        fun parseReleaseJson(
+            body: String,
+            installed: String,
+            abiTag: String? = null,
+            flavour: Flavour = Flavour.FULL,
+        ): Result {
             val json = runCatching { JSONObject(body) }.getOrElse {
                 return Result.Failed("Unreadable reply from GitHub")
             }
@@ -298,11 +567,38 @@ class UpdateChecker @Inject constructor(
             val notes = if (json.isNull("body")) "" else json.optString("body").trim()
             val latest = normaliseVersion(tag)
 
-            return if (isNewer(latest, installed)) {
-                Result.Available(latest, url, notes)
-            } else {
-                Result.UpToDate(installed)
+            if (!isNewer(latest, installed)) {
+                return Result.UpToDate(installed)
             }
+
+            var matchedApkName: String? = null
+            var matchedApkUrl: String? = null
+            var sumsUrl: String? = null
+            val targetApkName = abiTag?.let { expectedApkAssetName(latest, it, flavour) }
+            val assets = json.optJSONArray("assets")
+            if (assets != null && targetApkName != null) {
+                for (i in 0 until assets.length()) {
+                    val asset = assets.optJSONObject(i) ?: continue
+                    val name = asset.optString("name")
+                    val dlUrl = asset.optString("browser_download_url")
+                    if (!isTrustedReleaseAssetUrl(dlUrl)) continue
+                    if (name == targetApkName) {
+                        matchedApkName = name
+                        matchedApkUrl = dlUrl
+                    } else if (name == "SHA256SUMS") {
+                        sumsUrl = dlUrl
+                    }
+                }
+            }
+            val hasVerifiedPair = matchedApkName != null && matchedApkUrl != null && sumsUrl != null
+            return Result.Available(
+                version = latest,
+                releaseUrl = url,
+                releaseNotes = notes,
+                apkAssetName = if (hasVerifiedPair) matchedApkName else null,
+                apkDownloadUrl = if (hasVerifiedPair) matchedApkUrl else null,
+                sha256SumsUrl = if (hasVerifiedPair) sumsUrl else null,
+            )
         }
 
         /**

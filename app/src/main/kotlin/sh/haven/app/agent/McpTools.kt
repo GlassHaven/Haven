@@ -3250,6 +3250,8 @@ class McpTools private constructor(
                     put("latestVersion", result.version)
                     put("releaseUrl", result.releaseUrl)
                     put("releaseNotes", result.releaseNotes)
+                    result.apkAssetName?.let { put("apkAssetName", it) }
+                    result.apkDownloadUrl?.let { put("apkDownloadUrl", it) }
                 }
                 is sh.haven.core.data.update.UpdateChecker.Result.Failed -> {
                     put("status", "FAILED")

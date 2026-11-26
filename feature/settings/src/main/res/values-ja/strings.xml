@@ -618,4 +618,10 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_update_open_github_release">リリースページを開く</string>
     <string name="settings_update_fdroid_subtitle">F-Droid からインストール済み — タップして F-Droid の Haven ページを開く</string>
     <string name="settings_about_rolling_release">Haven は修正が整い次第ローリングリリースを公開します。更新前にリリースノートをご確認ください。</string>
+    <string name="settings_update_download_install">ダウンロードしてインストール</string>
+    <string name="settings_update_downloading_pct">ダウンロード・検証中… %1$d%%</string>
+    <string name="settings_update_downloading">ダウンロード・検証中…</string>
+    <string name="settings_update_installed_shizuku">Shizuku で更新をインストールしました。Haven を再起動して完了してください。</string>
+    <string name="settings_update_installer_opened">検証済み APK をシステムインストーラーに渡しました。</string>
+    <string name="settings_update_install_failed">更新に失敗しました: %1$s</string>
 </resources>

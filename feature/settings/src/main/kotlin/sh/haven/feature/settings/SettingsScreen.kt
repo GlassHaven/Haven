@@ -93,6 +93,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -190,6 +191,7 @@ fun SettingsScreen(
     val updateCheckEnabled by viewModel.updateCheckEnabled.collectAsState()
     val updateCheckResult by viewModel.updateCheckResult.collectAsState()
     val updateCheckRunning by viewModel.updateCheckRunning.collectAsState()
+    val updateInstallState by viewModel.updateInstallState.collectAsState()
     val showLinuxVmCard by viewModel.showLinuxVmCard.collectAsState()
     val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
     val lockTimeout by viewModel.lockTimeout.collectAsState()
@@ -1860,8 +1862,14 @@ fun SettingsScreen(
         if (available != null) {
             UpdateChangelogDialog(
                 available = available,
-                onDismiss = { showUpdateChangelogDialog = false },
+                installState = updateInstallState,
+                onDismiss = {
+                    viewModel.clearUpdateInstallState()
+                    showUpdateChangelogDialog = false
+                },
+                onInstall = { viewModel.installAvailableUpdate(available) },
                 onOpenReleasePage = {
+                    viewModel.clearUpdateInstallState()
                     showUpdateChangelogDialog = false
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(available.releaseUrl)))
                 },
@@ -2875,11 +2883,17 @@ private const val KOFI_URL = "https://ko-fi.com/glassontin"
 @Composable
 private fun UpdateChangelogDialog(
     available: UpdateChecker.Result.Available,
+    installState: SettingsViewModel.UpdateInstallState,
     onDismiss: () -> Unit,
+    onInstall: () -> Unit,
     onOpenReleasePage: () -> Unit,
 ) {
+    val busy = installState is SettingsViewModel.UpdateInstallState.Downloading ||
+        installState is SettingsViewModel.UpdateInstallState.Installing
+    val canDirectInstall = available.apkDownloadUrl != null && available.sha256SumsUrl != null
+
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!busy) onDismiss() },
         title = {
             Text(stringResource(R.string.settings_update_changelog_dialog_title, available.version))
         },
@@ -2891,16 +2905,86 @@ private fun UpdateChangelogDialog(
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
+                when (installState) {
+                    SettingsViewModel.UpdateInstallState.Idle -> Unit
+                    is SettingsViewModel.UpdateInstallState.Downloading -> {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        val pct = installState.percent
+                        if (pct != null) {
+                            LinearProgressIndicator(
+                                progress = { pct / 100f },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_update_downloading_pct, pct),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_update_downloading),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    SettingsViewModel.UpdateInstallState.Installing -> {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_update_downloading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    is SettingsViewModel.UpdateInstallState.Succeeded -> {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = if (installState.usedShizuku) {
+                                stringResource(R.string.settings_update_installed_shizuku)
+                            } else {
+                                stringResource(R.string.settings_update_installer_opened)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    is SettingsViewModel.UpdateInstallState.Failed -> {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.settings_update_install_failed, installState.message),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = onOpenReleasePage) {
-                Text(stringResource(R.string.settings_update_open_github_release))
+            if (canDirectInstall) {
+                TextButton(enabled = !busy, onClick = onInstall) {
+                    Text(stringResource(R.string.settings_update_download_install))
+                }
+            } else {
+                TextButton(onClick = onOpenReleasePage) {
+                    Text(stringResource(R.string.settings_update_open_github_release))
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_close))
+            Row {
+                if (canDirectInstall) {
+                    TextButton(enabled = !busy, onClick = onOpenReleasePage) {
+                        Text(stringResource(R.string.settings_update_open_github_release))
+                    }
+                }
+                TextButton(enabled = !busy, onClick = onDismiss) {
+                    Text(stringResource(R.string.common_close))
+                }
             }
         },
     )

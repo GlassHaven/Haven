@@ -41949,6 +41949,130 @@
       "sr": "Haven објављује текућа издања чим поправке прођу проверу; прочитајте напомене о издању пре ажурирања.",
       "zh": "Haven 采用滚动发布模式，修复完成后即发布新版本；更新前请先查看更新说明。"
      }
+    },
+    {
+     "name": "settings_update_download_install",
+     "en": "Download &amp; install",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "تنزيل وتثبيت",
+      "bn": "ডাউনলোড ও ইনস্টল",
+      "de": "Herunterladen &amp; installieren",
+      "es": "Descargar e instalar",
+      "fr": "Télécharger et installer",
+      "hi": "डाउनलोड और इंस्टॉल करें",
+      "ja": "ダウンロードしてインストール",
+      "ko": "다운로드 및 설치",
+      "pt": "Transferir e instalar",
+      "ru": "Скачать и установить",
+      "sr": "Преузми и инсталирај",
+      "zh": "下载并安装"
+     }
+    },
+    {
+     "name": "settings_update_downloading_pct",
+     "en": "Downloading and verifying… %1$d%%",
+     "comment": "Offline user guide (#833)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "جارٍ التنزيل والتحقق… %1$d%%",
+      "bn": "ডাউনলোড ও যাচাই হচ্ছে… %1$d%%",
+      "de": "Wird heruntergeladen und geprüft… %1$d%%",
+      "es": "Descargando y verificando… %1$d%%",
+      "fr": "Téléchargement et vérification… %1$d%%",
+      "hi": "डाउनलोड और सत्यापन हो रहा है… %1$d%%",
+      "ja": "ダウンロード・検証中… %1$d%%",
+      "ko": "다운로드 및 검증 중… %1$d%%",
+      "pt": "A transferir e verificar… %1$d%%",
+      "ru": "Загрузка и проверка… %1$d%%",
+      "sr": "Преузимање и провера… %1$d%%",
+      "zh": "正在下载并校验… %1$d%%"
+     }
+    },
+    {
+     "name": "settings_update_downloading",
+     "en": "Downloading and verifying…",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "جارٍ التنزيل والتحقق…",
+      "bn": "ডাউনলোড ও যাচাই হচ্ছে…",
+      "de": "Wird heruntergeladen und geprüft…",
+      "es": "Descargando y verificando…",
+      "fr": "Téléchargement et vérification…",
+      "hi": "डाउनलोड और सत्यापन हो रहा है…",
+      "ja": "ダウンロード・検証中…",
+      "ko": "다운로드 및 검증 중…",
+      "pt": "A transferir e verificar…",
+      "ru": "Загрузка и проверка…",
+      "sr": "Преузимање и провера…",
+      "zh": "正在下载并校验…"
+     }
+    },
+    {
+     "name": "settings_update_installed_shizuku",
+     "en": "Update installed via Shizuku. Restart Haven to finish.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "ثُبِّت التحديث عبر Shizuku. أعد تشغيل Haven للإكمال.",
+      "bn": "Shizuku দিয়ে আপডেট ইনস্টল হয়েছে। শেষ করতে Haven পুনরায় চালু করুন।",
+      "de": "Update über Shizuku installiert. Starten Sie Haven zum Abschließen neu.",
+      "es": "Actualización instalada mediante Shizuku. Reinicia Haven para finalizar.",
+      "fr": "Mise à jour installée via Shizuku. Redémarrez Haven pour terminer.",
+      "hi": "Shizuku द्वारा अपडेट इंस्टॉल किया गया। पूरा करने के लिए Haven को पुनः आरंभ करें।",
+      "ja": "Shizuku で更新をインストールしました。Haven を再起動して完了してください。",
+      "ko": "Shizuku를 통해 업데이트를 설치했습니다. 완료하려면 Haven을 다시 시작하세요.",
+      "pt": "Atualização instalada via Shizuku. Reinicie o Haven para concluir.",
+      "ru": "Обновление установлено через Shizuku. Перезапустите Haven для завершения.",
+      "sr": "Ажурирање је инсталирано преко Shizuku. Поново покрените Haven да завршите.",
+      "zh": "已通过 Shizuku 安装更新，重启 Haven 即可完成。"
+     }
+    },
+    {
+     "name": "settings_update_installer_opened",
+     "en": "Verified APK handed to the system installer.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "تم تسليم حزمة APK المُتحقَّق منها إلى مثبِّت النظام.",
+      "bn": "যাচাইকৃত APK সিস্টেম ইনস্টলারে পাঠানো হয়েছে।",
+      "de": "Geprüfte APK an das System-Installationsprogramm übergeben.",
+      "es": "APK verificado enviado al instalador del sistema.",
+      "fr": "APK vérifié transmis à l\\'installateur système.",
+      "hi": "सत्यापित APK सिस्टम इंस्टॉलर को सौंप दिया गया।",
+      "ja": "検証済み APK をシステムインストーラーに渡しました。",
+      "ko": "검증된 APK를 시스템 설치 프로그램으로 전달했습니다.",
+      "pt": "APK verificado entregue ao instalador do sistema.",
+      "ru": "Проверенный APK передан системному установщику.",
+      "sr": "Проверени APK је предат системском инсталеру.",
+      "zh": "已将校验通过的 APK 移交系统安装程序。"
+     }
+    },
+    {
+     "name": "settings_update_install_failed",
+     "en": "Update failed: %1$s",
+     "comment": "Offline user guide (#833)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "فشل التحديث: %1$s",
+      "bn": "আপডেট ব্যর্থ: %1$s",
+      "de": "Update fehlgeschlagen: %1$s",
+      "es": "Error al actualizar: %1$s",
+      "fr": "Échec de la mise à jour : %1$s",
+      "hi": "अपडेट विफल: %1$s",
+      "ja": "更新に失敗しました: %1$s",
+      "ko": "업데이트 실패: %1$s",
+      "pt": "Falha na atualização: %1$s",
+      "ru": "Ошибка обновления: %1$s",
+      "sr": "Ажурирање није успело: %1$s",
+      "zh": "更新失败：%1$s"
+     }
     }
    ]
   },

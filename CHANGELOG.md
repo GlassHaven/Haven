@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.76
+
+- Verify SSH host keys during key exchange before sending user authentication credentials on both the JSch and sshlib engines, and fail closed on unknown host keys during background auto-reconnect and auto-deploy (#813).
+- Add `SECURITY.md` pointing vulnerability disclosures to private GitHub Security Advisories.
+
 ## v5.94.75
 
 - Enforce Android private-keyboard mode across PasswordField, credential/PIN/token/key inputs, and remote-desktop and terminal compose bars so secrets are not fed into keyboard learning dictionaries.

@@ -1,0 +1,2 @@
+- Verify SSH host keys during key exchange before sending user authentication credentials on both the JSch and sshlib engines, and fail closed on unknown host keys during background auto-reconnect and auto-deploy (#813).
+- Add SECURITY.md pointing vulnerability disclosures to private GitHub Security Advisories.

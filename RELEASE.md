@@ -138,10 +138,9 @@ The buildserver no longer pre-installs NDKs in its Docker image — `fdroidserve
 | `gomobile` / `gobind` | `@v0.0.0-20251021151156-188f512ec823` | **pinned** `@v0.0.0-20251021151156-188f512ec823` (matches `rclone-android/go/go.sum`) |
 | Go | `1.27` | `1.27` (`actions/setup-go`) |
 
-> Supply-chain hardening (#211) pinned our CI's `gomobile`/`gobind` to the
-> `go.sum` pseudo-version instead of `@latest`. The F-Droid recipe still uses
-> `@latest`; a follow-up should pin it there too so both build the binding
-> generator from the same commit.
+> Supply-chain hardening (#211) pinned both our CI and the F-Droid recipe's
+> `gomobile`/`gobind` to the `go.sum` pseudo-version instead of `@latest`, so
+> both build the Go binding generator from the same commit.
 
 Things Haven's CI does **not** exercise but F-Droid does:
 
@@ -158,7 +157,7 @@ Things Haven's CI does **not** exercise but F-Droid does:
   bash build-proot/build.sh
   pushd wayland-android && ABI=arm64-v8a ./build_liblabwc_android.sh && ABI=arm64-v8a ./build-native-helpers.sh && popd
   ```
-  Anything in `core/wayland/src/main/jniLibs/` that no build step regenerates is **deleted from the F-Droid APK and never replaced** — that is how their builds shipped with no XWayland wrapper, no GLES benchmark and no GPU renderer. Whenever you add a binary there, add the build step to the fdroiddata recipe in the same change. The two `libvirgl_*_server.so` binaries still have no build script and are still missing from F-Droid builds.
+  Anything in `core/wayland/src/main/jniLibs/` that no build step regenerates is **deleted from the F-Droid APK and never replaced** — that is how their builds shipped with no XWayland wrapper, no GLES benchmark and no GPU renderer. Whenever you add a binary there, add the build step to the fdroiddata recipe in the same change (`build-virgl-android.sh` now builds both `libvirgl_*_server.so` binaries from pinned upstream sources in CI and F-Droid).
 
 ## Native binaries: the rules
 
@@ -191,8 +190,8 @@ because our own APK carried the committed copies and nothing compared the two.
 **Whenever you add a binary to a jniLibs directory, add its build step to the
 fdroiddata recipe in the same change**, on the *last* `Builds` entry —
 `AutoUpdateMode: Version` clones that entry for every new tag, so an omission
-propagates forever. The two `libvirgl_*_server.so` binaries still have no build
-script and are still missing from F-Droid builds.
+propagates forever. Both `libvirgl_*_server.so` binaries are now built from
+source via `wayland-android/build-virgl-android.sh` in CI and F-Droid.
 
 **3. Every fetched source is pinned and verified.** F-Droid's rule is that a
 binary in the APK must be reproducible from source in their builder, and the

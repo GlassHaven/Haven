@@ -1,5 +1,10 @@
 package sh.haven.core.ssh.sshlib
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.connectbot.sshlib.AuthHandler
 import org.connectbot.sshlib.AuthPublicKey
@@ -108,6 +113,7 @@ internal object SshlibSftpConnector {
         connectTimeoutMs: Long = CONNECT_TIMEOUT_MS,
         ki: KeyboardInteractiveAnswerer? = null,
         proxy: HavenProxy? = null,
+        awaitingHostKeyPrompt: (() -> Boolean)? = null,
     ): SshlibClient {
         // A proxied dial must NOT resolve the target locally: the name is
         // resolved at the far end of the tunnel (and for .onion cannot be
@@ -149,7 +155,36 @@ internal object SshlibSftpConnector {
             },
         )
         try {
-            when (val result = withTimeout(connectTimeoutMs) { client.connect() }) {
+            val connectOutcome = if (awaitingHostKeyPrompt == null) {
+                withTimeout(connectTimeoutMs) { client.connect() }
+            } else {
+                coroutineScope {
+                    val connectDeferred = async { client.connect() }
+                    val watchdog = launch {
+                        var remaining = connectTimeoutMs
+                        while (remaining > 0 && connectDeferred.isActive) {
+                            val step = minOf(remaining, 250L)
+                            delay(step)
+                            if (!awaitingHostKeyPrompt()) {
+                                remaining -= step
+                            }
+                        }
+                        if (connectDeferred.isActive) {
+                            connectDeferred.cancel(
+                                CancellationException(
+                                    "Timed out waiting ${connectTimeoutMs}ms for SSH handshake",
+                                ),
+                            )
+                        }
+                    }
+                    try {
+                        connectDeferred.await()
+                    } finally {
+                        watchdog.cancel()
+                    }
+                }
+            }
+            when (val result = connectOutcome) {
                 is ConnectResult.Success -> Unit
                 is ConnectResult.HostKeyRejected -> throw SshIoException(
                     "sshlib: host key for ${config.host} is not in Haven's trusted known hosts",

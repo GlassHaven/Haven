@@ -114,9 +114,35 @@ class HeadlessSshExec @Inject constructor(
         )
         val client = clientFactory()
         val proxy = tunnelResolver?.havenProxy(profile)
+        suspend fun verifyHeadlessHostKey(entry: sh.haven.core.ssh.KnownHostEntry) {
+            when (hostKeyVerifier.verify(entry)) {
+                is HostKeyResult.Trusted -> { /* ok */ }
+                is HostKeyResult.NewHost -> throw McpError(
+                    -32603,
+                    "Unknown host key for '${profile.label}' — refusing (fail-closed TOFU). " +
+                        "Connect the profile interactively once to trust the host, then retry.",
+                )
+                is HostKeyResult.KeyChanged -> throw McpError(
+                    -32603,
+                    "HOST KEY CHANGED for '${profile.label}' — refusing (possible MITM). " +
+                        "Reconnect interactively in Haven to review the new key.",
+                )
+            }
+        }
         try {
+            var verifiedInKex = false
             val hostKeyEntry = try {
-                client.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                client.connect(
+                    config,
+                    proxy = proxy,
+                    trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                    hostKeyGate = { entry ->
+                        verifyHeadlessHostKey(entry)
+                        verifiedInKex = true
+                    },
+                )
+            } catch (e: McpError) {
+                throw e
             } catch (e: Exception) {
                 // #376: a network failure on a private address may just mean
                 // DHCP moved the device — follow its host key once, so
@@ -130,23 +156,23 @@ class HeadlessSshExec @Inject constructor(
                 }
                 Log.i(TAG, "'${LogRedact.of(profile.label)}' host rediscovered ${LogRedact.of(profile.host)} → ${LogRedact.of(newHost)} — retrying")
                 try {
-                    client.connect(config.copy(host = newHost), proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                    client.connect(
+                        config.copy(host = newHost),
+                        proxy = proxy,
+                        trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                        hostKeyGate = { entry ->
+                            verifyHeadlessHostKey(entry)
+                            verifiedInKex = true
+                        },
+                    )
+                } catch (e2: McpError) {
+                    throw e2
                 } catch (e2: Exception) {
                     throw McpError(-32603, "Connect to '${profile.label}' failed after host rediscovery ($newHost): ${e2.message ?: e2.javaClass.simpleName}")
                 }
             }
-            when (if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
-                is HostKeyResult.Trusted -> { /* ok */ }
-                is HostKeyResult.NewHost -> throw McpError(
-                    -32603,
-                    "Unknown host key for '${profile.label}' — refusing (fail-closed TOFU). " +
-                        "Connect the profile interactively once to trust the host, then retry.",
-                )
-                is HostKeyResult.KeyChanged -> throw McpError(
-                    -32603,
-                    "HOST KEY CHANGED for '${profile.label}' — refusing (possible MITM). " +
-                        "Reconnect interactively in Haven to review the new key.",
-                )
+            if (!verifiedInKex && hostKeyEntry != null) {
+                verifyHeadlessHostKey(hostKeyEntry)
             }
             return Outcome(client.execCommand(command, timeoutMs), reusedLiveConnection = false)
         } finally {

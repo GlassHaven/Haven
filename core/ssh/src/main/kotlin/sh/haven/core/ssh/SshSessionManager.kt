@@ -1217,31 +1217,24 @@ class SshSessionManager @Inject constructor(
                     hardwareKeySigner = previousClient?.hardwareKeySigner
                 }
                 candidateClient = newClient
+                var verifiedInKex = false
                 val hostKeyEntry = newClient.connectBlocking(
                     config,
                     proxy = proxy,
                     trustedHostCaKeys = runBlocking { hostKeyVerifier.trustedHostCaKeys() },
+                    hostKeyGate = { entry ->
+                        verifyReconnectHostKey(sessionId, entry)
+                        verifiedInKex = true
+                    },
                 )
 
-                // Silent TOFU on reconnect: auto-accept new, abort on change.
-                // A null entry means the host presented a certificate that
-                // JSch verified against a trusted host CA (#133) — nothing
-                // to TOFU.
-                if (hostKeyEntry != null) {
-                    val hkResult = runBlocking { hostKeyVerifier.verify(hostKeyEntry) }
-                    when (hkResult) {
-                        is HostKeyResult.Trusted -> { /* matches — continue */ }
-                        is HostKeyResult.NewHost -> {
-                            runBlocking { hostKeyVerifier.accept(hkResult.entry) }
-                        }
-                        is HostKeyResult.KeyChanged -> {
-                            Log.w(TAG, "Host key changed during reconnect for $sessionId — aborting")
-                            newClient.disconnect()
-                            updateStatus(sessionId, SessionState.Status.ERROR)
-                            return
-                        }
-                    }
-                } else {
+                // Defense-in-depth for test doubles that return a KnownHostEntry
+                // without invoking hostKeyGate: reconnect is strictly fail-closed
+                // (never auto-accepting an unknown or changed key, preventing
+                // CA-to-TOFU MITM downgrade).
+                if (!verifiedInKex && hostKeyEntry != null) {
+                    verifyReconnectHostKey(sessionId, hostKeyEntry)
+                } else if (hostKeyEntry == null) {
                     Log.i(TAG, "Reconnect $sessionId: host verified by trusted CA")
                 }
 
@@ -1473,6 +1466,25 @@ class SshSessionManager @Inject constructor(
                 reconnectHooks[sessionId]?.let { hook -> runCatching { runBlocking { hook() } } }
                 Log.d(TAG, "Reconnected $sessionId on attempt $attempt")
                 return
+            } catch (e: SshHostKeyRejectedException) {
+                Log.w(TAG, "${e.message}")
+                runCatching { candidateClient?.disconnect() }
+                val prev = _sessions.value[sessionId]?.client
+                _sessions.update { map ->
+                    var updated = map
+                    updated[sessionId]?.let { cur ->
+                        updated = updated + (sessionId to cur.copy(status = SessionState.Status.ERROR))
+                    }
+                    if (prev != null) {
+                        for ((id, sib) in updated) {
+                            if (id != sessionId && sib.client === prev && sib.status == SessionState.Status.RECONNECTING) {
+                                updated = updated + (id to sib.copy(status = SessionState.Status.DISCONNECTED))
+                            }
+                        }
+                    }
+                    updated
+                }
+                return
             } catch (e: Exception) {
                 runCatching { candidateClient?.disconnect() }
                 if (_sessions.value[sessionId] == null || currentThread.isInterrupted || e is InterruptedException) {
@@ -1527,21 +1539,18 @@ class SshSessionManager @Inject constructor(
             hardwareKeySigner = previousClient?.hardwareKeySigner
         }
         return try {
+            var verifiedInKex = false
             val hostKeyEntry = overflow.connectBlocking(
                 config,
                 proxy = proxy,
                 trustedHostCaKeys = runBlocking { hostKeyVerifier.trustedHostCaKeys() },
+                hostKeyGate = { entry ->
+                    verifyReconnectHostKey(sessionId, entry)
+                    verifiedInKex = true
+                },
             )
-            if (hostKeyEntry != null) {
-                when (val hkResult = runBlocking { hostKeyVerifier.verify(hostKeyEntry) }) {
-                    is HostKeyResult.Trusted -> {}
-                    is HostKeyResult.NewHost -> runBlocking { hostKeyVerifier.accept(hkResult.entry) }
-                    is HostKeyResult.KeyChanged -> {
-                        Log.w(TAG, "Host key changed on overflow reconnect dial for $sessionId — aborting overflow")
-                        overflow.disconnect()
-                        return null
-                    }
-                }
+            if (!verifiedInKex && hostKeyEntry != null) {
+                verifyReconnectHostKey(sessionId, hostKeyEntry)
             }
             if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
                 runCatching { overflow.disconnect() }
@@ -1552,6 +1561,29 @@ class SshSessionManager @Inject constructor(
             Log.w(TAG, "Overflow reconnect dial failed for $sessionId: ${e.message}")
             runCatching { overflow.disconnect() }
             null
+        }
+    }
+
+    /**
+     * Fail-closed host-key verification for background reconnects. Rejects both
+     * [HostKeyResult.KeyChanged] and [HostKeyResult.NewHost] before any user
+     * credentials are sent, preventing silent CA-to-TOFU MITM downgrades.
+     */
+    private fun verifyReconnectHostKey(sessionId: String, entry: KnownHostEntry) {
+        when (val hkResult = runBlocking { hostKeyVerifier.verify(entry) }) {
+            is HostKeyResult.Trusted -> {}
+            is HostKeyResult.NewHost -> {
+                throw SshHostKeyRejectedException(
+                    hkResult.entry,
+                    "Unknown host key during reconnect for $sessionId — aborting (refusing silent TOFU)",
+                )
+            }
+            is HostKeyResult.KeyChanged -> {
+                throw SshHostKeyRejectedException(
+                    hkResult.new,
+                    "Host key changed during reconnect for $sessionId — aborting",
+                )
+            }
         }
     }
 

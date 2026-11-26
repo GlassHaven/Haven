@@ -93,7 +93,7 @@ class SshSessionManagerMaxSessionsReconnectTest {
         val newShells = CopyOnWriteArrayList<PipeShell>()
         val newClient = mockk<SshClient>(relaxed = true)
         every { newClient.isConnected } returns true
-        every { newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any()) } returns null
+        every { newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
         every { newClient.openTerminalChannel(any(), any(), any(), any(), any()) } answers {
             val now = activeChannelsOnNewClient.incrementAndGet()
             if (now > maxConcurrentChannels) {
@@ -274,7 +274,7 @@ class SshSessionManagerMaxSessionsReconnectTest {
         val activeOnNew = AtomicInteger(0)
         val newClient = mockk<SshClient>(relaxed = true)
         every { newClient.isConnected } returns true
-        every { newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any()) } returns null
+        every { newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
         every { newClient.openTerminalChannel(any(), any(), any(), any(), any()) } answers {
             val n = activeOnNew.incrementAndGet()
             if (n > 2) {
@@ -370,7 +370,7 @@ class SshSessionManagerMaxSessionsReconnectTest {
             val count = AtomicInteger(0)
             return mockk<SshClient>(relaxed = true) {
                 every { isConnected } returns true
-                every { connectBlocking(any(), any(), any(), any(), any(), any(), any()) } returns null
+                every { connectBlocking(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
                 every { openTerminalChannel(any(), any(), any(), any(), any()) } answers {
                     val n = count.incrementAndGet()
                     if (n > cap) {

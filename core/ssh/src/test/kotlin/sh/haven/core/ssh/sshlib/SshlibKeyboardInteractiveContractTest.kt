@@ -197,6 +197,81 @@ class SshlibKeyboardInteractiveContractTest {
         }
     }
 
+    @Test
+    fun hostKeyGateRejects_abortsBeforePasswordOrKeyboardInteractiveAuth() {
+        val passwordsReceived = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val kiChallenges = java.util.concurrent.atomic.AtomicInteger(0)
+        val keyFile = Files.createTempFile("haven-sshlib-mitm-hostkey-", ".ser").also {
+            Files.deleteIfExists(it)
+            it.toFile().deleteOnExit()
+        }
+        server = SshServer.setUpDefaultServer().apply {
+            host = "127.0.0.1"
+            port = 0
+            keyPairProvider = SimpleGeneratorHostKeyProvider(keyFile).apply {
+                algorithm = "RSA"
+                keySize = 2048
+                loadKeys(null)
+            }
+            userAuthFactories = listOf(UserAuthPasswordFactory.INSTANCE, UserAuthKeyboardInteractiveFactory.INSTANCE)
+            passwordAuthenticator = org.apache.sshd.server.auth.password.PasswordAuthenticator { _, password, _ ->
+                passwordsReceived.add(password)
+                true
+            }
+            keyboardInteractiveAuthenticator = object : KeyboardInteractiveAuthenticator {
+                override fun generateChallenge(
+                    session: ServerSession,
+                    username: String,
+                    lang: String,
+                    subMethods: String,
+                ): InteractiveChallenge {
+                    kiChallenges.incrementAndGet()
+                    return InteractiveChallenge().apply {
+                        interactionName = "OTP"
+                        interactionInstruction = ""
+                        languageTag = ""
+                        addPrompt("Verification code: ", false)
+                    }
+                }
+                override fun authenticate(session: ServerSession, username: String, responses: List<String>) = true
+            }
+        }
+        server.start()
+        serverPort = server.port
+
+        val connection: SshConnection = SshlibConnection()
+        var prompterCalled = false
+        try {
+            val thrown = org.junit.Assert.assertThrows(sh.haven.core.ssh.SshHostKeyRejectedException::class.java) {
+                runBlocking {
+                    connection.connect(
+                        config = passwordConfig("sshlib-secret-password"),
+                        connectTimeoutMs = connectTimeoutMs,
+                        proxy = null,
+                        keyboardInteractivePrompter = { prompterCalled = true; listOf(totpCode) },
+                        totpCodeProvider = { totpCode },
+                        confirmOtp = false,
+                        preConnect = null,
+                        trustedHostCaKeys = emptyList(),
+                        hostKeyGate = { entry ->
+                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry, "sshlib MITM host key rejected")
+                        },
+                    )
+                }
+            }
+            assertEquals("sshlib MITM host key rejected", thrown.message)
+            assertTrue(
+                "sshlib MUST NOT send password when hostKeyGate rejects during KEX, got: $passwordsReceived",
+                passwordsReceived.isEmpty(),
+            )
+            assertEquals("sshlib MUST NOT start KI when hostKeyGate rejects during KEX", 0, kiChallenges.get())
+            assertFalse(prompterCalled)
+            assertFalse(connection.isConnected)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun passwordConfig(password: String) = ConnectionConfig(
         host = "127.0.0.1",
         port = serverPort,

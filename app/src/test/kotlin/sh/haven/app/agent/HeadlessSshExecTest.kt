@@ -114,7 +114,7 @@ class HeadlessSshExecTest {
             coEvery { execCommand(any(), any()) } throws IllegalStateException("Not connected")
         }
         val fresh = mockk<SshClient>(relaxed = true) {
-            coEvery { connect(any()) } returns mockk<KnownHostEntry>()
+            coEvery { connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns mockk<KnownHostEntry>()
             coEvery { execCommand("uptime", 5_000) } returns ExecResult(0, "up", "")
         }
         val repo = mockk<ConnectionRepository> { coEvery { getById("p1") } returns sshProfile }
@@ -138,7 +138,7 @@ class HeadlessSshExecTest {
     @Test
     fun `unknown host key is refused fail-closed and the client disconnected`() {
         val client = mockk<SshClient>(relaxed = true) {
-            coEvery { connect(any()) } returns mockk<KnownHostEntry>()
+            coEvery { connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns mockk<KnownHostEntry>()
         }
         val repo = mockk<ConnectionRepository> { coEvery { getById("p1") } returns sshProfile }
         val verifier = mockk<HostKeyVerifier> {
@@ -155,7 +155,7 @@ class HeadlessSshExecTest {
     @Test
     fun `changed host key is refused`() {
         val client = mockk<SshClient>(relaxed = true) {
-            coEvery { connect(any()) } returns mockk<KnownHostEntry>()
+            coEvery { connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns mockk<KnownHostEntry>()
         }
         val repo = mockk<ConnectionRepository> { coEvery { getById("p1") } returns sshProfile }
         val verifier = mockk<HostKeyVerifier> {

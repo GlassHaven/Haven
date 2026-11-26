@@ -1012,7 +1012,7 @@ class SshSessionManagerTest {
         val finishDial = java.util.concurrent.CountDownLatch(1)
 
         every {
-            newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any())
+            newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any(), any(), any())
         } answers {
             dialStarted.countDown()
             try {
@@ -1155,6 +1155,66 @@ class SshSessionManagerTest {
         assertTrue(tmuxCmds[1].contains("tmux"))
         assertEquals(expectedExport, tmuxCmds[2])
         assertEquals("htop", tmuxCmds[3])
+    }
+
+    @Test
+    fun `attemptReconnect rejects unknown host key fail-closed without calling accept (CA downgrade guard)`() {
+        val verifier = mockk<HostKeyVerifier>()
+        val mitmEntry = KnownHostEntry("test.example", 22, "ssh-ed25519", "AAAAMitmBareKey=")
+        coEvery { verifier.trustedHostCaKeys() } returns listOf("ecdsa-sha2-nistp256 AAAACA=")
+        coEvery { verifier.verify(mitmEntry) } returns HostKeyResult.NewHost(mitmEntry)
+
+        val localManager = SshSessionManager(verifier, mockk(relaxed = true))
+        localManager.reconnectInitialDelayMs = 10L
+
+        val oldClient = mockk<SshClient>(relaxed = true)
+        val newClient = mockk<SshClient>(relaxed = true)
+        var gateInvoked = false
+        every {
+            newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } answers {
+            @Suppress("UNCHECKED_CAST")
+            val gate = args[8] as ((KnownHostEntry) -> Unit)?
+            assertNotNull("reconnect MUST pass pre-auth hostKeyGate", gate)
+            gateInvoked = true
+            gate!!.invoke(mitmEntry)
+            mitmEntry
+        }
+        localManager.reconnectClientFactory = { newClient }
+
+        val primaryId = localManager.registerSession("p1", "Server", oldClient)
+        localManager.storeConnectionConfig(primaryId, configWithPolicy(autoReconnect = true), SessionManager.NONE)
+        localManager.updateStatus(primaryId, SshSessionManager.SessionState.Status.CONNECTED)
+
+        val siblingId = localManager.registerSession("p1", "Server (2)", oldClient)
+        localManager.storeReuseConfig(siblingId, "p1", SessionManager.NONE)
+        localManager.updateStatus(siblingId, SshSessionManager.SessionState.Status.CONNECTED)
+
+        localManager.updateStatus(primaryId, SshSessionManager.SessionState.Status.DISCONNECTED)
+        localManager.updateStatus(siblingId, SshSessionManager.SessionState.Status.RECONNECTING)
+
+        localManager.requestReconnect(primaryId)
+        val deadline = System.currentTimeMillis() + 3_000L
+        while (localManager.getSession(primaryId)?.status != SshSessionManager.SessionState.Status.ERROR &&
+            System.currentTimeMillis() < deadline
+        ) {
+            Thread.sleep(15)
+        }
+
+        assertTrue("pre-auth hostKeyGate must have run during reconnect", gateInvoked)
+        assertEquals(
+            "reconnect must abort to ERROR on unknown host key instead of silently accepting",
+            SshSessionManager.SessionState.Status.ERROR,
+            localManager.getSession(primaryId)!!.status,
+        )
+        assertEquals(
+            "shared sibling in RECONNECTING must transition to DISCONNECTED on host-key abort",
+            SshSessionManager.SessionState.Status.DISCONNECTED,
+            localManager.getSession(siblingId)!!.status,
+        )
+        coVerify(exactly = 0) { verifier.accept(any()) }
+        verify(atLeast = 1) { newClient.disconnect() }
+        localManager.disconnectAll()
     }
 
     private fun configWithPolicy(

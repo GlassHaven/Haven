@@ -468,6 +468,7 @@ class SshClient : SshConnection {
         confirmOtp: Boolean,
         preConnect: (suspend () -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: (suspend (KnownHostEntry) -> Unit)?,
     ): KnownHostEntry? = withContext(Dispatchers.IO) {
         usedLegacyHostKeyFallback = false
         failedHostKeyProposal = null
@@ -481,6 +482,7 @@ class SshClient : SshConnection {
                 confirmOtp = confirmOtp,
                 preConnect = preConnect,
                 trustedHostCaKeys = trustedHostCaKeys,
+                hostKeyGate = hostKeyGate,
                 extraHostKeyAlgorithms = null,
             )
         } catch (e: JSchException) {
@@ -498,6 +500,7 @@ class SshClient : SshConnection {
                 confirmOtp = confirmOtp,
                 preConnect = preConnect,
                 trustedHostCaKeys = trustedHostCaKeys,
+                hostKeyGate = hostKeyGate,
                 extraHostKeyAlgorithms = retry,
             )
         }
@@ -533,6 +536,7 @@ class SshClient : SshConnection {
         confirmOtp: Boolean,
         preConnect: (suspend () -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: (suspend (KnownHostEntry) -> Unit)?,
         extraHostKeyAlgorithms: String?,
     ): KnownHostEntry? {
         disconnect()
@@ -582,13 +586,22 @@ class SshClient : SshConnection {
             )
             sess.setSocketFactory(BoundSocketFactory(it, connectTimeoutMs))
         }
-        // Accept any key at the JSch level; we verify post-connect ourselves (TOFU)
-        sess.setConfig("StrictHostKeyChecking", "no")
+        // When a pre-auth hostKeyGate is supplied (every production path),
+        // enforce StrictHostKeyChecking=yes so JSch runs checkHost() before
+        // sending any SSH_MSG_USERAUTH_REQUEST packets. When omitted (standalone
+        // channel/exec contract tests), keep permissive capture.
+        sess.setConfig("StrictHostKeyChecking", if (hostKeyGate != null) "yes" else "no")
         // #133: trusted host-CA keys activate JSch's native OpenSSH host-
         // certificate verification. A CA-signed host cert that validates makes
-        // TOFU unnecessary (connect returns null); anything else falls back to
-        // the stripped key and the usual TOFU flow.
-        val caRepo = installHostCaRepository(sess, trustedHostCaKeys)
+        // TOFU unnecessary (connect returns null); anything else runs through
+        // TrustedCaHostKeyRepository.check() during KEX before UserAuth begins.
+        val caRepo = installHostCaRepository(
+            sess = sess,
+            host = config.host,
+            port = config.port,
+            trustedHostCaKeys = trustedHostCaKeys,
+            onHostKey = hostKeyGate?.let { gate -> { entry -> runBlocking { gate(entry) } } },
+        )
         // Disable GSSAPI auth — it causes multi-second timeouts on most servers
         sess.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password")
         sess.serverAliveInterval = 15_000
@@ -671,15 +684,19 @@ class SshClient : SshConnection {
                 try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
                 throw JSchException(jump.timeoutMessage(connectTimeoutMs), e)
             }
+            caRepo?.rejectionError?.let { rejected ->
+                try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
+                throw rejected
+            }
             // KEX may have completed before the auth step failed — e.g. encrypted
             // keys tried with null passphrase, MaxAuthTries tripped, or wrong
-            // remembered password. In that case JSch already has the server's
-            // host key, and the caller needs it to drive TOFU verification so
-            // the user sees a fingerprint prompt on first contact instead of
-            // just an opaque "Auth fail" error. See GlassOnTin/Haven#75 follow-up.
+            // remembered password. When no pre-auth gate already ran during KEX,
+            // surface the captured host key so the caller can drive TOFU.
             val capturedHostKey = tryExtractHostKey(sess, config.host, config.port)
             try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
-            if (capturedHostKey != null) throw HostKeyAuthFailure(capturedHostKey, e)
+            if (capturedHostKey != null && caRepo?.approvedByGate != true) {
+                throw HostKeyAuthFailure(capturedHostKey, e)
+            }
             // "Read timed out" and "socket is not established" are opposite
             // diagnoses wearing similar words; say which one this was, and
             // against which address (#557).
@@ -869,6 +886,7 @@ class SshClient : SshConnection {
         confirmOtp: Boolean,
         preConnect: (() -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: ((KnownHostEntry) -> Unit)?,
     ): KnownHostEntry? {
         usedLegacyHostKeyFallback = false
         failedHostKeyProposal = null
@@ -882,6 +900,7 @@ class SshClient : SshConnection {
                 confirmOtp = confirmOtp,
                 preConnect = preConnect,
                 trustedHostCaKeys = trustedHostCaKeys,
+                hostKeyGate = hostKeyGate,
                 extraHostKeyAlgorithms = null,
             )
         } catch (e: JSchException) {
@@ -896,6 +915,7 @@ class SshClient : SshConnection {
                 confirmOtp = confirmOtp,
                 preConnect = preConnect,
                 trustedHostCaKeys = trustedHostCaKeys,
+                hostKeyGate = hostKeyGate,
                 extraHostKeyAlgorithms = retry,
             )
         }
@@ -911,6 +931,7 @@ class SshClient : SshConnection {
         confirmOtp: Boolean,
         preConnect: (() -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: ((KnownHostEntry) -> Unit)?,
         extraHostKeyAlgorithms: String?,
     ): KnownHostEntry? {
         disconnect()
@@ -960,8 +981,14 @@ class SshClient : SshConnection {
             )
             sess.setSocketFactory(BoundSocketFactory(it, connectTimeoutMs))
         }
-        sess.setConfig("StrictHostKeyChecking", "no")
-        val caRepo = installHostCaRepository(sess, trustedHostCaKeys)
+        sess.setConfig("StrictHostKeyChecking", if (hostKeyGate != null) "yes" else "no")
+        val caRepo = installHostCaRepository(
+            sess = sess,
+            host = config.host,
+            port = config.port,
+            trustedHostCaKeys = trustedHostCaKeys,
+            onHostKey = hostKeyGate,
+        )
         sess.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password")
         sess.serverAliveInterval = 15_000
         sess.serverAliveCountMax = 3
@@ -1026,9 +1053,15 @@ class SshClient : SshConnection {
                 try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
                 throw JSchException(jump.timeoutMessage(connectTimeoutMs), e)
             }
+            caRepo?.rejectionError?.let { rejected ->
+                try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
+                throw rejected
+            }
             val capturedHostKey = tryExtractHostKey(sess, config.host, config.port)
             try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
-            if (capturedHostKey != null) throw HostKeyAuthFailure(capturedHostKey, e)
+            if (capturedHostKey != null && caRepo?.approvedByGate != true) {
+                throw HostKeyAuthFailure(capturedHostKey, e)
+            }
             // "Read timed out" and "socket is not established" are opposite
             // diagnoses wearing similar words; say which one this was, and
             // against which address (#557).
@@ -1267,13 +1300,24 @@ class SshClient : SshConnection {
      */
     private fun installHostCaRepository(
         sess: Session,
+        host: String,
+        port: Int,
         trustedHostCaKeys: List<String>,
+        onHostKey: ((KnownHostEntry) -> Unit)? = null,
     ): TrustedCaHostKeyRepository? {
-        if (trustedHostCaKeys.isEmpty()) return null
-        val repo = TrustedCaHostKeyRepository(trustedHostCaKeys)
-        if (repo.caCount == 0) return null
+        if (trustedHostCaKeys.isEmpty() && onHostKey == null) return null
+        val repo = TrustedCaHostKeyRepository(
+            caPublicKeys = trustedHostCaKeys,
+            hostname = host,
+            port = port,
+            sessionHostKeyProvider = { sess.hostKey },
+            onHostKey = onHostKey,
+        )
+        if (repo.caCount == 0 && onHostKey == null) return null
         sess.setHostKeyRepository(repo)
-        diag("host-CA verification active: ${repo.caCount} trusted CA(s)")
+        if (repo.caCount > 0) {
+            diag("host-CA verification active: ${repo.caCount} trusted CA(s)")
+        }
         return repo
     }
 

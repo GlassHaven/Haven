@@ -75,6 +75,7 @@ interface SshConnection : Closeable {
         confirmOtp: Boolean = false,
         preConnect: (suspend () -> Unit)? = null,
         trustedHostCaKeys: List<String> = emptyList(),
+        hostKeyGate: (suspend (KnownHostEntry) -> Unit)? = null,
     ): KnownHostEntry?
 
     fun connectBlocking(
@@ -86,6 +87,7 @@ interface SshConnection : Closeable {
         confirmOtp: Boolean = false,
         preConnect: (() -> Unit)? = null,
         trustedHostCaKeys: List<String> = emptyList(),
+        hostKeyGate: ((KnownHostEntry) -> Unit)? = null,
     ): KnownHostEntry?
 
     suspend fun isAlive(timeoutMs: Long = 5_000L): Boolean
@@ -127,3 +129,12 @@ interface SshConnection : Closeable {
 
     fun disconnect()
 }
+
+/**
+ * Thrown when a pre-authentication `hostKeyGate` rejects the server's host key
+ * during key exchange (before any `SSH_MSG_USERAUTH_REQUEST` is sent).
+ */
+class SshHostKeyRejectedException(
+    val hostKey: KnownHostEntry,
+    message: String = "Host key rejected for ${hostKey.hostname}:${hostKey.port}",
+) : Exception(message)

@@ -45,9 +45,9 @@ object SshOptionsApplier {
         "casignaturealgorithms" to listOf("CASignatureAlgorithms"),
     )
 
-    // Haven pins StrictHostKeyChecking=no because it runs its own TOFU
-    // (see SshClient.kt:69). Letting a user flip it would silently
-    // disable that path, so we drop any override. ForwardX11* and
+    // Haven manages StrictHostKeyChecking internally to drive its pre-auth
+    // KEX host-key gate. Letting a user flip it would bypass or break that
+    // path, so we drop any override. ForwardX11* and
     // ForwardPulseAudio are handled by Haven's reverse-tunnel media
     // forwarding (#605) rather than JSch session config.
     private val RESERVED_KEYS = setOf(

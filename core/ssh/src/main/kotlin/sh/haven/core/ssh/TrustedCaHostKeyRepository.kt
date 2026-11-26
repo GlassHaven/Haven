@@ -5,25 +5,36 @@ import com.jcraft.jsch.HostKeyRepository
 import com.jcraft.jsch.UserInfo
 
 /**
- * A JSch [HostKeyRepository] that serves ONLY `@cert-authority` entries — the
- * trusted SSH host-CA public keys from the user's step-ca configs (#133).
+ * JSch [HostKeyRepository] combining `@cert-authority` host-certificate trust
+ * (#133) with Haven's pre-authentication host-key gate.
  *
- * Installing this on a session activates JSch's native OpenSSH host-certificate
- * verification (`OpenSshCertificateHostKeyVerifier`): when the server presents
- * a `*-cert-v01@openssh.com` host key signed by one of these CAs — signature
- * valid, within validity window, principal matches the hostname, not revoked —
- * `Session.checkHost` returns before ever consulting [check], and the session's
- * host key is left unset. [SshClient.extractHostKey] reads that state
- * (together with [checkConsulted]) as "verified by CA" and skips Haven's TOFU
- * flow. When cert validation fails, JSch falls back to plain key verification
- * (`host_certificate_to_key_fallback` default): [check] IS consulted, returns
- * NOT_INCLUDED, `StrictHostKeyChecking=no` accepts, and Haven's usual
- * post-connect TOFU handles the stripped underlying key — same UX as today.
+ * Installing this on a session with `StrictHostKeyChecking=yes` runs host-key
+ * verification during KEX (`Session.checkHost`), strictly BEFORE JSch enters
+ * `UserAuth`:
+ *  1. When the server presents a `*-cert-v01@openssh.com` host key signed by
+ *     one of [caPublicKeys] — valid signature, within validity window,
+ *     matching principal, not revoked — `Session.checkHost` returns early
+ *     before consulting [check], leaving `Session.hostKey` unset.
+ *  2. Otherwise (plain host key, or an untrusted/invalid certificate falling
+ *     back via `host_certificate_to_key_fallback`), `Session.doCheckHostKey`
+ *     populates `Session.hostKey` and calls [check]. When [onHostKey] is
+ *     supplied, [check] invokes it synchronously during KEX:
+ *      - Normal return → [approvedByGate] = true and `OK` is returned so JSch
+ *        proceeds to user authentication on the same handshake.
+ *      - Any thrown exception → stored in [rejectionError] and `NOT_INCLUDED`
+ *        is returned, causing JSch (`StrictHostKeyChecking=yes`) to abort KEX
+ *        with `JSchUnknownHostKeyException` before sending any credentials.
  *
  * Read-only by design: [add]/[remove] are no-ops. Haven's known hosts live in
  * Room, not in this repository.
  */
-class TrustedCaHostKeyRepository(caPublicKeys: List<String>) : HostKeyRepository {
+class TrustedCaHostKeyRepository(
+    caPublicKeys: List<String>,
+    private val hostname: String? = null,
+    private val port: Int = 22,
+    private val sessionHostKeyProvider: (() -> HostKey?)? = null,
+    private val onHostKey: ((KnownHostEntry) -> Unit)? = null,
+) : HostKeyRepository {
 
     /**
      * True once JSch consulted [check] — i.e. the plain-key (TOFU) path ran
@@ -33,6 +44,16 @@ class TrustedCaHostKeyRepository(caPublicKeys: List<String>) : HostKeyRepository
     var checkConsulted: Boolean = false
         private set
 
+    /** True when [onHostKey] ran during KEX and returned without throwing. */
+    @Volatile
+    var approvedByGate: Boolean = false
+        private set
+
+    /** Non-null when [onHostKey] rejected the host key during KEX. */
+    @Volatile
+    var rejectionError: Throwable? = null
+        private set
+
     private val caEntries: List<HostKey> = caPublicKeys.mapNotNull(::parseCaLine)
 
     /** Number of CA keys that parsed successfully. */
@@ -40,7 +61,32 @@ class TrustedCaHostKeyRepository(caPublicKeys: List<String>) : HostKeyRepository
 
     override fun check(host: String?, key: ByteArray?): Int {
         checkConsulted = true
-        return HostKeyRepository.NOT_INCLUDED
+        val gate = onHostKey ?: return HostKeyRepository.NOT_INCLUDED
+        val hk = try {
+            sessionHostKeyProvider?.invoke()
+                ?: if (key != null) HostKey(host ?: hostname.orEmpty(), key) else null
+        } catch (t: Throwable) {
+            rejectionError = t
+            return HostKeyRepository.NOT_INCLUDED
+        }
+        if (hk == null) {
+            rejectionError = IllegalStateException("No host key available during KEX for ${hostname ?: host}:$port")
+            return HostKeyRepository.NOT_INCLUDED
+        }
+        val entry = KnownHostEntry(
+            hostname = hostname ?: host.orEmpty(),
+            port = port,
+            keyType = hk.type,
+            publicKeyBase64 = hk.key,
+        )
+        return try {
+            gate(entry)
+            approvedByGate = true
+            HostKeyRepository.OK
+        } catch (t: Throwable) {
+            rejectionError = t
+            HostKeyRepository.NOT_INCLUDED
+        }
     }
 
     override fun add(hostkey: HostKey?, ui: UserInfo?) { /* read-only */ }

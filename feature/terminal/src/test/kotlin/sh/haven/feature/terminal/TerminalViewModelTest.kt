@@ -1115,7 +1115,7 @@ class TerminalViewModelTest {
             var overflowDials = 0
             val overflowClient = mockk<SshClient>(relaxed = true) {
                 every { isConnected } returns true
-                coEvery { connect(any(), proxy = isNull(), trustedHostCaKeys = any()) } returns null
+                coEvery { connect(any(), proxy = isNull(), trustedHostCaKeys = any(), hostKeyGate = any()) } returns null
                 every { openShellChannel(any(), any(), any()) } answers { makeLiveShell() }
                 every { openTerminalChannel(any(), any(), any(), any(), any()) } answers { makeLiveShell() }
             }
@@ -1158,7 +1158,7 @@ class TerminalViewModelTest {
 
                 assertEquals(1, overflowDials)
                 coVerify(exactly = 1) {
-                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any())
+                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any(), hostKeyGate = any())
                 }
                 verify(exactly = 0) { sharedClient.disconnect() }
                 val sessions = sessionManager.getSessionsForProfile("p1")
@@ -1260,7 +1260,7 @@ class TerminalViewModelTest {
 
                 assertEquals(0, fidoOverflowDials)
                 coVerify(exactly = 0) {
-                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any())
+                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any(), hostKeyGate = any())
                 }
                 verify(exactly = 0) { sharedClient.disconnect() }
                 // Failed new session was cleaned up; original session remains intact.

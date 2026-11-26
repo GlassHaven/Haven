@@ -3164,36 +3164,72 @@ class TerminalViewModel @Inject constructor(
                     // through the tunnel.
                     val proxy = connectionRepository.getById(profileId)
                         ?.let { tunnelResolver.havenProxy(it) }
-                    val hostKeyEntry = withContext(Dispatchers.IO) {
-                        activeClient.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                    var verifiedInKex = false
+                    var rejectedChanged: Boolean? = null
+                    val hostKeyEntry = try {
+                        withContext(Dispatchers.IO) {
+                            activeClient.connect(
+                                config,
+                                proxy = proxy,
+                                trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                                hostKeyGate = { entry ->
+                                    when (hostKeyVerifier.verify(entry)) {
+                                        is HostKeyResult.Trusted -> verifiedInKex = true
+                                        is HostKeyResult.NewHost -> {
+                                            rejectedChanged = false
+                                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry)
+                                        }
+                                        is HostKeyResult.KeyChanged -> {
+                                            rejectedChanged = true
+                                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry)
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    } catch (_: sh.haven.core.ssh.SshHostKeyRejectedException) {
+                        activeClient.disconnect()
+                        sessionManager.removeSession(sessionId)
+                        val changed = rejectedChanged == true
+                        Log.w(
+                            TAG,
+                            "${if (changed) "Host key changed" else "Unknown host key"} for ${LogRedact.host(config.host, config.port)} — aborting new tab",
+                        )
+                        _newTabMessage.value = appContext.getString(
+                            if (changed) R.string.terminal_new_tab_host_key_changed else R.string.terminal_new_tab_host_key_unknown,
+                            "${config.host}:${config.port}",
+                        )
+                        _newTabLoading.value = false
+                        return@launch
                     }
 
-                    // Silent TOFU is fail-closed: a new tab never silently trusts
-                    // an unknown or changed host key; the user establishes trust
-                    // via an interactive connect (host-key prompt). (#5)
-                    when (val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
-                        is HostKeyResult.Trusted -> { /* matches — continue */ }
-                        is HostKeyResult.NewHost -> {
-                            activeClient.disconnect()
-                            sessionManager.removeSession(sessionId)
-                            Log.w(TAG, "Unknown host key for ${LogRedact.host(config.host, config.port)} — aborting new tab")
-                            _newTabMessage.value = appContext.getString(
-                                R.string.terminal_new_tab_host_key_unknown,
-                                "${config.host}:${config.port}",
-                            )
-                            _newTabLoading.value = false
-                            return@launch
-                        }
-                        is HostKeyResult.KeyChanged -> {
-                            activeClient.disconnect()
-                            sessionManager.removeSession(sessionId)
-                            Log.w(TAG, "Host key changed for ${LogRedact.host(config.host, config.port)} — aborting new tab")
-                            _newTabMessage.value = appContext.getString(
-                                R.string.terminal_new_tab_host_key_changed,
-                                "${config.host}:${config.port}",
-                            )
-                            _newTabLoading.value = false
-                            return@launch
+                    // Defense-in-depth for unit-test mocks that return a KnownHostEntry
+                    // without invoking hostKeyGate (#5).
+                    if (!verifiedInKex) {
+                        when (if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
+                            is HostKeyResult.Trusted -> { /* matches — continue */ }
+                            is HostKeyResult.NewHost -> {
+                                activeClient.disconnect()
+                                sessionManager.removeSession(sessionId)
+                                Log.w(TAG, "Unknown host key for ${LogRedact.host(config.host, config.port)} — aborting new tab")
+                                _newTabMessage.value = appContext.getString(
+                                    R.string.terminal_new_tab_host_key_unknown,
+                                    "${config.host}:${config.port}",
+                                )
+                                _newTabLoading.value = false
+                                return@launch
+                            }
+                            is HostKeyResult.KeyChanged -> {
+                                activeClient.disconnect()
+                                sessionManager.removeSession(sessionId)
+                                Log.w(TAG, "Host key changed for ${LogRedact.host(config.host, config.port)} — aborting new tab")
+                                _newTabMessage.value = appContext.getString(
+                                    R.string.terminal_new_tab_host_key_changed,
+                                    "${config.host}:${config.port}",
+                                )
+                                _newTabLoading.value = false
+                                return@launch
+                            }
                         }
                     }
 
@@ -3386,30 +3422,62 @@ class TerminalViewModel @Inject constructor(
                     // Route through the profile's tunnel / proxy (see addSshTabForProfile).
                     val proxy = connectionRepository.getById(profileId)
                         ?.let { tunnelResolver.havenProxy(it) }
-                    val hostKeyEntry = withContext(Dispatchers.IO) { client.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys()) }
-                    when (val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
-                        is HostKeyResult.Trusted -> {}
-                        is HostKeyResult.NewHost -> {
-                            // Fail closed on an unknown host in the silent new-tab
-                            // path; trust is established interactively. (#5)
-                            client.disconnect()
-                            sessionManager.removeSession(sessionId)
-                            _newTabMessage.value = appContext.getString(
-                                R.string.terminal_new_tab_host_key_unknown,
-                                "${config.host}:${config.port}",
+                    var verifiedInKex = false
+                    var rejectedChanged: Boolean? = null
+                    val hostKeyEntry = try {
+                        withContext(Dispatchers.IO) {
+                            client.connect(
+                                config,
+                                proxy = proxy,
+                                trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                                hostKeyGate = { entry ->
+                                    when (hostKeyVerifier.verify(entry)) {
+                                        is HostKeyResult.Trusted -> verifiedInKex = true
+                                        is HostKeyResult.NewHost -> {
+                                            rejectedChanged = false
+                                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry)
+                                        }
+                                        is HostKeyResult.KeyChanged -> {
+                                            rejectedChanged = true
+                                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry)
+                                        }
+                                    }
+                                },
                             )
-                            _newTabLoading.value = false
-                            return@launch
                         }
-                        is HostKeyResult.KeyChanged -> {
-                            client.disconnect()
-                            sessionManager.removeSession(sessionId)
-                            _newTabMessage.value = appContext.getString(
-                                R.string.terminal_new_tab_host_key_changed,
-                                "${config.host}:${config.port}",
-                            )
-                            _newTabLoading.value = false
-                            return@launch
+                    } catch (_: sh.haven.core.ssh.SshHostKeyRejectedException) {
+                        client.disconnect()
+                        sessionManager.removeSession(sessionId)
+                        _newTabMessage.value = appContext.getString(
+                            if (rejectedChanged == true) R.string.terminal_new_tab_host_key_changed else R.string.terminal_new_tab_host_key_unknown,
+                            "${config.host}:${config.port}",
+                        )
+                        _newTabLoading.value = false
+                        return@launch
+                    }
+                    if (!verifiedInKex) {
+                        when (if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
+                            is HostKeyResult.Trusted -> {}
+                            is HostKeyResult.NewHost -> {
+                                client.disconnect()
+                                sessionManager.removeSession(sessionId)
+                                _newTabMessage.value = appContext.getString(
+                                    R.string.terminal_new_tab_host_key_unknown,
+                                    "${config.host}:${config.port}",
+                                )
+                                _newTabLoading.value = false
+                                return@launch
+                            }
+                            is HostKeyResult.KeyChanged -> {
+                                client.disconnect()
+                                sessionManager.removeSession(sessionId)
+                                _newTabMessage.value = appContext.getString(
+                                    R.string.terminal_new_tab_host_key_changed,
+                                    "${config.host}:${config.port}",
+                                )
+                                _newTabLoading.value = false
+                                return@launch
+                            }
                         }
                     }
                     sessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr)
@@ -4050,17 +4118,26 @@ class TerminalViewModel @Inject constructor(
         return try {
             Log.i(TAG, "Shared SSH client reached MaxSessions for ${LogRedact.of(current.label)} — dialing overflow client (#888)")
             val proxy = connectionRepository.getById(profileId)?.let { tunnelResolver.havenProxy(it) }
+            var verifiedInKex = false
             val hostKeyEntry = withContext(Dispatchers.IO) {
                 overflowClient.connect(
                     config,
                     proxy = proxy,
                     trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                    hostKeyGate = { entry ->
+                        if (hostKeyVerifier.verify(entry) !is HostKeyResult.Trusted) {
+                            throw sh.haven.core.ssh.SshHostKeyRejectedException(entry)
+                        }
+                        verifiedInKex = true
+                    },
                 )
             }
-            val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)
-            if (hkResult !is HostKeyResult.Trusted) {
-                overflowClient.disconnect()
-                return null
+            if (!verifiedInKex) {
+                val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)
+                if (hkResult !is HostKeyResult.Trusted) {
+                    overflowClient.disconnect()
+                    return null
+                }
             }
             val chosenName = current.chosenSessionName
             val bypassMgr = current.bypassSessionManager

@@ -64,12 +64,9 @@ internal const val SSHLIB_CHANNEL_LIMITATION =
  * [sh.haven.core.ssh.KeyboardInteractiveAnswerer] the JSch engine uses, so both
  * engines auto-answer and pre-fill by identical rules.
  *
- * **Host keys** follow the engine-neutral contract: the key is accepted and
- * returned from [connect] as a [KnownHostEntry] so the caller runs Haven's
- * normal TOFU prompt — the same accept-then-verify order JSch uses with
- * `StrictHostKeyChecking=no`. (The dedicated SFTP dial is stricter because a
- * prior interactive connect had already established trust; a whole connection
- * has no such predecessor, so it would otherwise refuse every new host.)
+ * **Host keys** verify during KEX via [PreAuthHostKeyGate] BEFORE any user
+ * authentication packet (`password`, `keyboard-interactive`, `publickey`) is
+ * sent on the wire.
  */
 internal class SshlibConnection : SshConnection {
 
@@ -127,6 +124,7 @@ internal class SshlibConnection : SshConnection {
         confirmOtp: Boolean,
         preConnect: (suspend () -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: (suspend (KnownHostEntry) -> Unit)?,
     ): KnownHostEntry? {
         disconnect()
         // Jump and proxy dials are supported now: both arrive as a HavenProxy
@@ -148,22 +146,28 @@ internal class SshlibConnection : SshConnection {
             )
         }
         preConnect?.invoke()
-        val gate = CapturingHostKeyGate(config.host, config.port)
-        val connected = SshlibSftpConnector.dialAndAuth(
-            config,
-            gate,
-            connectTimeoutMs.toLong(),
-            ki = keyboardInteractivePrompter?.let { prompter ->
-                KeyboardInteractiveAnswerer(
-                    destination = "${config.username}@${config.host}:${config.port}",
-                    prompter = prompter,
-                    fallbackPassword = savedPassword(config),
-                    totpCodeProvider = totpCodeProvider,
-                    autoSubmit = !confirmOtp,
-                )
-            },
-            proxy = proxy,
-        )
+        val gate = PreAuthHostKeyGate(config.host, config.port, hostKeyGate)
+        val connected = try {
+            SshlibSftpConnector.dialAndAuth(
+                config,
+                gate,
+                connectTimeoutMs.toLong(),
+                ki = keyboardInteractivePrompter?.let { prompter ->
+                    KeyboardInteractiveAnswerer(
+                        destination = "${config.username}@${config.host}:${config.port}",
+                        prompter = prompter,
+                        fallbackPassword = savedPassword(config),
+                        totpCodeProvider = totpCodeProvider,
+                        autoSubmit = !confirmOtp,
+                    )
+                },
+                proxy = proxy,
+                awaitingHostKeyPrompt = gate::isAwaitingDecision,
+            )
+        } catch (t: Throwable) {
+            gate.rejectionError?.let { throw it }
+            throw t
+        }
         client = connected
         forwarders = SshlibPortForwarders(connected)
         connectedViaProxy = proxy != null
@@ -180,6 +184,7 @@ internal class SshlibConnection : SshConnection {
         confirmOtp: Boolean,
         preConnect: (() -> Unit)?,
         trustedHostCaKeys: List<String>,
+        hostKeyGate: ((KnownHostEntry) -> Unit)?,
     ): KnownHostEntry? = runBlocking {
         connect(
             config = config,
@@ -190,6 +195,7 @@ internal class SshlibConnection : SshConnection {
             confirmOtp = confirmOtp,
             preConnect = preConnect?.let { blocking -> { blocking() } },
             trustedHostCaKeys = trustedHostCaKeys,
+            hostKeyGate = hostKeyGate?.let { blockingGate -> { entry -> blockingGate(entry) } },
         )
     }
 
@@ -332,27 +338,51 @@ internal class SshlibConnection : SshConnection {
         forwarders ?: throw IllegalStateException("sshlib: not connected")
 
     /**
-     * Accepts the server's host key and records it, so [connect] can hand it
-     * back for Haven's TOFU check. Deliberately permissive at this layer: the
-     * caller is the one that decides trust, exactly as on the JSch engine.
+     * Verifies the server's host key during KEX (before sshlib begins user
+     * authentication) by delegating to [hostKeyGate]. When [hostKeyGate] throws
+     * a rejection exception, stores it in [rejectionError] and returns `false`
+     * so sshlib aborts KEX immediately without sending credentials.
      */
-    private class CapturingHostKeyGate(
+    private class PreAuthHostKeyGate(
         private val hostname: String,
         private val port: Int,
+        private val hostKeyGate: (suspend (KnownHostEntry) -> Unit)?,
     ) : org.connectbot.sshlib.HostKeyVerifier {
 
         @Volatile
         var seen: KnownHostEntry? = null
             private set
 
+        @Volatile
+        var rejectionError: Throwable? = null
+            private set
+
+        @Volatile
+        private var awaiting: Boolean = false
+
+        fun isAwaitingDecision(): Boolean = awaiting
+
         override suspend fun verify(key: PublicKey): Boolean {
-            seen = KnownHostEntry(
+            val entry = KnownHostEntry(
                 hostname = hostname,
                 port = port,
                 keyType = key.type,
                 publicKeyBase64 = Base64.getEncoder().encodeToString(key.encoded),
             )
-            return true
+            seen = entry
+            val check = hostKeyGate ?: return true
+            awaiting = true
+            return try {
+                check(entry)
+                true
+            } catch (t: kotlinx.coroutines.CancellationException) {
+                throw t
+            } catch (t: Throwable) {
+                rejectionError = t
+                false
+            } finally {
+                awaiting = false
+            }
         }
     }
 }

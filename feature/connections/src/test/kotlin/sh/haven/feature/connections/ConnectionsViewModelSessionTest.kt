@@ -455,7 +455,7 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.registerSession("jump", any(), any(), any()) } returns "jump-sess"
         coEvery { tunnelResolver.havenProxy(jp) } returns jumpTunnel
         val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
-        coEvery { jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+        coEvery { jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
         viewModel.jumpClientFactory = { jumpClient }
 
         val (sessionId, reused) = viewModel.connectJumpHost("jump", password = "")
@@ -466,7 +466,7 @@ class ConnectionsViewModelSessionTest {
         // The gate: the dial must carry the jump profile's tunnel proxy.
         // Reverting the fix (no proxy= argument) fails this with proxy=null.
         coVerify(exactly = 1) {
-            jumpClient.connect(any(), any(), proxy = jumpTunnel, any(), any(), any(), any(), any())
+            jumpClient.connect(any(), any(), proxy = jumpTunnel, any(), any(), any(), any(), any(), any())
         }
         // And the reconnect path re-resolves it, same contract as the direct path.
         verify { sshSessionManager.setReconnectProxyProvider("jump-sess", any()) }
@@ -1059,7 +1059,7 @@ class ConnectionsViewModelSessionTest {
 
     private fun failingJumpClient() = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
         coEvery {
-            it.connect(any(), any(), any(), any(), any(), any(), any(), any())
+            it.connect(any(), any(), any(), any(), any(), any(), any(), any(), any())
         } throws com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
     }
 
@@ -1144,7 +1144,7 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
         val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
         coEvery {
-            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any())
+            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any(), any())
         } throws com.jcraft.jsch.JSchException("failed to connect to /10.0.0.1 (port 2222) after 1000ms: ConnectException (No route to host)")
 
         viewModel.jumpClientFactory = { jumpClient }
@@ -1218,7 +1218,7 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
         val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
         coEvery {
-            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any())
+            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any(), any())
         } throws com.jcraft.jsch.JSchException("Incorrect passphrase provided.")
         viewModel.jumpClientFactory = { jumpClient }
 
@@ -1249,7 +1249,7 @@ class ConnectionsViewModelSessionTest {
         val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
         val dialedConfig = slot<sh.haven.core.ssh.ConnectionConfig>()
         coEvery {
-            jumpClient.connect(capture(dialedConfig), any(), any(), any(), any(), any(), any(), any())
+            jumpClient.connect(capture(dialedConfig), any(), any(), any(), any(), any(), any(), any(), any())
         } throws com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
         viewModel.jumpClientFactory = { jumpClient }
 
@@ -1297,7 +1297,7 @@ class ConnectionsViewModelSessionTest {
             sh.haven.core.ssh.ShellOutcome.Ready("eph-sess")
         viewModel.clientFactory = { _ ->
             mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
-                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
             }
         }
 
@@ -1333,7 +1333,7 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.registerSession("eph-2", any(), any()) } returns "eph-sess"
         viewModel.clientFactory = { _ ->
             mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
-                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } throws
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } throws
                     com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
             }
         }
@@ -1435,7 +1435,7 @@ class ConnectionsViewModelSessionTest {
             sh.haven.core.ssh.ShellOutcome.Ready("recon-sess")
         viewModel.clientFactory = { _ ->
             mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
-                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
             }
         }
 
@@ -1480,7 +1480,7 @@ class ConnectionsViewModelSessionTest {
             sh.haven.core.ssh.ShellOutcome.Ready("key-any-sess")
         viewModel.clientFactory = { _ ->
             mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
-                coEvery { it.connect(capture(configSlot), any(), any(), any(), any(), any(), any(), any()) } returns null
+                coEvery { it.connect(capture(configSlot), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
             }
         }
 
@@ -1559,7 +1559,7 @@ class ConnectionsViewModelSessionTest {
         viewModel.clientFactory = { _ ->
             mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
                 coEvery {
-                    it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any())
+                    it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any(), any())
                 } coAnswers {
                     prompterSlot.captured.onBanner("root@100.64.0.10:22", bannerText)
                     bannerDelivered.countDown()
@@ -1612,7 +1612,7 @@ class ConnectionsViewModelSessionTest {
                 disconnectCalled.countDown()
             }
             coEvery {
-                it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any())
+                it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any(), any())
             } coAnswers {
                 prompterSlot.captured.onBanner(
                     "root@100.64.0.10:22",

@@ -1172,6 +1172,103 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Connect [client] and run interactive TOFU verification during KEX (before
+     * any credentials are sent to the server), keeping a post-connect fallback
+     * for unit-test doubles that stub [SshConnection.connect] without invoking
+     * `hostKeyGate`.
+     */
+    private suspend fun connectWithTofu(
+        client: SshConnection,
+        config: ConnectionConfig,
+        proxy: sh.haven.core.ssh.HavenProxy? = null,
+        keyboardInteractivePrompter: KeyboardInteractivePrompter? = null,
+        totpCodeProvider: (() -> String)? = null,
+        confirmOtp: Boolean = false,
+        preConnect: (suspend () -> Unit)? = null,
+        rejectedOnNewHostMessage: String = "Host key rejected by user",
+        rejectedOnChangeMessage: String = "Host key change rejected by user",
+        autoAccept: Boolean = false,
+    ) {
+        var verifiedInKex = false
+        val hostKeyEntry = client.connect(
+            config = config,
+            proxy = proxy,
+            keyboardInteractivePrompter = keyboardInteractivePrompter,
+            totpCodeProvider = totpCodeProvider,
+            confirmOtp = confirmOtp,
+            preConnect = preConnect,
+            trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+            hostKeyGate = { entry ->
+                runTofuVerification(
+                    entry = entry,
+                    clientToDisconnectOnReject = null,
+                    rejectedOnNewHostMessage = rejectedOnNewHostMessage,
+                    rejectedOnChangeMessage = rejectedOnChangeMessage,
+                    autoAccept = autoAccept,
+                )
+                verifiedInKex = true
+            },
+        )
+        if (!verifiedInKex) {
+            runTofuVerification(
+                entry = hostKeyEntry,
+                clientToDisconnectOnReject = client,
+                rejectedOnNewHostMessage = rejectedOnNewHostMessage,
+                rejectedOnChangeMessage = rejectedOnChangeMessage,
+                autoAccept = autoAccept,
+            )
+        }
+    }
+
+    /**
+     * Silent fail-closed connect helper: requires the server's host key to
+     * match an already-trusted known host (or a trusted host CA) during KEX
+     * before sending credentials.
+     */
+    private suspend fun connectWithTrustedHostKey(
+        client: SshConnection,
+        config: ConnectionConfig,
+        hostLabel: String = config.host,
+        proxy: sh.haven.core.ssh.HavenProxy? = null,
+        preConnect: (suspend () -> Unit)? = null,
+    ) {
+        suspend fun verifyFailClosed(entry: KnownHostEntry?, disconnectOnReject: SshConnection?) {
+            when (verifyOrCaTrusted(entry)) {
+                is HostKeyResult.Trusted -> {}
+                is HostKeyResult.NewHost -> {
+                    disconnectOnReject?.disconnect()
+                    throw sh.haven.core.ssh.SshHostKeyRejectedException(
+                        entry!!,
+                        "Unknown host key for $hostLabel — open this connection from " +
+                            "the Connections tab first to verify and trust its host key.",
+                    )
+                }
+                is HostKeyResult.KeyChanged -> {
+                    disconnectOnReject?.disconnect()
+                    throw sh.haven.core.ssh.SshHostKeyRejectedException(
+                        entry!!,
+                        "Host key changed for $hostLabel — possible MITM",
+                    )
+                }
+            }
+        }
+        var verifiedInKex = false
+        val hostKeyEntry = client.connect(
+            config = config,
+            proxy = proxy,
+            preConnect = preConnect,
+            trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+            hostKeyGate = { entry ->
+                verifyFailClosed(entry, disconnectOnReject = null)
+                verifiedInKex = true
+            },
+        )
+        if (!verifiedInKex) {
+            verifyFailClosed(hostKeyEntry, disconnectOnReject = client)
+        }
+    }
+
     /** Awaits [deferred] with [HOST_KEY_PROMPT_TIMEOUT_MS]; a timeout clears the stale prompt and counts as reject. */
     private suspend fun awaitHostKeyDecision(deferred: CompletableDeferred<Boolean>): Boolean {
         val decided = withTimeoutOrNull(HOST_KEY_PROMPT_TIMEOUT_MS) { deferred.await() }
@@ -4542,14 +4639,15 @@ class ConnectionsViewModel @Inject constructor(
                         Log.d(TAG, "Connecting to ${LogRedact.host(config.host, config.port)} (proxy=${proxy != null})")
                         activeConnectingSshClient = client
                         try {
-                            val hostKeyEntry = client.connect(
-                                config,
+                            connectWithTofu(
+                                client = client,
+                                config = config,
                                 proxy = proxy,
                                 keyboardInteractivePrompter = keyboardInteractivePrompter,
                                 totpCodeProvider = buildTotpCodeProvider(profile),
                                 confirmOtp = profile.totpConfirmBeforeSend,
                                 preConnect = buildKnockHook(profile, verboseLogger),
-                                trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                                autoAccept = profile.usbDriveSerial != null,
                             )
                             _sshAuthBanner.value = null
                             // A server that only offers the SHA-1 ssh-rsa host key
@@ -4562,7 +4660,6 @@ class ConnectionsViewModel @Inject constructor(
                                     config.port,
                                 )
                             }
-                            runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client, autoAccept = profile.usbDriveSerial != null)
                         } catch (e: HostKeyAuthFailure) {
                             _sshAuthBanner.value = null
                             // KEX succeeded but auth failed — still run the TOFU
@@ -4838,17 +4935,16 @@ class ConnectionsViewModel @Inject constructor(
         if (interactive) {
             activeConnectingSshClient = sshClient
             try {
-                val hostKeyEntry = sshClient.connect(
-                    config,
+                connectWithTofu(
+                    client = sshClient,
+                    config = config,
                     proxy = proxy,
                     keyboardInteractivePrompter = keyboardInteractivePrompter,
                     totpCodeProvider = buildTotpCodeProvider(profile),
                     confirmOtp = profile.totpConfirmBeforeSend,
                     preConnect = buildKnockHook(profile, verboseLogger),
-                    trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                 )
                 _sshAuthBanner.value = null
-                runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = sshClient)
             } catch (e: HostKeyAuthFailure) {
                 _sshAuthBanner.value = null
                 if (!sshAuthBannerCancelled) {
@@ -4860,28 +4956,13 @@ class ConnectionsViewModel @Inject constructor(
                 _sshAuthBanner.value = null
             }
         } else {
-            val hostKeyEntry = sshClient.connect(
-                config,
+            connectWithTrustedHostKey(
+                client = sshClient,
+                config = config,
+                hostLabel = profile.host,
                 proxy = proxy,
                 preConnect = buildKnockHook(profile, verboseLogger),
-                trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
             )
-            when (verifyOrCaTrusted(hostKeyEntry)) {
-                is HostKeyResult.Trusted -> {}
-                is HostKeyResult.NewHost -> {
-                    // Fail closed: don't silently trust an unknown host in a
-                    // background/workspace connect; require interactive TOFU. (#5)
-                    sshClient.disconnect()
-                    throw Exception(
-                        "Unknown host key for ${profile.host} — open this connection from " +
-                            "the Connections tab first to verify and trust its host key.",
-                    )
-                }
-                is HostKeyResult.KeyChanged -> {
-                    sshClient.disconnect()
-                    throw Exception("Host key changed for ${profile.host} — possible MITM")
-                }
-            }
         }
         sshClient
     }
@@ -5633,22 +5714,17 @@ class ConnectionsViewModel @Inject constructor(
                 Log.d(TAG, "Jump host SSH connecting... (proxy=${jumpProxy != null})")
                 activeConnectingSshClient = jumpClient
                 try {
-                    val hostKeyEntry = jumpClient.connect(
-                        config,
+                    connectWithTofu(
+                        client = jumpClient,
+                        config = config,
                         proxy = jumpProxy,
                         keyboardInteractivePrompter = keyboardInteractivePrompter,
                         totpCodeProvider = buildTotpCodeProvider(jumpProfile),
                         confirmOtp = jumpProfile.totpConfirmBeforeSend,
-                        trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
-                    )
-                    _sshAuthBanner.value = null
-                    Log.d(TAG, "Jump host SSH connected, verifying host key...")
-                    runTofuVerification(
-                        hostKeyEntry,
-                        clientToDisconnectOnReject = jumpClient,
                         rejectedOnNewHostMessage = "Jump host key rejected by user",
                         rejectedOnChangeMessage = "Jump host key change rejected by user",
                     )
+                    _sshAuthBanner.value = null
                 } catch (e: HostKeyAuthFailure) {
                     _sshAuthBanner.value = null
                     if (!sshAuthBannerCancelled) {
@@ -6937,7 +7013,8 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = keyAuth,
                 )
                 withContext(Dispatchers.IO) {
-                    testClient.connect(config)
+                    val proxy = tunnelResolver.havenProxy(profile)
+                    connectWithTrustedHostKey(testClient, config, profile.host, proxy = proxy)
                 }
                 // Key auth succeeded — already deployed
                 testClient.disconnect()
@@ -6957,9 +7034,9 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = ConnectionConfig.AuthMethod.Password(password),
                 )
                 withContext(Dispatchers.IO) {
-                    deployClient.connect(config)
+                    val proxy = tunnelResolver.havenProxy(profile)
+                    connectWithTrustedHostKey(deployClient, config, profile.host, proxy = proxy)
                 }
-                // Skip host key verification — we already verified during the connect
 
                 val pubKey = key.publicKeyOpenSsh.trim()
                 val command = "mkdir -p ~/.ssh && chmod 700 ~/.ssh && " +
@@ -7020,13 +7097,12 @@ class ConnectionsViewModel @Inject constructor(
                     }
                 }
                 try {
-                    val hostKeyEntry = client.connect(
-                        config,
+                    connectWithTofu(
+                        client = client,
+                        config = config,
                         proxy = proxy,
                         preConnect = buildKnockHook(profile, verboseLogger = null),
-                        trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                     )
-                    runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client)
                 } catch (e: HostKeyAuthFailure) {
                     runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
                     throw e.cause ?: e
@@ -7315,30 +7391,16 @@ class ConnectionsViewModel @Inject constructor(
                 } else {
                     tunnelResolver.havenProxy(profile)
                 }
-                val hostKeyEntry = client.connect(
-                    config,
+                // Silent TOFU is fail-closed: a background / workspace connect
+                // never silently trusts an unknown OR changed host key, and
+                // verifies during KEX before sending credentials (#5).
+                connectWithTrustedHostKey(
+                    client = client,
+                    config = config,
+                    hostLabel = profile.host,
                     proxy = proxy,
                     preConnect = buildKnockHook(profile, verboseLogger),
-                    trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                 )
-
-                // Silent TOFU is fail-closed: a background / workspace connect
-                // never silently trusts an unknown OR changed host key. Trust is
-                // established interactively via the host-key prompt. (#5)
-                when (val result = verifyOrCaTrusted(hostKeyEntry)) {
-                    is HostKeyResult.Trusted -> {}
-                    is HostKeyResult.NewHost -> {
-                        client.disconnect()
-                        throw Exception(
-                            "Unknown host key for ${profile.host} — open this connection from " +
-                                "the Connections tab first to verify and trust its host key.",
-                        )
-                    }
-                    is HostKeyResult.KeyChanged -> {
-                        client.disconnect()
-                        throw Exception("Host key changed for ${profile.host} — possible MITM")
-                    }
-                }
 
                 val sshSessionMgr = if (profile.remoteCommand.isNullOrBlank()) {
                     resolveSessionManager(profile)

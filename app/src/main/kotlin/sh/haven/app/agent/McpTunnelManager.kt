@@ -436,25 +436,40 @@ class McpTunnelManager @Inject constructor(
         sessionId = sid
         return try {
             val proxy = tunnelResolver?.havenProxy(profile)
+            var verifiedInKex = false
             val hostKeyEntry = client.connect(
                 config,
                 proxy = proxy,
                 trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                hostKeyGate = { entry ->
+                    when (hostKeyVerifier.verify(entry)) {
+                        is HostKeyResult.Trusted -> verifiedInKex = true
+                        is HostKeyResult.NewHost -> throw sh.haven.core.ssh.SshHostKeyRejectedException(
+                            entry,
+                            "Unknown host key for ${LogRedact.of(profile.label)} — refusing MCP tunnel (connect it interactively first)",
+                        )
+                        is HostKeyResult.KeyChanged -> throw sh.haven.core.ssh.SshHostKeyRejectedException(
+                            entry,
+                            "Host key changed for ${LogRedact.of(profile.label)} — refusing MCP tunnel",
+                        )
+                    }
+                },
             )
-            // Fail-closed TOFU: this headless tunnel never silently trusts an
-            // unknown or changed host key. The user establishes trust by
-            // connecting the profile interactively first (host-key prompt). (#5)
-            when (val r = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
-                is HostKeyResult.Trusted -> { /* ok */ }
-                is HostKeyResult.NewHost -> {
-                    Log.w(TAG, "Unknown host key for ${LogRedact.of(profile.label)} — refusing MCP tunnel (connect it interactively first)")
-                    cleanup(sid)
-                    return Outcome.FATAL
-                }
-                is HostKeyResult.KeyChanged -> {
-                    Log.w(TAG, "Host key changed for ${LogRedact.of(profile.label)} — refusing MCP tunnel")
-                    cleanup(sid)
-                    return Outcome.FATAL
+            // Fail-closed TOFU fallback for test doubles that return a
+            // KnownHostEntry without invoking hostKeyGate (#5).
+            if (!verifiedInKex && hostKeyEntry != null) {
+                when (hostKeyVerifier.verify(hostKeyEntry)) {
+                    is HostKeyResult.Trusted -> { /* ok */ }
+                    is HostKeyResult.NewHost -> {
+                        Log.w(TAG, "Unknown host key for ${LogRedact.of(profile.label)} — refusing MCP tunnel (connect it interactively first)")
+                        cleanup(sid)
+                        return Outcome.FATAL
+                    }
+                    is HostKeyResult.KeyChanged -> {
+                        Log.w(TAG, "Host key changed for ${LogRedact.of(profile.label)} — refusing MCP tunnel")
+                        cleanup(sid)
+                        return Outcome.FATAL
+                    }
                 }
             }
             sshSessionManager.storeConnectionConfig(sid, config, SessionManager.NONE)
@@ -501,6 +516,10 @@ class McpTunnelManager @Inject constructor(
                 details = "MCP-tunnel headless session (adb/guest-service forwarding)",
             )
             Outcome.ESTABLISHED
+        } catch (e: sh.haven.core.ssh.SshHostKeyRejectedException) {
+            Log.w(TAG, "${e.message}")
+            cleanup(sid)
+            Outcome.FATAL
         } catch (e: Exception) {
             Log.w(TAG, "MCP tunnel connect to ${LogRedact.of(profile.label)} failed: ${e.message}")
             cleanup(sid)

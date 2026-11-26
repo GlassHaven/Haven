@@ -1,5 +1,6 @@
 package sh.haven.core.local.proot
 
+import java.io.File
 import java.net.URI
 
 /**
@@ -31,6 +32,119 @@ internal fun appendGuestArchGuard(sb: StringBuilder, supportedArches: Set<Arch>)
     sb.append("esac\n")
 }
 
+internal fun appendGuestDistroGuard(sb: StringBuilder, distroRules: List<DistroRule>) {
+    if (distroRules.isEmpty()) return
+    sb.append("HAVEN_OS_FILE=\"\${HAVEN_OS_RELEASE:-/etc/os-release}\"\n")
+    sb.append("if [ ! -r \"\$HAVEN_OS_FILE\" ]; then\n")
+    sb.append("  echo \"Missing \$HAVEN_OS_FILE; cannot verify guest distro\" >&2\n")
+    sb.append("  exit 1\n")
+    sb.append("fi\n")
+    sb.append("HAVEN_OS_ID=\$(sed -n 's/^ID=//p' \"\$HAVEN_OS_FILE\" | head -n 1 | tr -d '\\042\\047')\n")
+    sb.append("HAVEN_OS_VER=\$(sed -n 's/^VERSION_ID=//p' \"\$HAVEN_OS_FILE\" | head -n 1 | tr -d '\\042\\047')\n")
+    if (distroRules.any { it.minVersion != null }) {
+        sb.append("haven_ver_ge() {\n")
+        sb.append("  [ -n \"\$1\" ] && awk -v v=\"\$1\" -v m=\"\$2\" 'BEGIN {\n")
+        sb.append("    na = split(v, a, \".\"); nb = split(m, b, \".\");\n")
+        sb.append("    n = (na > nb ? na : nb);\n")
+        sb.append("    for (i = 1; i <= n; i++) {\n")
+        sb.append("      va = (i <= na ? a[i] + 0 : 0);\n")
+        sb.append("      vb = (i <= nb ? b[i] + 0 : 0);\n")
+        sb.append("      if (va > vb) exit 0;\n")
+        sb.append("      if (va < vb) exit 1;\n")
+        sb.append("    }\n")
+        sb.append("    exit 0;\n")
+        sb.append("  }'\n")
+        sb.append("}\n")
+    }
+    sb.append("HAVEN_DISTRO_MATCH=0\n")
+    sb.append("HAVEN_EXTRA_PKGS=''\n")
+    for (rule in distroRules) {
+        sb.append("if [ \"\$HAVEN_DISTRO_MATCH\" = \"0\" ] && [ \"\$HAVEN_OS_ID\" = '${rule.osId}' ]")
+        if (rule.minVersion != null) {
+            sb.append(" && haven_ver_ge \"\$HAVEN_OS_VER\" '${rule.minVersion}'")
+        }
+        sb.append("; then\n")
+        sb.append("  HAVEN_DISTRO_MATCH=1\n")
+        if (rule.extraPackages.isNotEmpty()) {
+            sb.append("  HAVEN_EXTRA_PKGS='${rule.extraPackages.joinToString(" ")}'\n")
+        }
+        sb.append("fi\n")
+    }
+    val requiredDesc = distroRules.joinToString(", ") { it.summaryLabel() }
+    sb.append("if [ \"\$HAVEN_DISTRO_MATCH\" != \"1\" ]; then\n")
+    sb.append(
+        "  echo \"Unsupported guest distro/version: \${HAVEN_OS_ID:-unknown} \${HAVEN_OS_VER:-unversioned} " +
+            "(requires: $requiredDesc)\" >&2\n",
+    )
+    sb.append("  exit 1\n")
+    sb.append("fi\n")
+}
+
+/**
+ * Evaluate [distroRules] on the Android host against an extracted [rootfsDir]'s
+ * `etc/os-release` (when present) or Haven's built-in [DistroCatalog] IDs so UI
+ * pickers and MCP `compatibleWithActive` hide incompatible recipes up front.
+ * Unknown unextracted custom distros return `true` and defer to the runtime
+ * `/etc/os-release` guard in [appendGuestDistroGuard].
+ */
+fun matchesGuestDistro(
+    distroRules: List<DistroRule>,
+    distroId: String,
+    rootfsDir: File? = null,
+): Boolean {
+    if (distroRules.isEmpty()) return true
+    val (osId, osVer) = readOsReleaseOrBuiltIn(distroId, rootfsDir) ?: return true
+    return distroRules.any { rule ->
+        rule.osId == osId &&
+            (rule.minVersion == null || (osVer != null && compareDotVersions(osVer, rule.minVersion) >= 0))
+    }
+}
+
+private fun readOsReleaseOrBuiltIn(distroId: String, rootfsDir: File?): Pair<String, String?>? {
+    val osReleaseFile = rootfsDir?.let { File(it, "etc/os-release") }?.takeIf { it.isFile }
+    if (osReleaseFile != null) {
+        var osId: String? = null
+        var osVer: String? = null
+        osReleaseFile.forEachLine { raw ->
+            val line = raw.trim()
+            when {
+                osId == null && line.startsWith("ID=") ->
+                    osId = line.removePrefix("ID=").trim('"', '\'')
+                osVer == null && line.startsWith("VERSION_ID=") ->
+                    osVer = line.removePrefix("VERSION_ID=").trim('"', '\'').ifEmpty { null }
+            }
+        }
+        val resolvedId = osId?.takeIf { it.isNotEmpty() }
+        if (resolvedId != null) return resolvedId to osVer
+    }
+    val baseId = Arch.entries
+        .firstOrNull { distroId.endsWith("-${it.slug}") }
+        ?.let { distroId.removeSuffix("-${it.slug}") }
+        ?: distroId
+    return when (baseId) {
+        "alpine-3.21" -> "alpine" to "3.21"
+        "debian-bookworm" -> "debian" to "12"
+        "debian-trixie" -> "debian" to "13"
+        "ubuntu-noble" -> "ubuntu" to "24.04"
+        "ubuntu-resolute" -> "ubuntu" to "26.04"
+        "archlinux" -> "arch" to null
+        "void" -> "void" to null
+        else -> null
+    }
+}
+
+private fun compareDotVersions(v: String, m: String): Int {
+    val a = v.split('.')
+    val b = m.split('.')
+    val n = maxOf(a.size, b.size)
+    for (i in 0 until n) {
+        val va = a.getOrNull(i)?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 0
+        val vb = b.getOrNull(i)?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 0
+        if (va != vb) return va.compareTo(vb)
+    }
+    return 0
+}
+
 data class GuestRecipeManifest(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val sourceRepo: String? = null,
@@ -41,6 +155,8 @@ data class GuestRecipeManifest(
         const val CURRENT_SCHEMA_VERSION = 1
 
         private val RECIPE_ID_REGEX = Regex("^[a-z0-9][a-z0-9._-]{0,63}$")
+        private val OS_ID_REGEX = Regex("^[a-z0-9][a-z0-9._-]{0,63}$")
+        private val DISTRO_VER_REGEX = Regex("^[0-9]+(\\.[0-9]+){0,3}$")
         private val PKG_TOKEN_REGEX = Regex("^[a-zA-Z0-9][a-zA-Z0-9+._-]{0,127}$")
         private val SHA256_REGEX = Regex("^[0-9a-f]{64}$")
         private val RESOLUTION_REGEX = Regex("^\\d{3,5}x\\d{3,5}$")
@@ -138,6 +254,11 @@ data class GuestRecipeManifest(
                 append("# Supported arches: ")
                 append(Arch.entries.filter { it in pack.supportedArches }.joinToString(", ") { it.slug })
                 append('\n')
+                if (pack.distroRules.isNotEmpty()) {
+                    append("# Supported distros: ")
+                    append(pack.distroRules.joinToString(", ") { it.summaryLabel() })
+                    append('\n')
+                }
                 append("# Registers app window: ").append(pack.appLabel).append(" -> ").append(pack.appCommand).append('\n')
                 if (pack.needsAudioBridge) append("# Enables PulseAudio bridge: true\n")
                 append('\n')
@@ -163,6 +284,11 @@ data class GuestRecipeManifest(
                 append("# Supported arches: ")
                 append(Arch.entries.filter { it in preset.supportedArches }.joinToString(", ") { it.slug })
                 append('\n')
+                if (preset.distroRules.isNotEmpty()) {
+                    append("# Supported distros: ")
+                    append(preset.distroRules.joinToString(", ") { it.summaryLabel() })
+                    append('\n')
+                }
                 if (preset.port > 0) {
                     append("# Loopback endpoint: 127.0.0.1:").append(preset.port).append('\n')
                 }
@@ -178,6 +304,7 @@ data class GuestRecipeManifest(
             val label = validateText(obj.reqString("label", ctx), "$ctx.label")
             val description = validateText(obj.reqString("description", ctx), "$ctx.description")
             val supportedArches = parseSupportedArches(obj.optArray("supportedArches", ctx), "$ctx.supportedArches")
+            val distroRules = parseDistroRules(obj.optArray("distroRules", ctx), "$ctx.distroRules")
             val packages = parsePackagesMap(obj.reqObject("packages", ctx), "$ctx.packages")
             val verifyBinary = validateRootfsRelativePath(obj.reqString("verifyBinary", ctx), "$ctx.verifyBinary")
             val configWrites = parseConfigWrites(obj.optArray("configWrites", ctx), "$ctx.configWrites")
@@ -236,6 +363,7 @@ data class GuestRecipeManifest(
                 assets = assets,
                 verifiedFamilies = verifiedFamilies,
                 supportedArches = supportedArches,
+                distroRules = distroRules,
             )
         }
 
@@ -248,6 +376,7 @@ data class GuestRecipeManifest(
                 throw RecipeValidationException("$ctx.port must be in 0..65535 (got $port)")
             }
             val supportedArches = parseSupportedArches(obj.optArray("supportedArches", ctx), "$ctx.supportedArches")
+            val distroRules = parseDistroRules(obj.optArray("distroRules", ctx), "$ctx.distroRules")
             val packages = parsePackagesMap(obj.reqObject("packages", ctx), "$ctx.packages")
             val verifyArr = obj.reqArray("verifyBinaries", ctx)
             if (verifyArr.isEmpty()) {
@@ -278,6 +407,7 @@ data class GuestRecipeManifest(
                 autostart = autostart,
                 assets = assets,
                 supportedArches = supportedArches,
+                distroRules = distroRules,
             )
         }
 
@@ -295,6 +425,39 @@ data class GuestRecipeManifest(
                 out.add(arch)
             }
             return out
+        }
+
+        private fun parseDistroRules(arr: List<JsonVal>?, ctx: String): List<DistroRule> {
+            if (arr == null) return emptyList()
+            if (arr.isEmpty()) {
+                throw RecipeValidationException("$ctx must not be empty when specified")
+            }
+            return arr.mapIndexed { i, v ->
+                val o = v.asObject("$ctx[$i]")
+                val osId = o.reqString("osId", "$ctx[$i]").trim()
+                if (!OS_ID_REGEX.matches(osId)) {
+                    throw RecipeValidationException("$ctx[$i].osId must match ${OS_ID_REGEX.pattern} (got '$osId')")
+                }
+                val minVersion = o.optNullableString("minVersion", "$ctx[$i]")?.let { raw ->
+                    val trimmed = raw.trim()
+                    if (!DISTRO_VER_REGEX.matches(trimmed)) {
+                        throw RecipeValidationException(
+                            "$ctx[$i].minVersion must match ${DISTRO_VER_REGEX.pattern} (got '$raw')",
+                        )
+                    }
+                    trimmed
+                }
+                val extraPackages = (o.optArray("extraPackages", "$ctx[$i]") ?: emptyList()).mapIndexed { j, p ->
+                    val token = p.asString("$ctx[$i].extraPackages[$j]").trim()
+                    if (!PKG_TOKEN_REGEX.matches(token)) {
+                        throw RecipeValidationException(
+                            "$ctx[$i].extraPackages[$j]: invalid package name '$token'",
+                        )
+                    }
+                    token
+                }
+                DistroRule(osId = osId, minVersion = minVersion, extraPackages = extraPackages)
+            }
         }
 
         private fun parsePackagesMap(obj: JsonObj, ctx: String): Map<PackageFamily, List<String>> {
@@ -463,6 +626,9 @@ data class GuestRecipeManifest(
                     element(arch.slug)
                 }
             }
+            if (pack.distroRules.isNotEmpty()) {
+                writeDistroRules(pack.distroRules)
+            }
             fieldObj("packages") {
                 for ((family, pkgs) in pack.packages) {
                     fieldArray(family.name) {
@@ -527,6 +693,9 @@ data class GuestRecipeManifest(
                     element(arch.slug)
                 }
             }
+            if (svc.distroRules.isNotEmpty()) {
+                writeDistroRules(svc.distroRules)
+            }
             fieldObj("packages") {
                 for ((family, pkgs) in svc.packages) {
                     fieldArray(family.name) {
@@ -563,6 +732,24 @@ data class GuestRecipeManifest(
             }
             field("serviceCommand", svc.serviceCommand)
             field("autostart", svc.autostart)
+        }
+
+        private fun JsonWriter.ObjScope.writeDistroRules(rules: List<DistroRule>) {
+            fieldArray("distroRules") {
+                for (rule in rules) {
+                    elementObj {
+                        field("osId", rule.osId)
+                        if (rule.minVersion != null) {
+                            field("minVersion", rule.minVersion)
+                        }
+                        if (rule.extraPackages.isNotEmpty()) {
+                            fieldArray("extraPackages") {
+                                rule.extraPackages.forEach { element(it) }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

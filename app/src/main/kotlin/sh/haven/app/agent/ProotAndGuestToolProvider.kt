@@ -563,9 +563,18 @@ internal class ProotAndGuestToolProvider(
                 put("supportedArches", JSONArray().apply {
                     sh.haven.core.local.proot.Arch.entries.filter { it in p.supportedArches }.forEach { put(it.slug) }
                 })
+                put("distroRules", encodeDistroRules(p.distroRules))
                 put("families", JSONArray().apply { p.packages.keys.forEach { put(it.name) } })
                 put("verifiedFamilies", JSONArray().apply { p.verifiedFamilies.forEach { put(it.name) } })
-                put("compatibleWithActive", p.packages.containsKey(family))
+                put(
+                    "compatibleWithActive",
+                    p.packages.containsKey(family) &&
+                        sh.haven.core.local.proot.matchesGuestDistro(
+                            p.distroRules,
+                            prootManager.activeDistroId,
+                            prootManager.activeRootfsDir,
+                        ),
+                )
                 put("installedOnActive", File(prootManager.activeRootfsDir, p.verifyBinary).exists())
                 put("appWindowRegistered", defs.any { it.command == p.appCommand })
                 put("needsAudioBridge", p.needsAudioBridge)
@@ -673,8 +682,17 @@ internal class ProotAndGuestToolProvider(
                 put("supportedArches", JSONArray().apply {
                     sh.haven.core.local.proot.Arch.entries.filter { it in s.supportedArches }.forEach { put(it.slug) }
                 })
+                put("distroRules", encodeDistroRules(s.distroRules))
                 put("families", JSONArray().apply { s.packages.keys.forEach { put(it.name) } })
-                put("compatibleWithActive", s.packages.containsKey(family))
+                put(
+                    "compatibleWithActive",
+                    s.packages.containsKey(family) &&
+                        sh.haven.core.local.proot.matchesGuestDistro(
+                            s.distroRules,
+                            prootManager.activeDistroId,
+                            prootManager.activeRootfsDir,
+                        ),
+                )
                 put("installedOnActive", s.isBinaryPresent(prootManager.activeRootfsDir))
                 put("registeredOnActive", s.id in registeredIds)
                 put("assetCount", s.assets.size)
@@ -687,6 +705,19 @@ internal class ProotAndGuestToolProvider(
             put("presets", arr)
         }
     }
+
+    private fun encodeDistroRules(rules: List<sh.haven.core.local.proot.DistroRule>): JSONArray =
+        JSONArray().apply {
+            for (r in rules) {
+                put(JSONObject().apply {
+                    put("osId", r.osId)
+                    r.minVersion?.let { put("minVersion", it) }
+                    if (r.extraPackages.isNotEmpty()) {
+                        put("extraPackages", JSONArray().apply { r.extraPackages.forEach { put(it) } })
+                    }
+                })
+            }
+        }
 
     private fun installServicePresetTool(args: JSONObject): JSONObject {
         val jid = args.optString("jobId").takeIf { it.isNotBlank() }

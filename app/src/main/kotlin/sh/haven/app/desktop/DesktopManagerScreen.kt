@@ -277,10 +277,11 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
         val importedPresetIds = remember(importedRecipes) {
             importedRecipes.services.map { it.id }.toSet()
         }
-        val availablePacks = remember(activeFamilyForPacks, activeArchForPacks, appWindowDefs, importedRecipes) {
+        val availablePacks = remember(activeDistroId, activeFamilyForPacks, activeArchForPacks, appWindowDefs, importedRecipes) {
             (sh.haven.core.local.proot.GuestAppCatalog.PACKS + importedRecipes.packs).filter { pack ->
                 (activeFamilyForPacks == null || pack.packages.containsKey(activeFamilyForPacks)) &&
                     (activeArchForPacks == null || activeArchForPacks in pack.supportedArches) &&
+                    sh.haven.core.local.proot.matchesGuestDistro(pack.distroRules, activeDistroId) &&
                     appWindowDefs.none { it.command == pack.appCommand }
             }
         }
@@ -307,10 +308,11 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
         )
 
         if (!quick || !viewModel.umlAvailable) {
-            val availableServicePresets = remember(activeFamilyForPacks, activeArchForPacks, guestServices, importedRecipes) {
+            val availableServicePresets = remember(activeDistroId, activeFamilyForPacks, activeArchForPacks, guestServices, importedRecipes) {
                 (sh.haven.core.local.proot.GuestServiceCatalog.PRESETS + importedRecipes.services).filter { preset ->
                     (activeFamilyForPacks == null || preset.packages.containsKey(activeFamilyForPacks)) &&
                         (activeArchForPacks == null || activeArchForPacks in preset.supportedArches) &&
+                        sh.haven.core.local.proot.matchesGuestDistro(preset.distroRules, activeDistroId) &&
                         guestServices.none { it.spec.id == preset.id }
                 }
             }

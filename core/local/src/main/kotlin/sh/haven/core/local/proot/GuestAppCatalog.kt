@@ -37,6 +37,23 @@ data class PackAsset(
     val destDir: String,
 )
 
+/**
+ * Optional `/etc/os-release` distro + minimum `VERSION_ID` rule (#891).
+ *
+ * When a recipe declares non-empty `distroRules`, rules are evaluated in order
+ * against `/etc/os-release` (`ID` and dot-numeric `VERSION_ID >= minVersion`).
+ * The first matching rule wins and may contribute [extraPackages] (for example,
+ * Debian 13 / Ubuntu 24.04+ `libasound2t64` vs Debian 12 `libasound2`); if no
+ * rule matches, the install script exits before touching the package manager.
+ */
+data class DistroRule(
+    val osId: String,
+    val minVersion: String? = null,
+    val extraPackages: List<String> = emptyList(),
+) {
+    fun summaryLabel(): String = if (minVersion != null) "$osId >= $minVersion" else osId
+}
+
 data class GuestAppPack(
     val id: String,
     val label: String,
@@ -78,6 +95,7 @@ data class GuestAppPack(
      */
     val verifiedFamilies: Set<PackageFamily> = emptySet(),
     val supportedArches: Set<Arch> = Arch.entries.toSet(),
+    val distroRules: List<DistroRule> = emptyList(),
 )
 
 /** Single-quote [s] for POSIX sh. */
@@ -99,8 +117,10 @@ fun buildPackInstallScript(
     val ops = PackageOps.forFamily(family)
     val sb = StringBuilder("set -e\n")
     appendGuestArchGuard(sb, pack.supportedArches)
+    appendGuestDistroGuard(sb, pack.distroRules)
     sb.append(ops.updateCmd()).append('\n')
-    sb.append(ops.installCmd(pkgs)).append('\n')
+    val extraSuffix = if (pack.distroRules.any { it.extraPackages.isNotEmpty() }) " \$HAVEN_EXTRA_PKGS" else ""
+    sb.append(ops.installCmd(pkgs)).append(extraSuffix).append('\n')
     for (w in pack.configWrites) {
         val guard = w.stanza.lineSequence().first()
         sb.append("mkdir -p ${shq(w.path.substringBeforeLast('/'))}\n")

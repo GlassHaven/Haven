@@ -25,6 +25,7 @@ data class GuestServicePreset(
     val autostart: Boolean = false,
     val assets: List<PackAsset> = emptyList(),
     val supportedArches: Set<Arch> = Arch.entries.toSet(),
+    val distroRules: List<DistroRule> = emptyList(),
 ) {
     fun isBinaryPresent(rootfsDir: File): Boolean =
         verifyBinaries.any { rel -> File(rootfsDir, rel).exists() }
@@ -44,9 +45,11 @@ fun buildServicePresetInstallScript(
     val ops = PackageOps.forFamily(family)
     val sb = StringBuilder("set -e\n")
     appendGuestArchGuard(sb, preset.supportedArches)
+    appendGuestDistroGuard(sb, preset.distroRules)
     sb.append("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
     sb.append(ops.updateCmd()).append('\n')
-    sb.append(ops.installCmd(pkgs)).append('\n')
+    val extraSuffix = if (preset.distroRules.any { it.extraPackages.isNotEmpty() }) " \$HAVEN_EXTRA_PKGS" else ""
+    sb.append(ops.installCmd(pkgs)).append(extraSuffix).append('\n')
     for (w in preset.configWrites) {
         val guard = w.stanza.lineSequence().first()
         sb.append("mkdir -p ${shqService(w.path.substringBeforeLast('/'))}\n")

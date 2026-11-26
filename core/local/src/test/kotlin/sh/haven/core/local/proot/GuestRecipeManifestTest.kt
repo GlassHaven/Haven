@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
 
 class GuestRecipeManifestTest {
 
@@ -211,6 +212,156 @@ class GuestRecipeManifestTest {
         """.trimIndent()
         assertThrows(RecipeValidationException::class.java) {
             GuestRecipeManifest.parse(dup)
+        }
+    }
+
+    @Test
+    fun `distroRules round-trip and enforce os-release id minVersion and extraPackages in sh`() {
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "packs": [
+                {
+                  "id": "wine-box",
+                  "label": "Wine Helper",
+                  "description": "Distro-gated pack with t64 vs legacy alsa package split.",
+                  "distroRules": [
+                    {"osId": "debian", "minVersion": "13", "extraPackages": ["libasound2t64"]},
+                    {"osId": "debian", "minVersion": "12", "extraPackages": ["libasound2"]},
+                    {"osId": "ubuntu", "minVersion": "24.04", "extraPackages": ["libasound2t64"]}
+                  ],
+                  "packages": {
+                    "APT": ["zenity"]
+                  },
+                  "verifyBinary": "usr/bin/zenity",
+                  "appLabel": "Wine Helper",
+                  "appCommand": "zenity --info"
+                }
+              ],
+              "services": [
+                {
+                  "id": "arch-ollama",
+                  "label": "Ollama (Arch)",
+                  "description": "CPU Ollama service on Arch Linux.",
+                  "port": 11434,
+                  "supportedArches": ["aarch64", "x86_64"],
+                  "distroRules": [
+                    {"osId": "arch"}
+                  ],
+                  "packages": {
+                    "PACMAN": ["ollama"]
+                  },
+                  "verifyBinaries": ["usr/bin/ollama"],
+                  "serviceCommand": "OLLAMA_HOST=127.0.0.1:11434 exec /usr/bin/ollama serve"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val manifest = GuestRecipeManifest.parse(raw)
+        assertEquals(manifest, GuestRecipeManifest.parse(GuestRecipeManifest.toJson(manifest)))
+
+        val pack = manifest.packs.single()
+        assertEquals(
+            listOf(
+                DistroRule(osId = "debian", minVersion = "13", extraPackages = listOf("libasound2t64")),
+                DistroRule(osId = "debian", minVersion = "12", extraPackages = listOf("libasound2")),
+                DistroRule(osId = "ubuntu", minVersion = "24.04", extraPackages = listOf("libasound2t64")),
+            ),
+            pack.distroRules,
+        )
+        val preview = GuestRecipeManifest.previewPackInstall(pack, PackageFamily.APT)
+        assertTrue(preview.contains("debian >= 13"))
+        assertTrue(preview.contains("ubuntu >= 24.04"))
+
+        val guardSb = StringBuilder("set -e\n")
+        appendGuestDistroGuard(guardSb, pack.distroRules)
+        guardSb.append("printf '%s\\n' \"\$HAVEN_EXTRA_PKGS\"\n")
+        val probeScript = guardSb.toString()
+
+        assertEquals(0 to "libasound2t64", runWithOsRelease(probeScript, "ID=debian\nVERSION_ID=\"13\"\n"))
+        assertEquals(0 to "libasound2", runWithOsRelease(probeScript, "ID=debian\nVERSION_ID=\"12\"\n"))
+        assertEquals(0 to "libasound2t64", runWithOsRelease(probeScript, "ID=ubuntu\nVERSION_ID=\"26.04\"\n"))
+        assertEquals(0 to "libasound2t64", runWithOsRelease(probeScript, "ID=ubuntu\nVERSION_ID=\"24.04\"\n"))
+
+        val oldUbuntu = runWithOsRelease(probeScript, "ID=ubuntu\nVERSION_ID=\"22.04\"\n")
+        assertEquals(1, oldUbuntu.first)
+        assertTrue(oldUbuntu.second.contains("Unsupported guest distro/version: ubuntu 22.04"))
+
+        val oldDebian = runWithOsRelease(probeScript, "ID=debian\nVERSION_ID=\"11\"\n")
+        assertEquals(1, oldDebian.first)
+
+        val archGuardSb = StringBuilder("set -e\n")
+        appendGuestDistroGuard(archGuardSb, manifest.services.single().distroRules)
+        archGuardSb.append("printf 'ok:%s\\n' \"\$HAVEN_EXTRA_PKGS\"\n")
+        assertEquals(0 to "ok:", runWithOsRelease(archGuardSb.toString(), "ID=arch\n"))
+        assertEquals(1, runWithOsRelease(archGuardSb.toString(), "ID=alpine\nVERSION_ID=3.21.3\n").first)
+    }
+
+    @Test
+    fun `rejects invalid distroRules osId minVersion or extraPackages`() {
+        val badOsId = """
+            {"schemaVersion":1,"packs":[],"services":[{"id":"s","label":"S","description":"D","port":80,"distroRules":[{"osId":"ubuntu;id"}],"packages":{"APT":["curl"]},"verifyBinaries":["usr/bin/curl"],"serviceCommand":"curl"}]}
+        """.trimIndent()
+        assertThrows(RecipeValidationException::class.java) {
+            GuestRecipeManifest.parse(badOsId)
+        }
+
+        val badMinVer = """
+            {"schemaVersion":1,"packs":[],"services":[{"id":"s","label":"S","description":"D","port":80,"distroRules":[{"osId":"ubuntu","minVersion":"24.04-beta"}],"packages":{"APT":["curl"]},"verifyBinaries":["usr/bin/curl"],"serviceCommand":"curl"}]}
+        """.trimIndent()
+        assertThrows(RecipeValidationException::class.java) {
+            GuestRecipeManifest.parse(badMinVer)
+        }
+
+        val badExtraPkg = """
+            {"schemaVersion":1,"packs":[],"services":[{"id":"s","label":"S","description":"D","port":80,"distroRules":[{"osId":"ubuntu","extraPackages":["--allow-untrusted"]}],"packages":{"APT":["curl"]},"verifyBinaries":["usr/bin/curl"],"serviceCommand":"curl"}]}
+        """.trimIndent()
+        assertThrows(RecipeValidationException::class.java) {
+            GuestRecipeManifest.parse(badExtraPkg)
+        }
+    }
+
+    @Test
+    fun `matchesGuestDistro checks rootfs os-release and built-in distro catalog ids`() {
+        val rules = listOf(
+            DistroRule(osId = "ubuntu", minVersion = "24.04"),
+            DistroRule(osId = "debian", minVersion = "13"),
+        )
+        assertTrue(matchesGuestDistro(emptyList(), "debian-bookworm", null))
+        assertTrue(matchesGuestDistro(rules, "ubuntu-noble", null))
+        assertTrue(matchesGuestDistro(rules, "ubuntu-resolute-x86_64", null))
+        assertTrue(matchesGuestDistro(rules, "debian-trixie", null))
+        assertFalse(matchesGuestDistro(rules, "debian-bookworm", null))
+        assertFalse(matchesGuestDistro(rules, "alpine-3.21", null))
+
+        val customRootfs = Files.createTempDirectory("haven-rootfs-")
+        try {
+            val etcDir = customRootfs.resolve("etc")
+            Files.createDirectories(etcDir)
+            Files.writeString(etcDir.resolve("os-release"), "ID=debian\nVERSION_ID=\"12\"\n")
+            assertFalse(matchesGuestDistro(rules, "custom-apt", customRootfs.toFile()))
+
+            Files.writeString(etcDir.resolve("os-release"), "ID=\"ubuntu\"\nVERSION_ID=\"24.04\"\n")
+            assertTrue(matchesGuestDistro(rules, "custom-apt", customRootfs.toFile()))
+        } finally {
+            customRootfs.toFile().deleteRecursively()
+        }
+    }
+
+    private fun runWithOsRelease(script: String, osReleaseContent: String): Pair<Int, String> {
+        val tmp = Files.createTempFile("haven-os-release-", ".conf")
+        return try {
+            Files.writeString(tmp, osReleaseContent)
+            val pb = ProcessBuilder("/bin/sh", "-c", script)
+            pb.environment()["HAVEN_OS_RELEASE"] = tmp.toAbsolutePath().toString()
+            pb.redirectErrorStream(true)
+            val proc = pb.start()
+            val out = proc.inputStream.bufferedReader().readText().trim()
+            val code = proc.waitFor()
+            code to out
+        } finally {
+            Files.deleteIfExists(tmp)
         }
     }
 

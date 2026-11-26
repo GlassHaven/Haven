@@ -53,12 +53,20 @@ A single Linux GUI app can run in a **cage** (single-app kiosk compositor) with 
 
 ## Local Desktops (multi-distro manager)
 
-A **Desktop → Manage** view installs and runs full Linux desktops on-device via PRoot, with no root. Pick a distro — **Alpine** (APK), **Debian** (APT; 13 Trixie or 12 Bookworm), **Ubuntu 24.04 LTS** (APT), **Arch Linux** (PACMAN), or **Void** (XBPS) — and install them side-by-side; each carries its native package manager. For each installed distro you can install, start, and stop desktop environments, open a shell into it, and read a Room-backed install log that names the layer that broke if a package install fails.
+A **Desktop → Manage** view installs and runs full Linux desktops on-device via PRoot, with no root. Pick a distro — **Alpine** (APK), **Debian** (APT; 13 Trixie or 12 Bookworm), **Ubuntu 26.04 LTS** or **24.04 LTS** (APT), **Arch Linux** (PACMAN), or **Void** (XBPS) — and install them side-by-side; each carries its native package manager. For each installed distro you can install, start, and stop desktop environments, open a shell into it, and read a Room-backed install log that names the layer that broke if a package install fails.
 
 Desktop environments:
 
 - **X11 (via Xvnc)** — Xfce4 or Openbox, each on its own VNC port, viewed through the in-app VNC client.
 - **Nested Wayland (via wayvnc)** — a headless wlroots compositor inside the rootfs, surfaced over VNC. **Sway** is the supported, working option. Hyprland and niri are offered but GPU-limited: their renderers (aquamarine / smithay) are GLES-only with no software fallback, and the Android GPU isn't driveable by Mesa inside PRoot, so they can't currently initialise a backend (tracked on #162). For a GPU-accelerated local desktop, use the Native Wayland Desktop above; for a single GPU-accelerated app, use the cage path above.
+
+### App Windows, Guest Services, and Community Recipes
+
+Under **Desktop → Manage**, each installed PRoot distro also supports single-app Wayland/Xwayland windows (**App windows**) and supervised loopback daemons (**Guest services**):
+
+- Built-in catalog presets cover GUI apps (`qmmp`, `audacious`, `dosbox`, `fs-uae`, `vice`) and local daemons (`mariadb` on `127.0.0.1:3306`), applying PRoot audio/GL config stanzas and verifying SHA-256 checksums on any auxiliary assets.
+- Tap **Import recipe…** (or call `import_guest_recipes` / `export_guest_recipes` over MCP) to load additional `schemaVersion: 1` JSON recipe manifests from an `https://` URL (with optional 64-hex SHA-256 manifest pinning) or a local `.json` file.
+- Before adding any imported recipe, Haven previews the full generated guest install script and supervised daemon command. Recipes validate package-family keys (`APK`, `APT`, `PACMAN`, `XBPS`), package tokens, rootfs-relative `verifyBinary` / `verifyBinaries` paths, `https://` + 64-hex `sha256` asset pins, `supportedArches` (`uname -m`), and optional `/etc/os-release` `distroRules` (`osId`, `minVersion`, and per-distro `extraPackages`).
 
 ---
 

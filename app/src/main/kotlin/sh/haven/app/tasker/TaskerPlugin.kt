@@ -139,26 +139,6 @@ object TaskerPlugin {
             !bundle.getString(BUNDLE_COMMAND).isNullOrBlank()
 
     /**
-     * Resolve the config for a fired [intent]. Prefers the Locale nested
-     * [EXTRA_BUNDLE] (how Tasker/MacroDroid's plugin flow passes it); falls
-     * back to the same keys as **flat** intent extras, so the action also
-     * works from a generic "Send Intent" step (and is reachable via `adb
-     * shell am broadcast`, which can't build a nested Bundle). Returns null
-     * if neither form carries a valid profile id + command.
-     */
-    fun configFrom(intent: Intent): Bundle? {
-        intent.getBundleExtra(EXTRA_BUNDLE)?.let { if (isValid(it)) return it }
-        val flat = Bundle().apply {
-            putString(BUNDLE_PROFILE_ID, intent.getStringExtra(BUNDLE_PROFILE_ID))
-            putString(BUNDLE_PROFILE_LABEL, intent.getStringExtra(BUNDLE_PROFILE_LABEL))
-            putString(BUNDLE_COMMAND, intent.getStringExtra(BUNDLE_COMMAND))
-            putBoolean(BUNDLE_OVERLAY, intent.getBooleanExtra(BUNDLE_OVERLAY, false))
-            putBoolean(BUNDLE_BLOCK, intent.getBooleanExtra(BUNDLE_BLOCK, false))
-        }
-        return if (isValid(flat)) flat else null
-    }
-
-    /**
      * Resolve and cryptographically authenticate a fired [intent] against the
      * device-local [secret] minted when the user saved an action in
      * [TaskerEditActivity]. Rejects:

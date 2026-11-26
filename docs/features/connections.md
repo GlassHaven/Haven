@@ -10,7 +10,9 @@ that open before a connect, and on-device SSH key management.
 
 ## Connections
 
-Saved profiles with transport selection (SSH, Mosh, Eternal Terminal, VNC, RDP, SPICE, GLKVM, SMB, Email, Cloud Storage, Reticulum, AI endpoints ([OpenAI-compatible / Ollama / Anthropic / Gemini](chat.md)), and [Bluetooth / BLE / USB serial consoles](terminal.md#serial-consoles-bluetooth-ble-usb)), host key TOFU verification, fingerprint change detection, auto-reconnect with backoff, password fallback, local/remote/**dynamic** port forwarding (-L/-R/-D — the dynamic type runs a built-in SOCKS5 proxy that tunnels traffic through the SSH session), ProxyJump multi-hop tunneling (-J) with tree view, SOCKS5/SOCKS4/HTTP proxy support (Tor .onion compatible), RDP-over-SSH tunnel profiles, DNS resolution with 5s timeout, and connection error safety nets (UI watchdog: 20s for most transports, 5min for storage connects; post-connect shell verification, session manager detection).
+Saved profiles with transport selection (SSH, Mosh, Eternal Terminal, VNC, RDP, SPICE, GLKVM, SMB, Email, Cloud Storage, Reticulum, AI endpoints ([OpenAI-compatible / Ollama / Anthropic / Gemini](chat.md)), and [Bluetooth / BLE / USB serial consoles](terminal.md#serial-consoles-bluetooth-ble-usb)), pre-authentication KEX host-key TOFU verification and fingerprint change detection, auto-reconnect with backoff, password fallback, local/remote/**dynamic** port forwarding (-L/-R/-D — the dynamic type runs a built-in SOCKS5 proxy that tunnels traffic through the SSH session), ProxyJump multi-hop tunneling (-J) with tree view, SOCKS5/SOCKS4/HTTP proxy support (Tor .onion compatible), RDP-over-SSH tunnel profiles, DNS resolution with 5s timeout, and connection error safety nets (UI watchdog: 20s for most transports, 5min for storage connects; post-connect shell verification, session manager detection).
+
+Haven also provides a resizable Saved Connections home-screen widget (with optional per-widget connection group filtering and saved-order or recent-first sorting), launcher shortcuts, and intent filters for `ssh://`, `rdp://`, `vnc://`, and `haven://connect` links (including one-off `Connect without saving` sessions and the Connections quick-connect bar).
 
 **Per-app WireGuard and Tailscale tunnels** — each profile can route its connection through its own userspace tunnel, with no system VPN slot taken, so other apps keep using the direct network.
 
@@ -28,7 +30,7 @@ The implementation follows the fwknop wire format: an SHA-256-digested message e
 
 ## SSH Keys
 
-Generate Ed25519, RSA, and ECDSA keys on-device. Import keys from file (PEM/OpenSSH/Dropbear format) or paste from clipboard. FIDO2/SK hardware key support (ed25519-sk, ecdsa-sk) via NFC or USB security keys — and a phone-hosted security key can be forwarded to a remote host (see [USB device forwarding](usb.md)). One-tap public key copy and deploy key dialog for `authorized_keys` setup. Assign specific keys to individual connections.
+Generate Ed25519, RSA, and ECDSA keys on-device. Import keys from file (PEM/OpenSSH/Dropbear format, including hybrid post-quantum `ssh-mldsa44-ed25519` keys on the sshlib engine) or paste from clipboard. FIDO2/SK hardware key support (ed25519-sk, ecdsa-sk) via NFC or USB security keys — and a phone-hosted security key can be forwarded to a remote host (see [USB device forwarding](usb.md)). One-tap public key copy and deploy key dialog for `authorized_keys` setup. Assign specific keys to individual connections.
 
 ### Security-chip keys
 

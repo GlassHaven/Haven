@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.83
+
+- Fix physical keyboard dead keys in the VNC viewer by sharing `PhysicalDeadKeyComposer` across terminal and VNC sessions so `COMBINING_ACCENT` and standalone dead accents compose accented characters instead of falling back to US QWERTY ASCII keys, while preserving `AltGr` when resolving printable characters (#759, #774).
+- Encode non-Latin-1 BMP and supplementary Unicode code points with X11's `0x01000000 | codePoint` KeySym prefix in `VncScreen.charToKeySym` and `VncClient.typeText`.
+
 ## v5.94.82
 
 - Fix physical keyboard dead keys (such as Spanish `´` + `a`) emitting separate characters in terminal tabs by composing `COMBINING_ACCENT` and spacing dead accents in the Activity key interceptor before dispatching to the terminal (#759, thanks gitmoncode).

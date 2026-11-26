@@ -1,0 +1,2 @@
+- Fix physical keyboard dead keys in the VNC viewer so combining and spacing dead accents compose accented characters instead of falling back to US QWERTY keys, and preserve AltGr when resolving printable characters (#759, #774).
+- Encode non-Latin-1 and supplementary Unicode characters with X11's `0x01000000 | codePoint` KeySym prefix in VNC soft-keyboard and pasted text input.

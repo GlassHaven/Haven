@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.79
+
+- Import community Guest App Pack and Guest Service Preset recipes from HTTPS manifest URLs (with optional SHA-256 manifest pinning) or local `.json` files under `Desktop -> Manage`, previewing the generated guest shell commands and supervised daemon commands before adding, with MCP `import_guest_recipes`, `export_guest_recipes`, `list_service_presets`, and `install_service_preset` support (#891, thanks pixel4696).
+
 ## v5.94.78
 
 - Download and install Haven updates directly from the Settings -> About release-notes dialog on GitHub Release installs: automatically matches your CPU ABI and build flavour (full, storage, or terminal), verifies the APK against `SHA256SUMS` and Haven's release signing key, and installs via Shizuku or Android's system package installer (#874, thanks n1x0l4s).

@@ -1,0 +1,338 @@
+#!/usr/bin/env bash
+# haven-sandbox-helper — privileged Linux network-namespace jail helper.
+#
+# Installed root:root 0755 at /usr/local/bin/haven-sandbox-helper with a scoped
+# sudoers NOPASSWD entry for the configured unprivileged desktop user.
+#
+# Security properties:
+#   1. Refuses root or unset SUDO_USER; the target command ALWAYS runs as the
+#      invoking unprivileged user via `runuser -u "$RUN_AS"`.
+#   2. Strict endpoint validation: every <host[:port]> in <hosts> is validated
+#      against hostname/IPv4 syntax and numeric port bounds (1..65535) so caller
+#      arguments can never inject nftables syntax.
+#   3. Strict env-file validation: accepts "--" (none) or a 0600 regular
+#      non-symlink file matching /tmp/haven-sb-env.?????? (or legacy
+#      /tmp/claude-sb-env.??????) owned by SUDO_USER; any violation exits 2
+#      WITHOUT reading or deleting the path. Only whitelisted model/agent env
+#      keys are exported; LD_*, BASH_ENV, PYTHONPATH, PATH, SSH_*, etc. are
+#      unconditionally rejected.
+#   4. Spawns a per-sandbox root egress proxy in a clean environment (`env -i`,
+#      `python3 -I -S`), pins model endpoints in nftables (`policy drop`), and
+#      routes HTTP(S)_PROXY to the loopback proxy while NO_PROXY sends model
+#      traffic direct over the nft IP-pinned rules.
+
+set -euo pipefail
+
+LIB_DIR="${HAVEN_SANDBOX_LIB_DIR:-/usr/local/lib/haven-sandbox}"
+AUDIT_DIR="${HAVEN_SANDBOX_AUDIT_DIR:-/var/log/haven-sandbox}"
+ENV_ALLOWLIST_FILE="${HAVEN_SANDBOX_ENV_ALLOWLIST:-/etc/haven-sandbox/env-allowlist}"
+
+is_blocked_env_key() {
+  case "$1" in
+    LD_*|DYLD_*|BASH_ENV|ENV|PROMPT_COMMAND|PYTHONPATH|PYTHONHOME|PYTHONSTARTUP|\
+    NODE_OPTIONS|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|RUBYOPT|PERL5OPT|PERL5LIB|\
+    GIT_SSH*|GIT_EXEC_PATH|SSH_*|PATH|HOME|USER|LOGNAME|SHELL|IFS|CDPATH|SUDO_*|\
+    HTTP_PROXY|HTTPS_PROXY|NO_PROXY|ALL_PROXY|http_proxy|https_proxy|no_proxy|all_proxy)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_allowed_env_key() {
+  local key="$1"
+  [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || return 1
+  if is_blocked_env_key "$key"; then
+    return 1
+  fi
+  case "$key" in
+    ANTHROPIC_*|CLAUDE_CODE_*|OPENAI_*|GEMINI_*|GOOGLE_API_*|GOOGLE_GENAI_*|\
+    OLLAMA_*|MISTRAL_*|OPENROUTER_*|XAI_*|DEEPSEEK_*|CODEX_*|AIDER_*)
+      return 0
+      ;;
+  esac
+  if [ -f "$ENV_ALLOWLIST_FILE" ] && [ ! -L "$ENV_ALLOWLIST_FILE" ]; then
+    local prefix
+    while IFS= read -r prefix; do
+      prefix="${prefix%%#*}"
+      prefix="${prefix#"${prefix%%[![:space:]]*}"}"
+      prefix="${prefix%"${prefix##*[![:space:]]}"}"
+      [ -z "$prefix" ] && continue
+      [[ "$prefix" =~ ^[A-Z][A-Z0-9_]*\*?$ ]] || continue
+      if [[ "$prefix" == *\* ]]; then
+        local stem="${prefix%\*}"
+        [[ "$key" == "$stem"* ]] && return 0
+      else
+        [[ "$key" == "$prefix" ]] && return 0
+      fi
+    done < "$ENV_ALLOWLIST_FILE"
+  fi
+  return 1
+}
+
+validate_and_load_envfile() {
+  local expected_uid="$1"
+  local envfile="$2"
+  [ -z "$envfile" ] && return 0
+
+  case "$envfile" in
+    /tmp/haven-sb-env.??????|/tmp/claude-sb-env.??????) : ;;
+    *)
+      echo "haven-sandbox-helper: env file must match /tmp/haven-sb-env.XXXXXX" >&2
+      return 2
+      ;;
+  esac
+
+  if [ -L "$envfile" ] || [ ! -f "$envfile" ]; then
+    echo "haven-sandbox-helper: env file must be an existing regular non-symlink file" >&2
+    return 2
+  fi
+
+  local owner_uid
+  owner_uid="$(stat -c %u "$envfile" 2>/dev/null || echo "")"
+  if [ "$owner_uid" != "$expected_uid" ]; then
+    echo "haven-sandbox-helper: env file must be owned by invoking user (uid $expected_uid)" >&2
+    return 2
+  fi
+
+  local k v
+  while IFS='=' read -r k v || [ -n "$k" ]; do
+    [ -z "$k" ] && continue
+    if is_allowed_env_key "$k"; then
+      export "$k=$v"
+    fi
+  done < "$envfile"
+  rm -f -- "$envfile"
+}
+
+validate_endpoints() {
+  local hosts_csv="$1"
+  [ -n "$hosts_csv" ] || { echo "haven-sandbox-helper: empty model host list" >&2; return 2; }
+  if [[ "$hosts_csv" == *$'\n'* ]] || [[ "$hosts_csv" == *$'\r'* ]] || [[ ! "$hosts_csv" =~ ^[A-Za-z0-9.,:-]+$ ]]; then
+    echo "haven-sandbox-helper: invalid characters in model host list" >&2
+    return 2
+  fi
+  local IFS=','
+  local -a items=()
+  read -ra items <<< "$hosts_csv"
+  [ "${#items[@]}" -gt 0 ] || { echo "haven-sandbox-helper: empty model host list" >&2; return 2; }
+  local ep h p
+  for ep in "${items[@]}"; do
+    [ -n "$ep" ] || { echo "haven-sandbox-helper: empty endpoint entry" >&2; return 2; }
+    if [[ "$ep" == *:* ]]; then
+      h="${ep%%:*}"
+      p="${ep#*:}"
+      if [[ ! "$p" =~ ^[0-9]+$ ]] || [ "$p" -lt 1 ] || [ "$p" -gt 65535 ]; then
+        echo "haven-sandbox-helper: invalid port in endpoint '$ep'" >&2
+        return 2
+      fi
+    else
+      h="$ep"
+    fi
+    if [ "${#h}" -gt 253 ] || [[ ! "$h" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+      echo "haven-sandbox-helper: invalid host in endpoint '$ep'" >&2
+      return 2
+    fi
+  done
+}
+
+# Non-root unit-test entry point so CI can exercise the exact bash validation
+# functions without sudo; unconditionally refused when running as root (uid 0).
+if [ "${1:-}" = "--self-test-validation" ]; then
+  if [ "$(id -u)" = 0 ]; then
+    echo "haven-sandbox-helper: --self-test-validation is forbidden as root" >&2
+    exit 2
+  fi
+  shift
+  subcmd="${1:-}"
+  shift || true
+  case "$subcmd" in
+    envfile)
+      target_uid="$1"
+      ef="${2:-}"
+      [ "$ef" = "--" ] && ef=""
+      validate_and_load_envfile "$target_uid" "$ef" || exit $?
+      env | sort
+      exit 0
+      ;;
+    endpoints)
+      validate_endpoints "${1:-}" || exit $?
+      exit 0
+      ;;
+    *)
+      echo "unknown self-test subcommand" >&2
+      exit 2
+      ;;
+  esac
+fi
+
+[ "$(id -u)" = 0 ] || { echo "haven-sandbox-helper: must run as root (sudo)" >&2; exit 1; }
+
+# Prevent caller-supplied HAVEN_SANDBOX_* env vars from redirecting root paths
+LIB_DIR="/usr/local/lib/haven-sandbox"
+AUDIT_DIR="/var/log/haven-sandbox"
+ENV_ALLOWLIST_FILE="/etc/haven-sandbox/env-allowlist"
+
+RUN_AS="${SUDO_USER:-}"
+case "$RUN_AS" in
+  ''|root)
+    echo "haven-sandbox-helper: refusing root or unknown SUDO_USER" >&2
+    exit 1
+    ;;
+esac
+TARGET_UID="$(id -u "$RUN_AS" 2>/dev/null || echo "")"
+if [ -z "$TARGET_UID" ] || [ "$TARGET_UID" = "0" ]; then
+  echo "haven-sandbox-helper: invalid target user '$RUN_AS'" >&2
+  exit 1
+fi
+
+[ $# -ge 2 ] || { echo "usage: haven-sandbox-helper <hosts> <envfile|-- > -- <cmd...>" >&2; exit 2; }
+HOSTS="$1"
+ENVFILE="${2:-}"
+shift 2
+[ "$ENVFILE" = "--" ] && ENVFILE=""
+[ "${1:-}" = "--" ] && shift
+[ $# -gt 0 ] || { echo "usage: haven-sandbox-helper <hosts> <envfile|-- > -- <cmd...>" >&2; exit 2; }
+
+validate_endpoints "$HOSTS" || exit $?
+validate_and_load_envfile "$TARGET_UID" "$ENVFILE" || exit $?
+
+TMP="$(mktemp -d)"
+PIDF="$TMP/pid"
+NFTRC="$TMP/rules.nft"
+
+PROXY_PID=""
+PROXY_PORT=""
+EGRESS_MODE="${SB_EGRESS_MODE:-auto}"
+case "$EGRESS_MODE" in
+  auto)
+    if [ -f "$LIB_DIR/haven.key" ]; then EGRESS_MODE=phase2; else EGRESS_MODE=phase1; fi
+    ;;
+  phase1|phase2) : ;;
+  *)
+    echo "haven-sandbox-helper: invalid SB_EGRESS_MODE '$EGRESS_MODE'" >&2
+    rm -rf "$TMP"
+    exit 2
+    ;;
+esac
+
+HAVEN_MCP_URL="${SB_HAVEN_MCP:-http://127.0.0.1:8788/mcp}"
+case "$HAVEN_MCP_URL" in
+  http://127.0.0.1:*|http://localhost:*|https://127.0.0.1:*|https://localhost:*) : ;;
+  *)
+    echo "haven-sandbox-helper: SB_HAVEN_MCP must target localhost/127.0.0.1" >&2
+    rm -rf "$TMP"
+    exit 2
+    ;;
+esac
+
+NS="hvnsb-$$"
+SLIRP=""
+NSHOLDER=""
+CPID=""
+cleanup() {
+  local p
+  for p in "$CPID" "$SLIRP" "$NSHOLDER" "$PROXY_PID"; do
+    [ -n "$p" ] && kill "$p" 2>/dev/null || true
+  done
+  ip netns del "$NS" 2>/dev/null || true
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
+
+install -d -o root -g root -m 700 "$AUDIT_DIR"
+
+env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -S "$LIB_DIR/haven-egress-proxy.py" \
+  --port-file "$TMP/proxy.port" \
+  --sandbox-id "$NS" \
+  --audit "$AUDIT_DIR/audit.jsonl" \
+  --policy "$LIB_DIR/policy.json" \
+  --key-file "$LIB_DIR/haven.key" \
+  --haven "$HAVEN_MCP_URL" \
+  --mode "$EGRESS_MODE" >>"$AUDIT_DIR/proxy.log" 2>&1 &
+PROXY_PID=$!
+
+for _ in $(seq 1 100); do
+  [ -s "$TMP/proxy.port" ] && break
+  sleep 0.05
+done
+[ -s "$TMP/proxy.port" ] || { echo "haven-sandbox-helper: egress proxy failed to start" >&2; exit 1; }
+PROXY_PORT="$(cat "$TMP/proxy.port")"
+[[ "$PROXY_PORT" =~ ^[0-9]+$ ]] || { echo "haven-sandbox-helper: invalid proxy port" >&2; exit 1; }
+
+{
+  echo "table inet sb {"
+  echo " chain out {"
+  echo "  type filter hook output priority 0; policy drop;"
+  echo "  oifname \"lo\" accept"
+  IFS=',' read -ra HA <<< "$HOSTS"
+  for ep in "${HA[@]}"; do
+    h="${ep%%:*}"
+    p="${ep##*:}"
+    [ "$h" = "$p" ] && p=443
+    case "$h" in 127.0.0.1|localhost) h="10.0.2.2" ;; esac
+    if [ "$h" = "10.0.2.2" ]; then
+      echo "  ip daddr 10.0.2.2 tcp dport $p accept"
+    else
+      while read -r ip; do
+        [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "  ip daddr $ip tcp dport $p accept"
+      done < <(getent ahostsv4 "$h" | awk '{print $1}' | sort -u)
+      while read -r ip; do
+        [[ "$ip" =~ ^[0-9a-fA-F:]+$ ]] && echo "  ip6 daddr $ip tcp dport $p accept"
+      done < <(getent ahostsv6 "$h" | awk '{print $1}' | sort -u)
+    fi
+  done
+  echo "  ip daddr 10.0.2.2 tcp dport $PROXY_PORT accept"
+  echo "  ip daddr 10.0.2.3 udp dport 53 accept"
+  echo "  ip daddr 10.0.2.3 tcp dport 53 accept"
+  echo "  ct state established,related accept"
+  echo " }"
+  echo "}"
+} > "$NFTRC"
+
+ip netns add "$NS"
+setsid ip netns exec "$NS" bash -c "echo \$BASHPID > '$PIDF'; exec sleep infinity" >/dev/null 2>&1 &
+NSHOLDER=$!
+for _ in $(seq 1 100); do
+  [ -s "$PIDF" ] && break
+  sleep 0.05
+done
+[ -s "$PIDF" ] || { echo "haven-sandbox-helper: netns holder failed" >&2; exit 1; }
+CPID="$(cat "$PIDF")"
+
+setsid slirp4netns --configure --mtu=65520 "$CPID" tap0 >/dev/null 2>&1 &
+SLIRP=$!
+for _ in $(seq 1 300); do
+  ip netns exec "$NS" ip link show tap0 >/dev/null 2>&1 && break
+  sleep 0.05
+done
+ip netns exec "$NS" ip link show tap0 >/dev/null 2>&1 || {
+  echo "haven-sandbox-helper: slirp4netns tap0 failed to appear" >&2
+  exit 1
+}
+
+NP="localhost,127.0.0.1,::1,10.0.2.2"
+IFS=',' read -ra HA <<< "$HOSTS"
+for ep in "${HA[@]}"; do
+  h="${ep%%:*}"
+  case "$h" in 127.0.0.1|localhost) h="10.0.2.2" ;; esac
+  NP="$NP,$h"
+done
+export HTTP_PROXY="http://10.0.2.2:$PROXY_PORT"
+export HTTPS_PROXY="http://10.0.2.2:$PROXY_PORT"
+export NO_PROXY="$NP"
+export http_proxy="$HTTP_PROXY"
+export https_proxy="$HTTPS_PROXY"
+export no_proxy="$NO_PROXY"
+
+printf 'nameserver 10.0.2.3\n' > "$TMP/resolv.conf"
+ip netns exec "$NS" env SB_RESOLV="$TMP/resolv.conf" SB_NFT="$NFTRC" SB_USER="$RUN_AS" \
+  unshare -m bash -c '
+    mount --bind "$SB_RESOLV" /etc/resolv.conf
+    ip link set lo up
+    ip link set tap0 up
+    nft -f "$SB_NFT"
+    exec runuser -u "$SB_USER" -- "$@"
+  ' -- "$@"

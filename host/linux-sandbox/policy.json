@@ -1,0 +1,31 @@
+{
+  "standing_allow": [
+    "github.com",
+    "api.github.com",
+    "codeload.github.com",
+    "objects.githubusercontent.com",
+    "raw.githubusercontent.com",
+    "gist.github.com",
+    "github.githubassets.com",
+    "avatars.githubusercontent.com",
+    "uploads.github.com"
+  ],
+  "deny": [
+    "a-api.anthropic.com",
+    "a-cdn.anthropic.com",
+    "*.sentry.io",
+    "cdn.growthbook.io",
+    "releases.claude.com",
+    "downloads.claude.ai",
+    "claude.ai",
+    "platform.claude.com",
+    "assets.claude.ai",
+    "www.claudeusercontent.com",
+    "*.claudemcpcontent.com",
+    "www.google.com",
+    "storage.googleapis.com",
+    "api.anthropic.com",
+    "statsig.anthropic.com",
+    "*.datadoghq.com"
+  ]
+}

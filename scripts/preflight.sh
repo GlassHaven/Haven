@@ -38,6 +38,7 @@ run "no hardcoded UI strings" ./scripts/check-i18n-hardcoded.sh
 #     a full CI round trip to find out (2026-08-17).
 run "locale coverage (11 locales)" python3 scripts/check-i18n-coverage.py
 run "no new committed binaries" ./scripts/check-no-committed-binaries.sh
+run "linux sandbox bundle & fuzz suite" bash -c 'bash host/linux-sandbox/install.sh --check && python3 -I host/linux-sandbox/test_sandbox_bundle.py'
 
 # 2. Translation export current — regenerate and fail if docs/i18n/strings.json
 #    drifted from the strings.xml sources. This is the gate that reddened CI on

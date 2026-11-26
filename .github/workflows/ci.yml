@@ -296,6 +296,10 @@ jobs:
         run: |
           python3 scripts/i18n_export.py
           git diff --exit-code docs/i18n/strings.json
+      - name: Verify Linux host sandbox bundle and egress proxy fuzz suite
+        run: |
+          bash host/linux-sandbox/install.sh --check
+          python3 -I host/linux-sandbox/test_sandbox_bundle.py
 
   # Full Android lint is slow (~13 min) and rarely catches a per-commit
   # regression the tests don't — so it runs on PRs and the nightly schedule,

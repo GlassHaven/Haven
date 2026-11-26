@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# haven-egress-provision-key — silent HMAC signing-key provisioning for Phase 2.
+#
+# Reads a paired Haven MCP client configuration (or HAVEN_MCP_BEARER + --url),
+# invokes `get_egress_signing_secret` (raising the biometric/reveal sheet on the
+# phone), writes the raw 32-byte secret to a 0600 temp file, and installs it
+# root:root 0600 at /usr/local/lib/haven-sandbox/haven.key.
+#
+# Prints ONLY key_id and algorithm; the raw secret never touches stdout/argv.
+
+set -euo pipefail
+
+MCP_CONFIG=""
+MCP_URL=""
+KEY_OUT="/usr/local/lib/haven-sandbox/haven.key"
+
+usage() {
+  cat <<'EOF'
+Usage: haven-egress-provision-key [options]
+
+Options:
+  --mcp-config PATH   MCP client JSON config containing mcpServers.haven (auto-detected if omitted)
+  --url URL           Haven MCP URL when using HAVEN_MCP_BEARER env var (e.g. http://127.0.0.1:8788/mcp)
+  --key-out PATH      Destination root-owned 0600 key path (default: /usr/local/lib/haven-sandbox/haven.key)
+  -h, --help          Show this help message
+EOF
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mcp-config)
+      MCP_CONFIG="${2:-}"
+      shift 2
+      ;;
+    --url)
+      MCP_URL="${2:-}"
+      shift 2
+      ;;
+    --key-out)
+      KEY_OUT="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "haven-egress-provision-key: unknown option '$1'" >&2
+      exit 2
+      ;;
+  esac
+done
+
+TMP="$(umask 077 && mktemp)"
+chmod 600 "$TMP"
+trap 'shred -u "$TMP" 2>/dev/null || rm -f -- "$TMP"' EXIT
+
+python3 -I - "$MCP_CONFIG" "$MCP_URL" "$TMP" <<'PY'
+import base64
+import json
+import os
+import sys
+import urllib.request
+
+cfg_arg, url_arg, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+candidates = [cfg_arg] if cfg_arg else [
+    os.path.expanduser("~/.config/haven/mcp.json"),
+    os.path.expanduser("~/.claude.json"),
+    os.path.expanduser("~/.gemini/settings.json"),
+]
+
+url = url_arg
+auth = os.environ.get("HAVEN_MCP_BEARER", "").strip()
+if auth and not auth.lower().startswith("bearer "):
+    auth = "Bearer " + auth
+
+if not url or not auth:
+    for path in candidates:
+        if not path or not os.path.isfile(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            continue
+        haven = cfg.get("mcpServers", {}).get("haven", {})
+        if not isinstance(haven, dict):
+            continue
+        url = url or haven.get("url", "")
+        headers = haven.get("headers", {})
+        if isinstance(headers, dict):
+            auth = auth or headers.get("Authorization", "")
+        if url and auth:
+            break
+
+if not url or not auth:
+    sys.stderr.write(
+        "haven-egress-provision-key: could not locate Haven MCP URL + Authorization header "
+        "(pass --mcp-config PATH or set HAVEN_MCP_BEARER with --url URL)\n"
+    )
+    sys.exit(1)
+
+
+def call(method, params, mid, bearer, sess=None):
+    body = json.dumps({"jsonrpc": "2.0", "id": mid, "method": method, "params": params}).encode()
+    hd = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": bearer if bearer.lower().startswith("bearer ") else f"Bearer {bearer}",
+    }
+    if sess:
+        hd["Mcp-Session-Id"] = sess
+    req = urllib.request.Request(url, data=body, headers=hd)
+    with urllib.request.urlopen(req, timeout=120) as r:
+        return r.headers, json.load(r)
+
+
+ih, init = call(
+    "initialize",
+    {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {},
+        "clientInfo": {"name": "haven-egress-provision-key", "version": "1.0"},
+    },
+    1,
+    auth,
+)
+sess = ih.get("Mcp-Session-Id") or ih.get("mcp-session-id")
+token = init.get("result", {}).get("_meta", {}).get("sh.haven/pairingToken") or auth
+sys.stderr.write("Calling get_egress_signing_secret — approve the reveal prompt on your phone...\n")
+_, d = call("tools/call", {"name": "get_egress_signing_secret", "arguments": {}}, 2, token, sess)
+res = d.get("result", {})
+sc = res.get("structuredContent") or {}
+if not sc:
+    for c in res.get("content", []):
+        if c.get("type") == "text":
+            try:
+                sc = json.loads(c["text"])
+            except Exception:
+                pass
+if "error" in d or not sc.get("secret_base64"):
+    sys.stderr.write("haven-egress-provision-key: secret reveal failed or was denied\n")
+    sys.exit(1)
+secret = base64.b64decode(sc["secret_base64"], validate=True)
+if len(secret) != 32:
+    sys.stderr.write(f"haven-egress-provision-key: expected 32-byte secret, got {len(secret)}\n")
+    sys.exit(1)
+with open(out_path, "wb") as f:
+    f.write(secret)
+print("key_id=" + str(sc.get("key_id", "?")))
+print("algorithm=" + str(sc.get("algorithm", "?")))
+PY
+
+KEY_DIR="$(dirname "$KEY_OUT")"
+echo "Secret captured (32 bytes). Installing root-owned key at $KEY_OUT (sudo required)..."
+sudo install -d -o root -g root -m 755 "$KEY_DIR"
+sudo install -m 600 -o root -g root "$TMP" "$KEY_OUT"
+echo "OK: $KEY_OUT provisioned (root:root 0600, 32 bytes). Phase 2 phone consent is now active."

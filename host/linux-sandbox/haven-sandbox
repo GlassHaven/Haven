@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# haven-sandbox — unprivileged user launcher for the Haven Linux network jail.
+#
+# Collects whitelisted agent/model API environment variables into a 0600
+# caller-owned temp file (/tmp/haven-sb-env.XXXXXX) so secrets never appear in
+# process argv, then invokes /usr/local/bin/haven-sandbox-helper via sudo.
+#
+# Usage:
+#   haven-sandbox [options] <model-host[:port][,host2[:port]]> -- <command...>
+#
+# Examples:
+#   haven-sandbox api.anthropic.com -- claude
+#   haven-sandbox api.openai.com -- codex
+#   haven-sandbox generativelanguage.googleapis.com -- gemini
+#   haven-sandbox localhost:11434 -- aider --model ollama/qwen2.5-coder
+
+set -euo pipefail
+
+HELPER="${HAVEN_SANDBOX_HELPER:-/usr/local/bin/haven-sandbox-helper}"
+MODE="auto"
+HAVEN_URL="${SB_HAVEN_MCP:-http://127.0.0.1:8788/mcp}"
+PASS_ENV=1
+
+usage() {
+  cat <<'EOF'
+Usage: haven-sandbox [options] <model-host[:port][,host2[:port]]> -- <command...>
+
+Confines <command...> to an isolated Linux network namespace whose nftables
+allowlist permits ONLY:
+  1. Direct TCP connections to the specified <model-host[:port]> endpoint(s)
+  2. The per-sandbox root-owned Haven egress proxy (standing GitHub HTTPS allow,
+     telemetry hard-deny, SSRF/rebinding guard, and non-bypassable Haven phone
+     consent when /usr/local/lib/haven-sandbox/haven.key is provisioned)
+  3. slirp4netns DNS (10.0.2.3:53) and in-namespace loopback
+
+Options:
+  --mode auto|phase1|phase2   Override egress mode (default: auto)
+  --haven-url URL             Local Haven MCP URL (default: http://127.0.0.1:8788/mcp)
+  --no-env                    Do not forward caller model API env vars
+  -h, --help                  Show this help message
+EOF
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mode)
+      MODE="${2:-}"
+      shift 2
+      ;;
+    --haven-url)
+      HAVEN_URL="${2:-}"
+      shift 2
+      ;;
+    --no-env)
+      PASS_ENV=0
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "haven-sandbox: unknown option '$1' (see --help)" >&2
+      exit 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+[ $# -ge 2 ] || { usage >&2; exit 2; }
+HOSTS="$1"
+shift
+[ "${1:-}" = "--" ] && shift
+[ $# -gt 0 ] || { usage >&2; exit 2; }
+
+if [ ! -x "$HELPER" ]; then
+  echo "haven-sandbox: helper not installed at $HELPER (run: sudo bash host/linux-sandbox/install.sh)" >&2
+  exit 1
+fi
+
+ENVFILE="--"
+cleanup_env() {
+  if [ "$ENVFILE" != "--" ] && [ -e "$ENVFILE" ]; then
+    rm -f -- "$ENVFILE"
+  fi
+}
+trap cleanup_env EXIT
+
+if [ "$PASS_ENV" -eq 1 ]; then
+  ENVFILE="$(umask 077 && mktemp /tmp/haven-sb-env.XXXXXX)"
+  chmod 600 "$ENVFILE"
+  python3 -I - "$ENVFILE" <<'PY'
+import os
+import sys
+
+PREFIXES = (
+    "ANTHROPIC_",
+    "CLAUDE_CODE_",
+    "OPENAI_",
+    "GEMINI_",
+    "GOOGLE_API_",
+    "GOOGLE_GENAI_",
+    "OLLAMA_",
+    "MISTRAL_",
+    "OPENROUTER_",
+    "XAI_",
+    "DEEPSEEK_",
+    "CODEX_",
+    "AIDER_",
+)
+
+out_path = sys.argv[1]
+with open(out_path, "w", encoding="utf-8") as f:
+    for k, v in sorted(os.environ.items()):
+        if "\n" in k or "\n" in v or "\r" in k or "\r" in v or "=" in k:
+            continue
+        if k.startswith(PREFIXES):
+            f.write(f"{k}={v}\n")
+PY
+fi
+
+export SB_EGRESS_MODE="$MODE"
+export SB_HAVEN_MCP="$HAVEN_URL"
+
+exec sudo --preserve-env=SB_EGRESS_MODE,SB_HAVEN_MCP "$HELPER" "$HOSTS" "$ENVFILE" -- "$@"

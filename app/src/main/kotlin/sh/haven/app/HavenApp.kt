@@ -295,6 +295,23 @@ class HavenApp : Application(), Configuration.Provider {
             .onEach { postConsentBlockedNotification(it) }
             .launchIn(appScope)
 
+        // #889: cancel any backgrounded egress notification as soon as its
+        // request leaves `pending` (answered on the foreground sheet or expired
+        // on the 60s fail-closed timeout) so stale prompts never linger.
+        agentConsentManager.pending
+            .onEach { pendingList ->
+                val cancelledIds = synchronized(activeEgressNotifRequestIds) {
+                    reconcileActiveEgressNotifs(activeEgressNotifRequestIds, pendingList)
+                }
+                if (cancelledIds.isNotEmpty()) {
+                    val mgr = NotificationManagerCompat.from(this)
+                    for (reqId in cancelledIds) {
+                        mgr.cancel(egressNotifId(reqId))
+                    }
+                }
+            }
+            .launchIn(appScope)
+
         // Schedule the daily step-ca cert-renewal check (#133 phase 2b).
         // Idempotent (KEEP policy); cheap when the user has no CAs
         // configured — the worker enumerates SshKeys and exits early.
@@ -501,19 +518,42 @@ class HavenApp : Application(), Configuration.Provider {
         }
     }
 
+    private val activeEgressNotifRequestIds = LinkedHashSet<Long>()
+
     /**
-     * Post (or update) a single heads-up notification telling the user an
-     * agent action was blocked because Haven was backgrounded. Tapping it
-     * brings Haven to the foreground so the agent's retry can render the
-     * consent sheet. One stable id so a burst of blocked calls coalesces
-     * into one notification rather than spamming the shade.
+     * Post (or update) a heads-up notification telling the user an agent action
+     * needs approval while Haven is backgrounded.
+     *
+     * For non-bypassable controlled-egress requests (`#889`), uses a dedicated
+     * urgent channel (`CATEGORY_CALL` + `PRIORITY_MAX`, avoiding OEM suppression
+     * of `CATEGORY_RECOMMENDATION` heads-up banners), attaches an opt-in-aware
+     * `fullScreenIntent` when granted, and exposes 3 direct action buttons
+     * (`Allow once` / `Allow session` / `Deny`) wired to `respondEgress`.
      */
     private fun postConsentBlockedNotification(req: ConsentRequest) {
         val mgr = NotificationManagerCompat.from(this)
         if (!mgr.areNotificationsEnabled()) return
 
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (nm.getNotificationChannel(CONSENT_CHANNEL_ID) == null) {
+        val egress = req.egress
+        val isEgress = egress != null || req.toolName == AgentConsentManager.EGRESS_TOOL_NAME
+        if (isEgress) {
+            if (nm.getNotificationChannel(EGRESS_CONSENT_CHANNEL_ID) == null) {
+                nm.createNotificationChannel(
+                    NotificationChannel(
+                        EGRESS_CONSENT_CHANNEL_ID,
+                        "Internet egress approvals",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Urgent prompt when a sandboxed agent asks to reach an " +
+                            "external host while Haven is in the background. Fails closed to " +
+                            "Deny if unanswered within 60 seconds."
+                        enableVibration(true)
+                        lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
+                    },
+                )
+            }
+        } else if (nm.getNotificationChannel(CONSENT_CHANNEL_ID) == null) {
             nm.createNotificationChannel(
                 NotificationChannel(
                     CONSENT_CHANNEL_ID,
@@ -540,42 +580,107 @@ class HavenApp : Application(), Configuration.Provider {
             )
         }
         val contentIntent = PendingIntent.getActivity(
-            this, 0, launch,
+            this, if (isEgress) egressNotifId(req.id) else 0, launch,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val isPairing = req.toolName == AgentConsentManager.PAIRING_TOOL_NAME
-        // Per-(client,tool) id so distinct blocked actions get distinct
-        // actionable notifications and each Allow/Deny resolves the right one.
-        val notifId = consentNotifId(req.clientHint, req.toolName)
+        val fullScreenPermitted = checkSelfPermission("android.permission.USE_FULL_SCREEN_INTENT") ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+                nm.canUseFullScreenIntent())
+        val spec = consentNotificationSpec(req, fullScreenPermitted)
 
-        val title = if (isPairing) "Haven: a client wants to pair" else "Haven: agent needs approval"
-        val line = if (isPairing) {
-            "A client tried to connect while Haven was in the background. Open Haven so it can retry."
+        val isPairing = req.toolName == AgentConsentManager.PAIRING_TOOL_NAME
+        val notifId = if (isEgress) {
+            egressNotifId(req.id)
         } else {
-            "‘${req.toolName}’ needs your approval. It's waiting for you — open Haven to " +
-                "review, or use Allow/Deny below. Denied automatically if you don't answer."
+            consentNotifId(req.clientHint, req.toolName)
         }
 
-        val builder = NotificationCompat.Builder(this, CONSENT_CHANNEL_ID)
+        val title = when {
+            isEgress -> "Haven: internet egress request"
+            isPairing -> "Haven: a client wants to pair"
+            else -> "Haven: agent needs approval"
+        }
+        val line = when {
+            egress != null -> "Allow ${egress.scheme}://${egress.host}:${egress.port}?"
+            isEgress -> "An agent requested internet egress. Tap to review or answer below."
+            isPairing -> "A client tried to connect while Haven was in the background. Open Haven so it can retry."
+            else -> "‘${req.toolName}’ needs your approval. It's waiting for you — open Haven to " +
+                "review, or use Allow/Deny below. Denied automatically if you don't answer."
+        }
+        val expandedBody = if (egress != null) {
+            "From: ${req.clientHint ?: "paired client"} (sandbox ${egress.sandboxId})\n" +
+                "Target: ${egress.scheme}://${egress.host}:${egress.port}\n" +
+                "Reason: ${egress.reason}\n\n" +
+                "Denied automatically in 60s if unanswered."
+        } else {
+            "$line\n\n${req.summary}"
+        }
+
+        val builder = NotificationCompat.Builder(this, spec.channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(title)
             .setContentText(line)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("$line\n\n${req.summary}"))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedBody))
+            .setPriority(spec.priority)
+            .setCategory(spec.category)
             .setAutoCancel(true)
             .setContentIntent(contentIntent)
 
-        // Allow/Deny actions for tool calls. Since #337 mechanism 3 the
-        // original call HOLDS for foreground (denied on timeout): opening
-        // Haven from the notification renders the sheet and resolves the live
-        // call. Tapping Allow here instead arms a short retry window
-        // (ConsentActionReceiver → armRetryWindow) — that covers the case
-        // where the hold has already timed out and the agent retries. Pairing
-        // has no tool-window to arm, so it keeps the open-Haven-to-retry flow
-        // (no buttons).
-        if (!isPairing) {
+        if (isEgress) {
+            builder
+                .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setPublicVersion(
+                    NotificationCompat.Builder(this, spec.channelId)
+                        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                        .setContentTitle("Haven: internet egress request")
+                        .setContentText("Unlock to review or deny the request.")
+                        .build(),
+                )
+                .setTimeoutAfter(60_000L)
+            if (spec.attachFullScreenIntent) {
+                builder.setFullScreenIntent(contentIntent, true)
+            }
+            fun egressActionPi(reqCodeOffset: Int, actionName: String): PendingIntent =
+                PendingIntent.getBroadcast(
+                    this,
+                    notifId * 4 + reqCodeOffset,
+                    Intent(this, ConsentActionReceiver::class.java).apply {
+                        action = actionName
+                        putExtra(ConsentActionReceiver.EXTRA_NOTIF_ID, notifId)
+                        putExtra(ConsentActionReceiver.EXTRA_EGRESS_REQUEST_ID, req.id)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+
+            fun unlockedAction(label: String, pi: PendingIntent): NotificationCompat.Action =
+                NotificationCompat.Action.Builder(0, label, pi)
+                    .apply {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            setAuthenticationRequired(true)
+                        }
+                    }
+                    .build()
+
+            builder.addAction(
+                unlockedAction("Allow once", egressActionPi(0, ConsentActionReceiver.ACTION_EGRESS_ONCE)),
+            )
+            builder.addAction(
+                unlockedAction("Allow session", egressActionPi(1, ConsentActionReceiver.ACTION_EGRESS_SESSION)),
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    "Deny",
+                    egressActionPi(2, ConsentActionReceiver.ACTION_EGRESS_DENY),
+                ).build(),
+            )
+            synchronized(activeEgressNotifRequestIds) {
+                activeEgressNotifRequestIds.add(req.id)
+            }
+        } else if (!isPairing) {
             val allowPi = PendingIntent.getBroadcast(
                 this, notifId * 2,
                 Intent(this, ConsentActionReceiver::class.java).apply {
@@ -670,7 +775,69 @@ class HavenApp : Application(), Configuration.Provider {
     }
 
     companion object {
-        private const val CONSENT_CHANNEL_ID = "haven-agent-consent"
+        internal const val CONSENT_CHANNEL_ID = "haven-agent-consent"
+        internal const val EGRESS_CONSENT_CHANNEL_ID = "haven-egress-consent"
+
+        internal data class ConsentNotificationSpec(
+            val channelId: String,
+            val category: String,
+            val priority: Int,
+            val attachFullScreenIntent: Boolean,
+            val actionIntents: List<String>,
+        )
+
+        internal fun consentNotificationSpec(
+            req: ConsentRequest,
+            fullScreenPermitted: Boolean,
+        ): ConsentNotificationSpec {
+            val isEgress = req.egress != null || req.toolName == AgentConsentManager.EGRESS_TOOL_NAME
+            val isPairing = req.toolName == AgentConsentManager.PAIRING_TOOL_NAME
+            return if (isEgress) {
+                ConsentNotificationSpec(
+                    channelId = EGRESS_CONSENT_CHANNEL_ID,
+                    category = NotificationCompat.CATEGORY_CALL,
+                    priority = NotificationCompat.PRIORITY_MAX,
+                    attachFullScreenIntent = fullScreenPermitted,
+                    actionIntents = listOf(
+                        ConsentActionReceiver.ACTION_EGRESS_ONCE,
+                        ConsentActionReceiver.ACTION_EGRESS_SESSION,
+                        ConsentActionReceiver.ACTION_EGRESS_DENY,
+                    ),
+                )
+            } else {
+                ConsentNotificationSpec(
+                    channelId = CONSENT_CHANNEL_ID,
+                    category = NotificationCompat.CATEGORY_STATUS,
+                    priority = NotificationCompat.PRIORITY_HIGH,
+                    attachFullScreenIntent = false,
+                    actionIntents = if (isPairing) {
+                        emptyList()
+                    } else {
+                        listOf(
+                            ConsentActionReceiver.ACTION_ALLOW,
+                            ConsentActionReceiver.ACTION_DENY,
+                        )
+                    },
+                )
+            }
+        }
+
+        internal fun reconcileActiveEgressNotifs(
+            trackedIds: MutableSet<Long>,
+            currentPending: List<ConsentRequest>,
+        ): List<Long> {
+            if (trackedIds.isEmpty()) return emptyList()
+            val liveEgressIds = currentPending
+                .asSequence()
+                .filter { it.egress != null || it.toolName == AgentConsentManager.EGRESS_TOOL_NAME }
+                .map { it.id }
+                .toSet()
+            val removed = trackedIds.filter { it !in liveEgressIds }
+            trackedIds.removeAll(removed.toSet())
+            return removed
+        }
+
+        fun egressNotifId(requestId: Long): Int = 0x4547_0000 xor requestId.hashCode()
 
         /**
          * Per-(client, tool) id for the blocked-consent notification. Shared

@@ -120,6 +120,7 @@ class TunnelPortForwardManager(
 
     private val runningForwards = ConcurrentHashMap<String, RunningForward>()
     private val standaloneConnectedIds = ConcurrentHashMap.newKeySet<String>()
+    private val socksSyncLock = Any()
 
     init {
         syncAutoProxyMarker(_autoProxyGuests.value)
@@ -131,8 +132,8 @@ class TunnelPortForwardManager(
             }
         }
         scope.launch {
-            tunnelManager.live.collect { liveMap ->
-                refreshSocksPorts(liveMap)
+            tunnelManager.live.collect {
+                syncSocksFromCurrentLive()
             }
         }
     }
@@ -147,12 +148,7 @@ class TunnelPortForwardManager(
         val tunnel = tunnelManager.acquire(configId, standaloneDependentId(configId))
             ?: return@withContext null
         standaloneConnectedIds.add(configId)
-        runCatching { tunnel.socksAddress() }.getOrNull()?.let { addr ->
-            val updated = _socksPorts.value.toMutableMap()
-            updated[configId] = addr.port
-            _socksPorts.value = updated
-            syncGuestSocksMarker(updated)
-        }
+        syncSocksFromCurrentLive()
         tunnel
     }
 
@@ -161,6 +157,7 @@ class TunnelPortForwardManager(
         if (!standaloneConnectedIds.remove(configId)) return
         withContext(ioDispatcher) {
             tunnelManager.release(standaloneDependentId(configId))
+            syncSocksFromCurrentLive()
         }
     }
 
@@ -428,16 +425,26 @@ class TunnelPortForwardManager(
         }
     }
 
-    private suspend fun refreshSocksPorts(liveMap: Map<String, Tunnel>) = withContext(ioDispatcher) {
-        val next = linkedMapOf<String, Int>()
-        for ((configId, tunnel) in liveMap) {
-            val addr = runCatching { tunnel.socksAddress() }.getOrNull()
-            if (addr != null && addr.port > 0) {
-                next[configId] = addr.port
+    /**
+     * Recompute [_socksPorts] and guest marker files from the authoritative
+     * current [TunnelManager.live] state under [socksSyncLock] so a delayed
+     * `live.collect` wakeup can never overwrite a newer connect/disconnect with
+     * a stale snapshot, and `connectStandalone`/`disconnectStandalone` settle
+     * synchronously even when `Dispatchers.IO` is saturated.
+     */
+    internal fun syncSocksFromCurrentLive() {
+        synchronized(socksSyncLock) {
+            val liveSnapshot = tunnelManager.live.value
+            val next = linkedMapOf<String, Int>()
+            for ((configId, tunnel) in liveSnapshot) {
+                val addr = runCatching { tunnel.socksAddress() }.getOrNull()
+                if (addr != null && addr.port > 0) {
+                    next[configId] = addr.port
+                }
             }
+            _socksPorts.value = next
+            syncGuestSocksMarker(next)
         }
-        _socksPorts.value = next
-        syncGuestSocksMarker(next)
     }
 
     private fun syncGuestSocksMarker(socksMap: Map<String, Int>) {

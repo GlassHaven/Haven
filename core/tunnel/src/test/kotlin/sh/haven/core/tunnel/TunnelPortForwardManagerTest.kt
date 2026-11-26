@@ -2,7 +2,11 @@ package sh.haven.core.tunnel
 
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,7 +17,6 @@ import org.junit.Test
 import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.repository.TunnelConfigRepository
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -26,8 +29,11 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.file.Files
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.CoroutineContext
 
 class TunnelPortForwardManagerTest {
 
@@ -35,6 +41,7 @@ class TunnelPortForwardManagerTest {
     private lateinit var repo: TunnelConfigRepository
     private lateinit var fakeTunnel: FakeForwardTunnel
     private lateinit var tunnelManager: TunnelManager
+    private lateinit var testDispatcher: ExecutorCoroutineDispatcher
     private lateinit var forwardManager: TunnelPortForwardManager
 
     private class FakeUdpSocket : TunneledDatagramSocket {
@@ -139,10 +146,18 @@ class TunnelPortForwardManagerTest {
                 override fun create(config: TunnelConfig): Tunnel = fakeTunnel
             },
         )
+        testDispatcher = Executors.newCachedThreadPool().asCoroutineDispatcher()
         forwardManager = TunnelPortForwardManager(
             tunnelManager = tunnelManager,
             cacheDir = cacheDir,
+            ioDispatcher = testDispatcher,
         )
+    }
+
+    @After
+    fun tearDown() {
+        testDispatcher.close()
+        cacheDir.deleteRecursively()
     }
 
     @Test
@@ -152,27 +167,64 @@ class TunnelPortForwardManagerTest {
         assertTrue(tunnelManager.hasStandaloneDependents)
 
         val marker = File(cacheDir, TunnelPortForwardManager.GUEST_SOCKS_MARKER)
-        // socksPorts and the marker file are settled by the async live-flow
-        // collector (which can overwrite connectStandalone's direct update),
-        // so poll for the stable end state rather than asserting immediately —
-        // that raced under CI load. The release -> live emission -> collector
-        // chain can stall well past 10s when native builds saturate the runner,
-        // so allow up to ~30s of headroom (this flaked three times at 10s).
-        var attempts = 0
-        while ((forwardManager.socksPorts.value["wg-1"] != 45678 || !marker.isFile) && attempts++ < 1500) {
-            Thread.sleep(20)
-        }
         assertEquals(45678, forwardManager.socksPorts.value["wg-1"])
         assertTrue(marker.isFile)
         assertEquals("127.0.0.1:45678", marker.readText().trim())
 
         forwardManager.disconnectStandalone("wg-1")
-        attempts = 0
-        while ((forwardManager.socksPorts.value.containsKey("wg-1") || marker.exists()) && attempts++ < 1500) {
-            Thread.sleep(20)
-        }
         assertFalse(tunnelManager.hasStandaloneDependents)
+        assertFalse(forwardManager.socksPorts.value.containsKey("wg-1"))
         assertFalse(marker.exists())
+    }
+
+    @Test
+    fun `disconnectStandalone clears marker deterministically even when background collector is stalled`() = runBlocking {
+        // Queue the first two dispatches (`init`'s rule-loader + `live.collect` coroutines)
+        // while executing subsequent `withContext` calls inline, reproducing CI runner
+        // `Dispatchers.IO` starvation + late collector wakeup without sleeping.
+        val deferredInitTasks = ConcurrentLinkedQueue<Runnable>()
+        var intercepted = 0
+        val stalledInitDispatcher = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable) {
+                val idx = synchronized(this) { intercepted++ }
+                if (idx < 2) {
+                    deferredInitTasks.add(block)
+                } else {
+                    block.run()
+                }
+            }
+        }
+
+        val isolatedDir = Files.createTempDirectory("tunnel-fwd-stalled").toFile()
+        try {
+            val mgr = TunnelPortForwardManager(
+                tunnelManager = tunnelManager,
+                cacheDir = isolatedDir,
+                ioDispatcher = stalledInitDispatcher,
+            )
+            val marker = File(isolatedDir, TunnelPortForwardManager.GUEST_SOCKS_MARKER)
+
+            assertNotNull(mgr.connectStandalone("wg-1"))
+            assertEquals(45678, mgr.socksPorts.value["wg-1"])
+            assertTrue(marker.isFile)
+
+            // While `init`'s `live.collect` coroutine has NEVER run yet, disconnectStandalone
+            // must clear both `socksPorts` and the `.haven_tunnel_socks5` marker synchronously:
+            mgr.disconnectStandalone("wg-1")
+            assertFalse(mgr.socksPorts.value.containsKey("wg-1"))
+            assertFalse(marker.exists())
+
+            // Now flush the stalled `init` collector tasks: a late collector wakeup must read
+            // authoritative `tunnelManager.live.value` (empty) rather than resurrecting the marker.
+            while (true) {
+                val r = deferredInitTasks.poll() ?: break
+                r.run()
+            }
+            assertFalse(mgr.socksPorts.value.containsKey("wg-1"))
+            assertFalse(marker.exists())
+        } finally {
+            isolatedDir.deleteRecursively()
+        }
     }
 
     @Test

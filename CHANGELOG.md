@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.80
+
+- Add a resizable Saved Connections home-screen widget with protocol badges, optional per-widget connection group filtering, saved-order or recent-first sorting, automatic updates when saved connections change, and one-tap connect across cold start and biometric lock (#852, thanks LeoMerlino).
+
 ## v5.94.79
 
 - Import community Guest App Pack and Guest Service Preset recipes from HTTPS manifest URLs (with optional SHA-256 manifest pinning) or local `.json` files under `Desktop -> Manage`, previewing the generated guest shell commands and supervised daemon commands before adding, with MCP `import_guest_recipes`, `export_guest_recipes`, `list_service_presets`, and `install_service_preset` support (#891, thanks pixel4696).

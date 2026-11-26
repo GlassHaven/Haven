@@ -1,0 +1,1 @@
+- Add a resizable Saved Connections home-screen widget with protocol badges, optional per-widget connection group filtering, saved-order or recent-first sorting, automatic updates when saved connections change, and one-tap connect across cold start and biometric lock (#852, thanks LeoMerlino).

@@ -643,4 +643,6 @@
     <string name="connections_helper_rdp_location">默认关闭。将设备的 GNSS/网络位置信息转发到远程会话。</string>
     <string name="connections_toggle_rdp_camera">共享摄像头</string>
     <string name="connections_helper_rdp_camera">默认关闭。将设备的摄像头暴露给远程会话以进行视频捕获。</string>
+    <string name="connections_toggle_rdp_microphone">共享麦克风</string>
+    <string name="connections_helper_rdp_microphone">默认关闭。将设备的麦克风音频传输到远程会话。</string>
 </resources>

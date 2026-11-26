@@ -21979,6 +21979,46 @@
       "sr": "Подразумевано искључено. Излаже камере уређаја удаљеној сесији за снимање видеа.",
       "zh": "默认关闭。将设备的摄像头暴露给远程会话以进行视频捕获。"
      }
+    },
+    {
+     "name": "connections_toggle_rdp_microphone",
+     "en": "Share microphone",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الميكروفون",
+      "bn": "মাইক্রোফোন শেয়ার করুন",
+      "de": "Mikrofon teilen",
+      "es": "Compartir micrófono",
+      "fr": "Partager le microphone",
+      "hi": "माइक्रोफ़ोन साझा करें",
+      "ja": "マイクを共有",
+      "ko": "마이크 공유",
+      "pt": "Compartilhar microfone",
+      "ru": "Общий микрофон",
+      "sr": "Дели микрофон",
+      "zh": "共享麦克风"
+     }
+    },
+    {
+     "name": "connections_helper_rdp_microphone",
+     "en": "Off by default. Streams device microphone audio to the remote session.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "متوقف افتراضيًا. يبث صوت ميكروفون الجهاز إلى الجلسة البعيدة.",
+      "bn": "ডিফল্টভাবে বন্ধ। ডিভাইসের মাইক্রোফোন অডিও রিমোট সেশনে পাঠায়।",
+      "de": "Standardmäßig aus. Überträgt das Mikrofonsignal des Geräts an die Remote-Sitzung.",
+      "es": "Desactivado por defecto. Envía el audio del micrófono del dispositivo a la sesión remota.",
+      "fr": "Désactivé par défaut. Transmet le son du microphone de l\\'appareil à la session distante.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। डिवाइस के माइक्रोफ़ोन ऑडियो को रिमोट सत्र में भेजता है।",
+      "ja": "既定ではオフです。デバイスのマイク音声をリモートセッションに送信します。",
+      "ko": "기본값은 꺼짐입니다. 기기의 마이크 오디오를 원격 세션으로 전달합니다.",
+      "pt": "Desativado por padrão. Transmite o áudio do microfone do dispositivo para a sessão remota.",
+      "ru": "По умолчанию выключено. Передаёт звук микрофона устройства в удалённый сеанс.",
+      "sr": "Подразумевано искључено. Преноси звук микрофона уређаја удаљеној сесији.",
+      "zh": "默认关闭。将设备的麦克风音频传输到远程会话。"
+     }
     }
    ]
   },

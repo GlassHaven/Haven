@@ -582,5 +582,7 @@
     <string name="connections_helper_rdp_location">Подразумевано искључено. Прослеђује GNSS/мрежну локацију уређаја удаљеној сесији.</string>
     <string name="connections_toggle_rdp_camera">Дели камеру</string>
     <string name="connections_helper_rdp_camera">Подразумевано искључено. Излаже камере уређаја удаљеној сесији за снимање видеа.</string>
+    <string name="connections_toggle_rdp_microphone">Дели микрофон</string>
+    <string name="connections_helper_rdp_microphone">Подразумевано искључено. Преноси звук микрофона уређаја удаљеној сесији.</string>
 </resources>
 

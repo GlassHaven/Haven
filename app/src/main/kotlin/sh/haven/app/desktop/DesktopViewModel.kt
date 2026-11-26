@@ -1353,6 +1353,7 @@ class DesktopViewModel @Inject constructor(
                         sharedFolderUri = profile.rdpSharedFolderUri,
                         enableLocation = profile.rdpLocation,
                         enableCamera = profile.rdpCamera,
+                        enableMicrophone = profile.rdpMicrophone,
                     )
                 }
                 profile.isSpice -> {
@@ -2476,6 +2477,7 @@ class DesktopViewModel @Inject constructor(
         sharedFolderUri: String? = null,
         enableLocation: Boolean? = null,
         enableCamera: Boolean? = null,
+        enableMicrophone: Boolean? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2592,6 +2594,9 @@ class DesktopViewModel @Inject constructor(
                 val effectiveCamera = enableCamera
                     ?: storedProfile?.rdpCamera
                     ?: false
+                val effectiveMicrophone = enableMicrophone
+                    ?: storedProfile?.rdpMicrophone
+                    ?: false
 
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
@@ -2628,6 +2633,18 @@ class DesktopViewModel @Inject constructor(
                                 context = appContext,
                                 hasPendingRequest = { camId -> s.hasPendingCameraRequest(camId) },
                                 pushSample = { camId, bytes -> s.pushCameraSample(camId, bytes) },
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    enableMicrophone = effectiveMicrophone,
+                    microphoneBackendFactory = if (effectiveMicrophone) {
+                        { s ->
+                            sh.haven.core.rdp.RdpMicrophoneBackend.create(
+                                context = appContext,
+                                sessionId = s.sessionId,
+                                pushPcm = { bytes -> s.pushMicrophonePcm(bytes) },
                             )
                         }
                     } else {
@@ -2729,6 +2746,7 @@ class DesktopViewModel @Inject constructor(
                     clipboardEnabled = effectiveClipboard,
                     locationEnabled = effectiveLocation,
                     cameraEnabled = effectiveCamera,
+                    microphoneEnabled = effectiveMicrophone,
                 )
 
                 val tabs = _tabs.value.toMutableList()

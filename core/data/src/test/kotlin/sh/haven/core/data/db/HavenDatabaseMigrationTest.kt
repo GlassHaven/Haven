@@ -68,6 +68,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_91_92,
                 HavenDatabase.MIGRATION_92_93,
                 HavenDatabase.MIGRATION_93_94,
+                HavenDatabase.MIGRATION_94_95,
             )
             .build()
 
@@ -106,6 +107,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_91_92,
                 HavenDatabase.MIGRATION_92_93,
                 HavenDatabase.MIGRATION_93_94,
+                HavenDatabase.MIGRATION_94_95,
             )
             .build()
 
@@ -159,6 +161,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_91_92,
                 HavenDatabase.MIGRATION_92_93,
                 HavenDatabase.MIGRATION_93_94,
+                HavenDatabase.MIGRATION_94_95,
             )
             .build()
 
@@ -248,6 +251,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_91_92,
                 HavenDatabase.MIGRATION_92_93,
                 HavenDatabase.MIGRATION_93_94,
+                HavenDatabase.MIGRATION_94_95,
             )
             .build()
 
@@ -270,7 +274,7 @@ class HavenDatabaseMigrationTest {
                         "glkvmPort", "glkvmPassword", "glkvmTargetLayout",
                         "glkvmSshForward", "glkvmSshProfileId", "keyboardLayout",
                         "localShellMode", "rdpClipboard", "rdpAudioMode", "rdpSharedFolderUri",
-                        "rdpLocation", "rdpCamera",
+                        "rdpLocation", "rdpCamera", "rdpMicrophone",
                     ),
                 ),
             )
@@ -295,6 +299,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_91_92,
                 HavenDatabase.MIGRATION_92_93,
                 HavenDatabase.MIGRATION_93_94,
+                HavenDatabase.MIGRATION_94_95,
             )
             .build()
 
@@ -314,6 +319,7 @@ class HavenDatabaseMigrationTest {
                     rdpSharedFolderUri = "content://com.android.externalstorage.documents/tree/primary%3ADownload",
                     rdpLocation = true,
                     rdpCamera = true,
+                    rdpMicrophone = true,
                 )
                 dao.upsert(customRdp)
                 val loaded = dao.getById("rdp-custom-1")
@@ -328,6 +334,7 @@ class HavenDatabaseMigrationTest {
                 )
                 assertEquals(true, loaded?.rdpLocation)
                 assertEquals(true, loaded?.rdpCamera)
+                assertEquals(true, loaded?.rdpMicrophone)
 
                 val defaultRdp = sh.haven.core.data.db.entities.ConnectionProfile(
                     id = "rdp-default-1",
@@ -347,6 +354,7 @@ class HavenDatabaseMigrationTest {
                 assertEquals(null, loadedDefault?.rdpSharedFolderUri)
                 assertEquals(false, loadedDefault?.rdpLocation)
                 assertEquals(false, loadedDefault?.rdpCamera)
+                assertEquals(false, loadedDefault?.rdpMicrophone)
             }
         } finally {
             db.close()

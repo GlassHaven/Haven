@@ -401,6 +401,16 @@ fun DesktopScreen(
                                     }
                                 }
                             }
+                            if (tab.microphoneEnabled) {
+                                val rdpMicPermLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                    androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+                                ) { _ -> }
+                                LaunchedEffect(tab.id) {
+                                    if (!tab.session.hasMicrophonePermission()) {
+                                        rdpMicPermLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
+                            }
                             RdpSessionContent(
                                 protocolLabel = tab.protocol,
                                 connected = tab.connected,

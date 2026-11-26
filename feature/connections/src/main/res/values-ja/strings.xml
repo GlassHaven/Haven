@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">既定ではオフです。デバイスの GNSS/ネットワーク位置情報をリモートセッションに転送します。</string>
     <string name="connections_toggle_rdp_camera">カメラを共有</string>
     <string name="connections_helper_rdp_camera">既定ではオフです。ビデオキャプチャ用にデバイスのカメラをリモートセッションに公開します。</string>
+    <string name="connections_toggle_rdp_microphone">マイクを共有</string>
+    <string name="connections_helper_rdp_microphone">既定ではオフです。デバイスのマイク音声をリモートセッションに送信します。</string>
 </resources>

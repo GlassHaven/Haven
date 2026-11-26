@@ -129,6 +129,16 @@ class RdpSession(
      * [enableCamera] is active. Owned and closed by this [RdpSession].
      */
     private val cameraBackendFactory: ((RdpSession) -> RdpCameraBackend)? = null,
+    /**
+     * #890: negotiate `AUDIO_INPUT` (`MS-RDPEAI`) for redirecting device
+     * microphone audio to the remote session. Off by default.
+     */
+    private val enableMicrophone: Boolean = false,
+    /**
+     * #890: optional Android `AudioRecord` backend serving `MS-RDPEAI` when
+     * [enableMicrophone] is active. Owned and closed by this [RdpSession].
+     */
+    private val microphoneBackendFactory: ((RdpSession) -> RdpMicrophoneBackend)? = null,
 ) : Closeable {
 
     @Volatile
@@ -155,6 +165,8 @@ class RdpSession(
     private var locationForwarder: RdpLocationForwarder? = null
     // #890: Camera2 MS-RDPECAM backend, created when enableCamera is true.
     private var cameraBackend: RdpCameraBackend? = null
+    // #890: AudioRecord MS-RDPEAI backend, created when enableMicrophone is true.
+    private var microphoneBackend: RdpMicrophoneBackend? = null
     private val startTime = System.currentTimeMillis()
 
     private fun log(level: String, msg: String) {
@@ -286,6 +298,7 @@ class RdpSession(
                 sharedFolderName = sharedDriveBackend?.shareName,
                 enableLocation = enableLocation,
                 enableCamera = enableCamera,
+                enableMicrophone = enableMicrophone,
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -299,7 +312,8 @@ class RdpSession(
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
                     "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard} " +
                     "audio=${config.audioMode} sharedDrive=${sharedDriveBackend != null} " +
-                    "location=${config.enableLocation} camera=${config.enableCamera}",
+                    "location=${config.enableLocation} camera=${config.enableCamera} " +
+                    "mic=${config.enableMicrophone}",
             )
 
             val c = RdpClient(config)
@@ -460,6 +474,12 @@ class RdpSession(
                 val cam = cameraBackendFactory.invoke(this)
                 cameraBackend = cam
                 c.setCameraCallback(cam)
+            }
+
+            if (enableMicrophone && microphoneBackendFactory != null) {
+                val mic = microphoneBackendFactory.invoke(this)
+                microphoneBackend = mic
+                c.setMicrophoneCallback(mic)
             }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
@@ -685,6 +705,16 @@ class RdpSession(
         return client?.pushCameraSample(cameraId, sample) == true
     }
 
+    fun hasMicrophonePermission(): Boolean {
+        if (closed || !enableMicrophone) return true
+        return microphoneBackend?.hasMicrophonePermission() == true
+    }
+
+    fun pushMicrophonePcm(pcmS16Le: ByteArray): Boolean {
+        if (closed || !enableMicrophone) return false
+        return client?.pushMicrophonePcm(pcmS16Le) == true
+    }
+
     fun sendTouchFrame(points: List<RdpTouchContactSample>) {
         if (closed || points.isEmpty()) return
         val nativePoints = points.map { pt ->
@@ -788,6 +818,12 @@ class RdpSession(
             log("E", "Error releasing RDP camera backend: ${e.message}")
         }
         cameraBackend = null
+        try {
+            microphoneBackend?.close()
+        } catch (e: Exception) {
+            log("E", "Error releasing RDP microphone backend: ${e.message}")
+        }
+        microphoneBackend = null
         synchronized(this) {
             // #425: never recycle a bitmap the Compose viewer may still be
             // drawing (see onResize) — drop the ref and let GC reclaim it.

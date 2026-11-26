@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">Desativado por padrão. Encaminha a localização GNSS/de rede do dispositivo para a sessão remota.</string>
     <string name="connections_toggle_rdp_camera">Compartilhar câmera</string>
     <string name="connections_helper_rdp_camera">Desativado por padrão. Expõe as câmeras do dispositivo à sessão remota para captura de vídeo.</string>
+    <string name="connections_toggle_rdp_microphone">Compartilhar microfone</string>
+    <string name="connections_helper_rdp_microphone">Desativado por padrão. Transmite o áudio do microfone do dispositivo para a sessão remota.</string>
 </resources>

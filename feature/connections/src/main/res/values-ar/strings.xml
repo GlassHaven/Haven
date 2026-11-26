@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">متوقف افتراضيًا. يعيد توجيه إحداثيات موقع الجهاز عبر GNSS/الشبكة إلى الجلسة البعيدة.</string>
     <string name="connections_toggle_rdp_camera">مشاركة الكاميرا</string>
     <string name="connections_helper_rdp_camera">متوقف افتراضيًا. يعرض كاميرات الجهاز للجلسة البعيدة لالتقاط الفيديو.</string>
+    <string name="connections_toggle_rdp_microphone">مشاركة الميكروفون</string>
+    <string name="connections_helper_rdp_microphone">متوقف افتراضيًا. يبث صوت ميكروفون الجهاز إلى الجلسة البعيدة.</string>
 </resources>

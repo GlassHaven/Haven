@@ -681,4 +681,6 @@
     <string name="connections_helper_rdp_location">Off by default. Forwards device GNSS/network location fixes to the remote session.</string>
     <string name="connections_toggle_rdp_camera">Share camera</string>
     <string name="connections_helper_rdp_camera">Off by default. Exposes device cameras to the remote session for video capture.</string>
+    <string name="connections_toggle_rdp_microphone">Share microphone</string>
+    <string name="connections_helper_rdp_microphone">Off by default. Streams device microphone audio to the remote session.</string>
 </resources>

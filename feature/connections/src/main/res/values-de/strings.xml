@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">Standardmäßig aus. Leitet GNSS-/Netzwerk-Standortdaten des Geräts an die Remote-Sitzung weiter.</string>
     <string name="connections_toggle_rdp_camera">Kamera teilen</string>
     <string name="connections_helper_rdp_camera">Standardmäßig aus. Stellt die Gerätekameras der Remote-Sitzung für Videoaufnahmen bereit.</string>
+    <string name="connections_toggle_rdp_microphone">Mikrofon teilen</string>
+    <string name="connections_helper_rdp_microphone">Standardmäßig aus. Überträgt das Mikrofonsignal des Geräts an die Remote-Sitzung.</string>
 </resources>

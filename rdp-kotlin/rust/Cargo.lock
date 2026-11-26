@@ -1579,6 +1579,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ironrdp-rdpeai"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1426e26834dc30dcdb79d2a0967f2a181264db1940cceeab6edf58a78caebf5"
+dependencies = [
+ "ironrdp-core",
+ "ironrdp-dvc",
+ "ironrdp-pdu",
+ "ironrdp-rdpsnd",
+ "ironrdp-svc",
+ "tracing",
+]
+
+[[package]]
 name = "ironrdp-rdpecam"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2399,6 +2413,7 @@ dependencies = [
  "ironrdp-input",
  "ironrdp-pdu",
  "ironrdp-rdpdr",
+ "ironrdp-rdpeai",
  "ironrdp-rdpecam",
  "ironrdp-rdpel",
  "ironrdp-rdpsnd",

@@ -637,4 +637,6 @@
     <string name="connections_helper_rdp_location">기본값은 꺼짐입니다. 기기의 GNSS/네트워크 위치 정보를 원격 세션으로 전달합니다.</string>
     <string name="connections_toggle_rdp_camera">카메라 공유</string>
     <string name="connections_helper_rdp_camera">기본값은 꺼짐입니다. 비디오 캡처를 위해 기기의 카메라를 원격 세션에 노출합니다.</string>
+    <string name="connections_toggle_rdp_microphone">마이크 공유</string>
+    <string name="connections_helper_rdp_microphone">기본값은 꺼짐입니다. 기기의 마이크 오디오를 원격 세션으로 전달합니다.</string>
 </resources>

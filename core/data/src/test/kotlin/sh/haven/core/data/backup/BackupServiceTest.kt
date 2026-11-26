@@ -1225,6 +1225,7 @@ class BackupServiceTest {
             rdpSharedFolderUri = "content://com.android.externalstorage.documents/tree/primary%3AShared",
             rdpLocation = true,
             rdpCamera = true,
+            rdpMicrophone = true,
             spicePort = 5930,
             spicePassword = "spice-secret",
             spiceSshForward = true,
@@ -1310,7 +1311,7 @@ class BackupServiceTest {
         val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
         val persistedFields = ConnectionProfile::class.java.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
-        assertEquals(121, persistedFields.size)
+        assertEquals(122, persistedFields.size)
         for (field in persistedFields) {
             field.isAccessible = true
             org.junit.Assert.assertNotEquals(
@@ -1356,6 +1357,7 @@ class BackupServiceTest {
         assertEquals(null, captured.captured.rdpSharedFolderUri)
         assertEquals(false, captured.captured.rdpLocation)
         assertEquals(false, captured.captured.rdpCamera)
+        assertEquals(false, captured.captured.rdpMicrophone)
     }
 
     @Test

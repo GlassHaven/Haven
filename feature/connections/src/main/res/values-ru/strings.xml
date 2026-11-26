@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">По умолчанию выключено. Передаёт данные геопозиции GNSS/сети устройства в удалённый сеанс.</string>
     <string name="connections_toggle_rdp_camera">Общая камера</string>
     <string name="connections_helper_rdp_camera">По умолчанию выключено. Предоставляет камеры устройства удалённому сеансу для захвата видео.</string>
+    <string name="connections_toggle_rdp_microphone">Общий микрофон</string>
+    <string name="connections_helper_rdp_microphone">По умолчанию выключено. Передаёт звук микрофона устройства в удалённый сеанс.</string>
 </resources>

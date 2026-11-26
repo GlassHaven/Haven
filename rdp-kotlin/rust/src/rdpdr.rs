@@ -1647,6 +1647,7 @@ mod tests {
             audio_callback: None,
             drive_callback: Some(cb),
             camera_callback: None,
+            mic_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

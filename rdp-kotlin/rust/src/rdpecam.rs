@@ -546,6 +546,7 @@ mod tests {
             audio_callback: None,
             drive_callback: None,
             camera_callback: Some(mock_cb.clone()),
+            mic_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

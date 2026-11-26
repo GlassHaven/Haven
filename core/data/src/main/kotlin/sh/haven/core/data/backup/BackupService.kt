@@ -139,6 +139,7 @@ class BackupService @Inject constructor(
                 put("rdpSharedFolderUri", p.rdpSharedFolderUri ?: JSONObject.NULL)
                 put("rdpLocation", p.rdpLocation)
                 put("rdpCamera", p.rdpCamera)
+                put("rdpMicrophone", p.rdpMicrophone)
                 put("smbPort", p.smbPort)
                 put("smbShare", p.smbShare ?: JSONObject.NULL)
                 put("smbDomain", p.smbDomain ?: JSONObject.NULL)
@@ -782,6 +783,7 @@ class BackupService @Inject constructor(
                             rdpSharedFolderUri = c.optStringOrNull("rdpSharedFolderUri"),
                             rdpLocation = c.optBoolean("rdpLocation", false),
                             rdpCamera = c.optBoolean("rdpCamera", false),
+                            rdpMicrophone = c.optBoolean("rdpMicrophone", false),
                             smbPort = c.optInt("smbPort", 445),
                             smbShare = c.optStringOrNull("smbShare"),
                             smbDomain = c.optStringOrNull("smbDomain"),

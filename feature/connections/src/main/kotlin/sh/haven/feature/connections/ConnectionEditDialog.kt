@@ -313,6 +313,7 @@ fun ConnectionEditDialog(
     var rdpSharedFolderUri by rememberSaveable { mutableStateOf(existing?.rdpSharedFolderUri) }
     var rdpLocation by rememberSaveable { mutableStateOf(existing?.rdpLocation ?: false) }
     var rdpCamera by rememberSaveable { mutableStateOf(existing?.rdpCamera ?: false) }
+    var rdpMicrophone by rememberSaveable { mutableStateOf(existing?.rdpMicrophone ?: false) }
     var spicePassword by rememberSaveable { mutableStateOf(existing?.spicePassword ?: "") }
     var spiceSshForward by rememberSaveable {
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
@@ -2423,6 +2424,36 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    val rdpMicPermLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission(),
+                    ) { _ -> }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rdpMicrophone,
+                            onCheckedChange = { checked ->
+                                rdpMicrophone = checked
+                                if (checked) {
+                                    val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(
+                                        rdpSafContext,
+                                        android.Manifest.permission.RECORD_AUDIO,
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    if (!hasMic) {
+                                        rdpMicPermLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
+                            },
+                        )
+                        Text(
+                            stringResource(R.string.connections_toggle_rdp_microphone),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.connections_helper_rdp_microphone),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -4280,6 +4311,7 @@ fun ConnectionEditDialog(
                                 rdpSharedFolderUri = rdpSharedFolderUri?.ifBlank { null },
                                 rdpLocation = rdpLocation,
                                 rdpCamera = rdpCamera,
+                                rdpMicrophone = rdpMicrophone,
                                 keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,

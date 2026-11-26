@@ -645,4 +645,6 @@
     <string name="connections_helper_rdp_location">डिफ़ॉल्ट रूप से बंद। डिवाइस के GNSS/नेटवर्क स्थान को रिमोट सत्र में भेजता है।</string>
     <string name="connections_toggle_rdp_camera">कैमरा साझा करें</string>
     <string name="connections_helper_rdp_camera">डिफ़ॉल्ट रूप से बंद। वीडियो कैप्चर के लिए डिवाइस के कैमरों को रिमोट सत्र में उपलब्ध कराता है।</string>
+    <string name="connections_toggle_rdp_microphone">माइक्रोफ़ोन साझा करें</string>
+    <string name="connections_helper_rdp_microphone">डिफ़ॉल्ट रूप से बंद। डिवाइस के माइक्रोफ़ोन ऑडियो को रिमोट सत्र में भेजता है।</string>
 </resources>

@@ -6,6 +6,7 @@ mod bitmap_bridge;
 mod cliprdr;
 mod egfx;
 mod rdpdr;
+mod rdpeai;
 mod rdpecam;
 mod rdpei;
 mod rdpel;
@@ -261,6 +262,10 @@ pub struct RdpConfig {
     /// redirecting device cameras to the remote session. Off by default.
     #[uniffi(default = false)]
     pub enable_camera: bool,
+    /// #890: negotiate `AUDIO_INPUT` (`MS-RDPEAI`) for redirecting device
+    /// microphone audio to the remote session. Off by default.
+    #[uniffi(default = false)]
+    pub enable_microphone: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -403,6 +408,12 @@ pub trait CameraCallback: Send + Sync {
     fn list_cameras(&self) -> Vec<RdpCameraDevice>;
     fn start_stream(&self, camera_id: String, mode: RdpCameraMode) -> bool;
     fn stop_stream(&self, camera_id: String);
+}
+
+#[uniffi::export(with_foreign)]
+pub trait MicrophoneCallback: Send + Sync {
+    fn on_mic_open(&self, sample_rate: u32, channels: u16, frames_per_packet: u32) -> bool;
+    fn on_mic_close(&self);
 }
 
 /// #425: decodes one EGFX AVC420 (H.264 YUV420) access unit to RGBA. Rust owns
@@ -595,6 +606,7 @@ pub(crate) struct SessionState {
     pub(crate) audio_callback: Option<Arc<dyn AudioCallback>>,
     pub(crate) drive_callback: Option<Arc<dyn DriveCallback>>,
     pub(crate) camera_callback: Option<Arc<dyn CameraCallback>>,
+    pub(crate) mic_callback: Option<Arc<dyn MicrophoneCallback>>,
     session_callback: Option<Arc<dyn SessionCallback>>,
     pointer_callback: Option<Arc<dyn PointerCallback>>,
     /// #425: MediaCodec-backed H.264 decoder for EGFX AVC420 tiles (KRDP).
@@ -688,6 +700,7 @@ pub struct RdpClient {
     clipboard_state: Arc<Mutex<cliprdr::SharedCliprdrState>>,
     location_state: Arc<Mutex<rdpel::SharedLocationState>>,
     camera_state: Arc<rdpecam::SharedCameraState>,
+    mic_state: Arc<rdpeai::SharedMicrophoneState>,
     session_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -713,6 +726,7 @@ impl RdpClient {
                 audio_callback: None,
                 drive_callback: None,
                 camera_callback: None,
+                mic_callback: None,
                 session_callback: None,
                 pointer_callback: None,
             avc_decoder: None,
@@ -730,6 +744,7 @@ impl RdpClient {
             clipboard_state: Arc::new(Mutex::new(cliprdr::SharedCliprdrState::new())),
             location_state: Arc::new(Mutex::new(rdpel::SharedLocationState::new())),
             camera_state: Arc::new(rdpecam::SharedCameraState::new()),
+            mic_state: Arc::new(rdpeai::SharedMicrophoneState::new()),
             session_thread: Mutex::new(None),
         }
     }
@@ -799,6 +814,7 @@ impl RdpClient {
         let clipboard_state = Arc::clone(&self.clipboard_state);
         let location_state = Arc::clone(&self.location_state);
         let camera_state = Arc::clone(&self.camera_state);
+        let mic_state = Arc::clone(&self.mic_state);
         let server_name = host.clone();
         // #117: a followed redirection reconnects from inside the session
         // thread, through the same route (SOCKS or direct) as the original.
@@ -848,6 +864,7 @@ impl RdpClient {
                             &clipboard_state,
                             &location_state,
                             &camera_state,
+                            &mic_state,
                             &server_name,
                             server_addr,
                             redirect_plan.as_ref(),
@@ -1191,6 +1208,26 @@ impl RdpClient {
             return false;
         }
         self.camera_state.push_sample(&camera_id, sample)
+    }
+
+    pub fn set_microphone_callback(&self, cb: Arc<dyn MicrophoneCallback>) {
+        if let Ok(mut s) = self.state.write() {
+            s.mic_callback = Some(cb);
+        }
+    }
+
+    pub fn is_microphone_capturing(&self) -> bool {
+        if !self.config.enable_microphone {
+            return false;
+        }
+        self.mic_state.is_capturing()
+    }
+
+    pub fn push_microphone_pcm(&self, pcm_s16le: Vec<u8>) -> bool {
+        if !self.config.enable_microphone {
+            return false;
+        }
+        self.mic_state.push_pcm(pcm_s16le)
     }
 
     /// #425: register the AVC420 (H.264) decoder used for EGFX tiles from
@@ -2006,6 +2043,7 @@ fn run_rdp_session(
     clipboard_state: &Arc<Mutex<cliprdr::SharedCliprdrState>>,
     location_state: &Arc<Mutex<rdpel::SharedLocationState>>,
     camera_state: &Arc<rdpecam::SharedCameraState>,
+    mic_state: &Arc<rdpeai::SharedMicrophoneState>,
     server_name: &str,
     server_addr: SocketAddr,
     redirect: Option<&redirection::RedirectFollow>,
@@ -2031,6 +2069,11 @@ fn run_rdp_session(
     camera_state.reset_for_connection();
     let _camera_guard = crate::rdpecam::CameraSessionGuard {
         camera_state,
+        session_state: state,
+    };
+    mic_state.reset_for_connection();
+    let _mic_guard = crate::rdpeai::MicrophoneSessionGuard {
+        mic_state,
         session_state: state,
     };
 
@@ -2099,6 +2142,13 @@ fn run_rdp_session(
             drdynvc,
             Arc::clone(state),
             Arc::clone(camera_state),
+        );
+    }
+    if config.enable_microphone {
+        drdynvc = crate::rdpeai::attach_to_drdynvc(
+            drdynvc,
+            Arc::clone(state),
+            Arc::clone(mic_state),
         );
     }
     let mut connector =
@@ -2540,13 +2590,14 @@ fn run_rdp_session(
             }
         }
         perf.maybe_report();
-        let camera_streaming = config.enable_camera && camera_state.has_active_stream();
+        let media_uplink_streaming = (config.enable_camera && camera_state.has_active_stream())
+            || (config.enable_microphone && mic_state.is_capturing());
         if input_thread.is_none()
             || last_input_at.is_some()
-            || camera_streaming
+            || media_uplink_streaming
             || current_timeout != IDLE_TIMEOUT
         {
-            let want_timeout = if camera_streaming {
+            let want_timeout = if media_uplink_streaming {
                 INPUT_ACTIVE_TIMEOUT
             } else {
                 match last_input_at {
@@ -2650,6 +2701,14 @@ fn run_rdp_session(
             for bytes in crate::rdpecam::flush_rdpecam(&mut active_stage, camera_state) {
                 if let Err(e) = tls_framed.write_all(&bytes) {
                     error!("Write RDPECAM error: {:?}", e);
+                }
+            }
+        }
+
+        if config.enable_microphone {
+            for bytes in crate::rdpeai::flush_rdpeai(&mut active_stage, mic_state) {
+                if let Err(e) = tls_framed.write_all(&bytes) {
+                    error!("Write RDPEAI error: {:?}", e);
                 }
             }
         }
@@ -3863,6 +3922,7 @@ mod codec_advertisement_tests {
             shared_folder_name: None,
             enable_location: false,
             enable_camera: false,
+            enable_microphone: false,
         }
     }
 
@@ -3925,6 +3985,7 @@ mod region_tests {
             shared_folder_name: None,
             enable_location: false,
             enable_camera: false,
+            enable_microphone: false,
         });
         // Distinct value per pixel so a wrong row or column is detectable.
         let mut pixels = vec![0u8; w as usize * h as usize * 4];
@@ -3990,6 +4051,7 @@ mod region_tests {
             shared_folder_name: None,
             enable_location: false,
             enable_camera: false,
+            enable_microphone: false,
         });
         assert!(client.get_framebuffer_region(0, 0, 4, 4).is_none());
     }
@@ -4370,6 +4432,7 @@ mod framebuffer_publish_tests {
             audio_callback: None,
             drive_callback: None,
             camera_callback: None,
+            mic_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

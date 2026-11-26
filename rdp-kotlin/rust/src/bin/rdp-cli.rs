@@ -131,6 +131,7 @@ fn main() -> ExitCode {
         shared_folder_name: None,
         enable_location: false,
         enable_camera: false,
+        enable_microphone: false,
     };
 
     let client = Arc::new(RdpClient::new(config));

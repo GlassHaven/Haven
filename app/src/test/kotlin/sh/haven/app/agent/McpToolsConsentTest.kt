@@ -178,6 +178,9 @@ class McpToolsConsentTest {
             "detach_gps_from_guest",
             // Guest notification bridge teardown (#851) likewise reduces exposure.
             "detach_notify_from_guest",
+            // Read-only recipe catalog queries (#891).
+            "list_service_presets",
+            "export_guest_recipes",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -252,6 +255,8 @@ class McpToolsConsentTest {
             // inject into the shade behind notify_guest_exposure_enabled —
             // one session grant on top; detach is teardown → NEVER.
             "attach_notify_to_guest",
+            // Service-preset install (#891) matches install_app_pack's session grant.
+            "install_service_preset",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -309,6 +314,8 @@ class McpToolsConsentTest {
             // run_command).
             "generate_ssh_key",
             "deploy_key",
+            // Importing external guest recipes (#891) persists shell installers — per-call consent.
+            "import_guest_recipes",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -653,7 +660,7 @@ class McpToolsConsentTest {
                 listOf("mail")),
             Section("linux", "Linux guest (proot) & desktops", 2,
                 "The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.",
-                listOf("proot", "distro", "desktop", "guest", "system_vm", "audio_bridge", "gl_smoke", "custom_binds", "app_window", "app_pack", "launch_app_in_desktop", "inspect_proot")),
+                listOf("proot", "distro", "desktop", "guest", "system_vm", "audio_bridge", "gl_smoke", "custom_binds", "app_window", "app_pack", "service_preset", "launch_app_in_desktop", "inspect_proot")),
             Section("networking", "Networking — tunnels, port forwarding & egress", 5,
                 "SSH tunnels, port forwards, the serial↔TCP bridge, the port-knock / single-packet-auth gates, and the controlled internet-egress consent gate.",
                 listOf("tunnel", "port_forward", "_forward", "port_knock", "knock", "_spa", "profile_routing", "serial", "egress")),

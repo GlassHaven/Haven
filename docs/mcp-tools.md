@@ -41,9 +41,9 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (82 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (70 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (94 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (83 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (71 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (96 tools).
 
 ## Sections
 
@@ -54,7 +54,7 @@ consent level:
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
-- [**Linux guest (proot) & desktops**](#sec-linux) — 55 tools
+- [**Linux guest (proot) & desktops**](#sec-linux) — 59 tools
 - [**Networking — tunnels, port forwarding & egress**](#sec-networking) — 16 tools
 - [**USB & host-device brokers**](#sec-usb) — 21 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
@@ -1291,7 +1291,7 @@ Send a plain-text email from a connected EMAIL profile. Pass profileId (from lis
 
 <a id="sec-linux"></a>
 
-## Linux guest (proot) & desktops (55)
+## Linux guest (proot) & desktops (59)
 
 The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.
 
@@ -1392,6 +1392,16 @@ Export a proot distro's full rootfs directly from the Android host filesystem to
 </details>
 
 <details markdown="1">
+<summary><code>export_guest_recipes</code> · no per-call prompt</summary>
+
+Export Haven's GuestRecipeManifest JSON (`schemaVersion: 1`) for built-in and/or imported packs and service presets (#891), suitable for seeding or validating a standalone community recipe repository.
+
+- `includeBuiltIn` (boolean) — Include compiled-in GuestAppCatalog and GuestServiceCatalog entries. Default true.
+- `includeImported` (boolean) — Include user-imported custom entries. Default true.
+
+</details>
+
+<details markdown="1">
 <summary><code>get_audio_bridge_status</code> · no per-call prompt</summary>
 
 Proot audio bridge status: state (STOPPED/STARTING/RUNNING/ERROR), loopback PCM port, bytesStreamed so far, and any error. Read-only — a quick way to confirm guest audio is actually flowing.
@@ -1443,6 +1453,19 @@ Import or restore a rootfs tarball as a distro (#284, #793) — "bring your own 
 - `label` (string) — Human label shown in the picker (e.g. "Ubuntu 26.04 (imported)").
 - `sha256` (string) — Optional SHA-256 to verify the download against. Skipped if omitted.
 - `stripComponents` (integer) — Optional leading path components to strip (proot-distro tarballs wrap in one dir → 1). Defaults to auto: tries 0, retries 1 if no bin/sh is found.
+
+</details>
+
+<details markdown="1">
+<summary><code>import_guest_recipes</code> · asks every call</summary>
+
+Import, remove, or clear community Guest App Pack and Guest Service Preset recipes (#891). Supply `json` (manifest JSON text) or `url` (`https://` manifest URL, optionally pinned by `sha256`), or pass `removeId` / `clear:true` to remove imported recipes. Every recipe is validated (schemaVersion 1, safe package tokens, rootfs-relative verify binaries, https + 64-hex sha256 on assets, no shadowing of built-in ids) before persistence.
+
+- `clear` (boolean) — If true, remove all imported custom recipes.
+- `json` (string) — Raw GuestRecipeManifest JSON string to validate and import.
+- `removeId` (string) — Remove a single previously imported pack or service recipe by id.
+- `sha256` (string) — Optional 64-char hex SHA-256 pin verified against the fetched `url` manifest bytes.
+- `url` (string) — HTTPS URL to a GuestRecipeManifest JSON file (max 1 MiB).
 
 </details>
 
@@ -1503,7 +1526,7 @@ Single rich read of the proot subsystem: active distro id, every Distro (id, lab
 <details markdown="1">
 <summary><code>install_app_pack</code> · asks once per session</summary>
 
-Install a curated guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: "running" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.
+Install a curated or imported guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: "running" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.
 
 - `id` (string) — Pack id from list_app_packs (e.g. "qmmp"). Required unless polling via jobId.
 - `includeAssets` (boolean) — Also fetch the pack's optional pinned assets (skins, sample content). Default true.
@@ -1531,6 +1554,17 @@ Set the given distro as active and trigger installRootfs(). Returns immediately;
 </details>
 
 <details markdown="1">
+<summary><code>install_service_preset</code> · asks once per session</summary>
+
+Install and start a guest service preset (from list_service_presets) in the ACTIVE distro: installs distro packages, writes idempotent config stanzas, downloads sha256-pinned assets, runs postInstallScript, verifies the daemon binary, registers the supervised service in GuestServiceManager, and starts it on loopback. Long-running: returns { jobId, status: "running" }; poll with jobId.
+
+- `id` (string) — Service preset id from list_service_presets (e.g. "mariadb"). Required unless polling via jobId.
+- `includeAssets` (boolean) — Fetch sha256-pinned service assets when declared. Default true.
+- `jobId` (string) — Poll a previously started service-preset install job.
+
+</details>
+
+<details markdown="1">
 <summary><code>launch_app_in_desktop</code> · asks once per session</summary>
 
 Launch a GUI application into a RUNNING desktop (deId). X11/VNC desktops get DISPLAY/XAUTHORITY; nested-Wayland desktops (Sway/Hyprland/niri/cage) get XDG_RUNTIME_DIR/WAYLAND_DISPLAY. The software-GL fallback (LIBGL_ALWAYS_SOFTWARE=1, GALLIUM_DRIVER=llvmpipe) is exported either way, so GPU-less GL apps like KiCad/eeschema don't crash their canvas. Optionally waits for the app's window to appear and returns its windowId — pass that to capture_desktop to screenshot just that window (window-wait/windowId need enumeration: X11 and Sway; on other nested-Wayland compositors the app still launches but no windowId is returned). The app keeps running after this returns. For looking at saved design FILES prefer view_file (headless, no desktop needed); use this when you need the live interactive app.
@@ -1545,7 +1579,7 @@ Launch a GUI application into a RUNNING desktop (deId). X11/VNC desktops get DIS
 <details markdown="1">
 <summary><code>list_app_packs</code> · no per-call prompt</summary>
 
-List the curated guest-app installer packs (#470) — one-tap recipes that collate everything a working cage/app-window app needs: guest packages per package family, config drops that fix silent-failure defaults (e.g. qmmp's ALSA-in-proot output), the audio-bridge requirement, the app-window def to register, and optional sha256-pinned assets (e.g. Winamp skins). Each entry reports whether it's compatible with the ACTIVE distro's family, whether it looks installed there (verify binary present), whether its app window is already registered, and which families are device-verified. Read-only; install with install_app_pack.
+List curated and imported guest-app installer packs (#470, #891) — one-tap recipes that collate guest packages per package family, PRoot config drops, audio-bridge flags, app-window registration, architecture filters, and sha256-pinned assets. Each entry reports source (builtin/imported), compatibleWithActive, installedOnActive, appWindowRegistered, and verifiedFamilies. Read-only; install with install_app_pack.
 
 </details>
 
@@ -1590,6 +1624,13 @@ List the GUI applications installed in the active proot guest, discovered from i
 <summary><code>list_guest_services</code> · no per-call prompt</summary>
 
 List guest services registered on the active distro with their live state (STOPPED/STARTING/RUNNING/ERROR), command, port, autostart flag, and last error/output tail. Read-only.
+
+</details>
+
+<details markdown="1">
+<summary><code>list_service_presets</code> · no per-call prompt</summary>
+
+List curated and imported guest background service presets (#734, #891), such as MariaDB or community loopback daemons. Reports id, label, port, source (builtin/imported), supported families/arches, compatibleWithActive, installedOnActive, and registeredOnActive. Install with install_service_preset.
 
 </details>
 

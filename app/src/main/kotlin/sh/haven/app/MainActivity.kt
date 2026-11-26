@@ -119,6 +119,8 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var taskerOverlayCoordinator: sh.haven.app.tasker.TaskerOverlayCoordinator
 
+    @Inject lateinit var updateChecker: sh.haven.core.data.update.UpdateChecker
+
     /**
      * A pending Tasker overlay run (profileId → command). Set by
      * [handleTaskerRunIntent] and consumed by a LaunchedEffect inside
@@ -653,6 +655,7 @@ class MainActivity : AppCompatActivity() {
                             mailSessionManager = mailSessionManager,
                             openAiSessionManager = openAiSessionManager,
                             mcpStatusHolder = mcpStatusHolder,
+                            updateChecker = updateChecker,
                         )
                         // Floats above whatever screen is active so an
                         // agent's consent prompt is unmissable. No-op when

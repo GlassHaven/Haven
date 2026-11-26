@@ -613,4 +613,10 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_mcp_https_p12_imported_toast">কাস্টম HTTPS সার্টিফিকেট ইমপোর্ট হয়েছে</string>
     <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 বান্ডিল ইমপোর্ট করা যায়নি: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">স্বয়ংক্রিয় রুট CA-তে ফিরে যাওয়া হয়েছে</string>
+    <string name="settings_update_view_changelog_subtitle">রিলিজ নোট পড়তে বা রিলিজ পেজ খুলতে ট্যাপ করুন</string>
+    <string name="settings_update_changelog_dialog_title">%1$s-এ নতুন কী আছে</string>
+    <string name="settings_update_changelog_empty">এই বিল্ডের সাথে কোনো রিলিজ নোট যুক্ত করা হয়নি।</string>
+    <string name="settings_update_open_github_release">রিলিজ পেজ খুলুন</string>
+    <string name="settings_update_fdroid_subtitle">F-Droid থেকে ইনস্টল করা — F-Droid-এ Haven খুলতে ট্যাপ করুন</string>
+    <string name="settings_about_rolling_release">সমাধান প্রস্তুত হলেই Haven রোলিং রিলিজ প্রকাশ করে; আপডেট করার আগে রিলিজ নোট দেখে নিন।</string>
 </resources>

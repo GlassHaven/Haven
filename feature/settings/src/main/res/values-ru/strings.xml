@@ -615,4 +615,10 @@
     <string name="settings_mcp_https_p12_imported_toast">Собственный HTTPS-сертификат импортирован</string>
     <string name="settings_mcp_https_p12_import_failed_toast">Не удалось импортировать пакет PKCS#12: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">Возвращён автоматически созданный корневой CA</string>
+    <string name="settings_update_view_changelog_subtitle">Нажмите, чтобы прочитать список изменений или открыть страницу выпуска</string>
+    <string name="settings_update_changelog_dialog_title">Что нового в %1$s</string>
+    <string name="settings_update_changelog_empty">К этой сборке не приложено описание изменений.</string>
+    <string name="settings_update_open_github_release">Открыть страницу выпуска</string>
+    <string name="settings_update_fdroid_subtitle">Установлено из F-Droid — нажмите, чтобы открыть Haven в F-Droid</string>
+    <string name="settings_about_rolling_release">Haven выпускает непрерывные обновления по мере готовности исправлений; проверяйте описание изменений перед обновлением.</string>
 </resources>

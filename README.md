@@ -124,6 +124,8 @@ Both builds have the same features — SSH, Mosh, Eternal Terminal, VNC, RDP, SF
 > - GitHub Releases: `ea03a3a70e1c11d0a78932f959b21f20d8735d9cd750997657cb7f7d7c2b90b3`
 > - F-Droid: `ea05a89431961b8ac53c36725452673c2be1c2d7b6e48771617b974e6092b332`
 
+Haven uses a rolling release cadence: new builds are cut directly as fixes and features pass CI rather than waiting for quarterly milestones. Check the release notes in **Settings → About** or on GitHub Releases before updating devices you rely on in production.
+
 ## Build from source
 
 Requires [Rust](https://rustup.rs/) with Android targets, `cargo-ndk`, [Go](https://go.dev/dl/) 1.26+, and `gomobile`:

@@ -17,6 +17,7 @@ import org.junit.Test
 class UpdateLaunchGateTest {
 
     private val github = { UpdateChecker.Channel.GITHUB_RELEASE }
+    private val fdroid = { UpdateChecker.Channel.FDROID }
     private val other = { UpdateChecker.Channel.OTHER }
     private val now = 1_700_000_000_000L
     private val available = UpdateChecker.Result.Available("5.87.53", "https://example/tag")
@@ -48,6 +49,10 @@ class UpdateLaunchGateTest {
 
     @Test
     fun `an F-Droid or self-built copy never queries`() {
+        assertEquals(
+            UpdateChecker.LaunchSkip.WRONG_CHANNEL,
+            UpdateChecker.shouldQuery(enabled = true, channelOf = fdroid, lastRunMs = 0L, nowMs = now),
+        )
         assertEquals(
             UpdateChecker.LaunchSkip.WRONG_CHANNEL,
             UpdateChecker.shouldQuery(enabled = true, channelOf = other, lastRunMs = 0L, nowMs = now),

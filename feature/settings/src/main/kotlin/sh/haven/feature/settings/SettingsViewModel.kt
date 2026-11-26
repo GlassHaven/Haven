@@ -162,10 +162,11 @@ class SettingsViewModel @Inject constructor(
     val updateCheckEnabled: StateFlow<Boolean> = preferencesRepository.updateCheckEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    private val _updateCheckResult = MutableStateFlow<UpdateChecker.Result?>(null)
-
-    /** Last "check now" outcome, or null if none has been run this session. */
-    val updateCheckResult: StateFlow<UpdateChecker.Result?> = _updateCheckResult.asStateFlow()
+    /**
+     * Most recent update check outcome in this process (shared with launch
+     * check and MCP `check_for_update` via [UpdateChecker.latestResult]).
+     */
+    val updateCheckResult: StateFlow<UpdateChecker.Result?> = updateChecker.latestResult
 
     private val _updateCheckRunning = MutableStateFlow(false)
     val updateCheckRunning: StateFlow<Boolean> = _updateCheckRunning.asStateFlow()
@@ -186,7 +187,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _updateCheckRunning.value = true
             try {
-                _updateCheckResult.value = updateChecker.check()
+                updateChecker.check()
             } finally {
                 _updateCheckRunning.value = false
             }

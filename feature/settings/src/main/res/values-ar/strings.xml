@@ -617,4 +617,10 @@
     <string name="settings_mcp_https_p12_imported_toast">تم استيراد شهادة HTTPS المخصصة</string>
     <string name="settings_mcp_https_p12_import_failed_toast">تعذَّر استيراد حزمة PKCS#12: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">تمت العودة إلى شهادة الجذر CA المُنشأة تلقائيًا</string>
+    <string name="settings_update_view_changelog_subtitle">اضغط لقراءة ملاحظات الإصدار أو فتح صفحة الإصدار</string>
+    <string name="settings_update_changelog_dialog_title">الجديد في %1$s</string>
+    <string name="settings_update_changelog_empty">لم تُدرج ملاحظات إصدار مع هذه البنية.</string>
+    <string name="settings_update_open_github_release">فتح صفحة الإصدار</string>
+    <string name="settings_update_fdroid_subtitle">مُثبَّت من F-Droid — اضغط لفتح Haven على F-Droid</string>
+    <string name="settings_about_rolling_release">يُصدر Haven تحديثات متلاحقة فور جاهزية الإصلاحات؛ راجع ملاحظات الإصدار قبل التحديث.</string>
 </resources>

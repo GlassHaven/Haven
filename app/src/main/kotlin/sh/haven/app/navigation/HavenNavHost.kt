@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -108,7 +110,16 @@ fun HavenNavHost(
     mailSessionManager: sh.haven.core.mail.MailSessionManager,
     openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager,
     mcpStatusHolder: sh.haven.core.data.agent.McpStatusHolder,
+    updateChecker: sh.haven.core.data.update.UpdateChecker? = null,
 ) {
+    val latestUpdateResult = if (updateChecker != null) {
+        val state by updateChecker.latestResult.collectAsState()
+        state
+    } else {
+        null
+    }
+    val hasAvailableUpdate =
+        latestUpdateResult is sh.haven.core.data.update.UpdateChecker.Result.Available
     // Desktop multi-session ViewModel — hoisted to nav scope so it survives tab switches
     val desktopViewModel: DesktopViewModel = hiltViewModel()
     val desktopTabsForAgent by desktopViewModel.tabs.collectAsState()
@@ -1087,6 +1098,10 @@ fun HavenNavHost(
                                         baseTint = LocalContentColor.current,
                                         contentDescription = stringResource(screen.labelRes),
                                     )
+                                } else if (screen == Screen.Settings && hasAvailableUpdate) {
+                                    BadgedBox(badge = { Badge() }) {
+                                        Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
+                                    }
                                 } else {
                                     Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
                                 }
@@ -1220,6 +1235,10 @@ fun HavenNavHost(
                                                 baseTint = LocalContentColor.current,
                                                 contentDescription = stringResource(screen.labelRes),
                                             )
+                                        } else if (screen == Screen.Settings && hasAvailableUpdate) {
+                                            BadgedBox(badge = { Badge() }) {
+                                                Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
+                                            }
                                         } else {
                                             Icon(screen.icon, contentDescription = stringResource(screen.labelRes))
                                         }

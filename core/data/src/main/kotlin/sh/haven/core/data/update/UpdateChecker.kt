@@ -7,6 +7,9 @@ import android.os.Build
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -26,6 +29,14 @@ import javax.inject.Singleton
  */
 private const val GITHUB_RELEASE_SIGNER_SHA256 =
     "ea03a3a70e1c11d0a78932f959b21f20d8735d9cd750997657cb7f7d7c2b90b3"
+
+/**
+ * Certificate of F-Droid's per-app signing key for `sh.haven.app` (matches
+ * README.md). An F-Droid install cannot install a GitHub APK over itself, so
+ * Settings links straight to Haven's F-Droid page instead (#874).
+ */
+private const val FDROID_SIGNER_SHA256 =
+    "ea05a89431961b8ac53c36725452673c2be1c2d7b6e48771617b974e6092b332"
 
 private const val LATEST_RELEASE_API =
     "https://api.github.com/repos/GlassHaven/Haven/releases/latest"
@@ -83,7 +94,10 @@ class UpdateChecker @Inject constructor(
         /** Signed with the GitHub-release key; a release download will install. */
         GITHUB_RELEASE,
 
-        /** Anything else. No update is offered and no request is made. */
+        /** Signed with F-Droid's per-app key; Settings links to F-Droid (#874). */
+        FDROID,
+
+        /** Self-built or re-signed copy. No update is offered and no request is made. */
         OTHER,
     }
 
@@ -94,6 +108,7 @@ class UpdateChecker @Inject constructor(
         data class Available(
             val version: String,
             val releaseUrl: String,
+            val releaseNotes: String = "",
         ) : Result
 
         /** Network, parse or API failure. [message] is fit to show the user. */
@@ -103,6 +118,15 @@ class UpdateChecker @Inject constructor(
         data object WrongChannel : Result
     }
 
+    private val _latestResult = MutableStateFlow<Result?>(null)
+
+    /**
+     * Most recent [check] outcome observed in this process, whether triggered by
+     * [checkOnLaunch], Settings -> About -> Check now, or MCP `check_for_update`.
+     * Drives the quiet update indicator on Settings / About (#874).
+     */
+    val latestResult: StateFlow<Result?> = _latestResult.asStateFlow()
+
     /**
      * The channel of the running copy. Cheap, local and side-effect free —
      * Settings calls it on every composition to decide whether to offer the
@@ -110,14 +134,14 @@ class UpdateChecker @Inject constructor(
      */
     fun channel(): Channel {
         val digests = ownSignerSha256Digests()
-        val match = digests.any { it.equals(GITHUB_RELEASE_SIGNER_SHA256, ignoreCase = true) }
-        if (!match) {
+        val resolved = resolveChannel(digests)
+        if (resolved == Channel.GITHUB_RELEASE) {
+            Log.i(TAG, "channel=GITHUB_RELEASE")
+        } else {
             // Not an error: an F-Droid or self-built copy lands here by design.
-            Log.i(TAG, "channel=OTHER (signers=$digests)")
-            return Channel.OTHER
+            Log.i(TAG, "channel=$resolved (signers=$digests)")
         }
-        Log.i(TAG, "channel=GITHUB_RELEASE")
-        return Channel.GITHUB_RELEASE
+        return resolved
     }
 
     /** The running app's own version name, e.g. `5.87.50`. */
@@ -132,31 +156,24 @@ class UpdateChecker @Inject constructor(
      * for it in the moment. Still refuses on the wrong channel.
      */
     suspend fun check(): Result = withContext(Dispatchers.IO) {
-        if (channel() != Channel.GITHUB_RELEASE) return@withContext Result.WrongChannel
+        if (channel() != Channel.GITHUB_RELEASE) {
+            return@withContext Result.WrongChannel.also { _latestResult.value = it }
+        }
 
         val installed = installedVersion()
         val body = runCatching { fetchLatestRelease() }.getOrElse { e ->
             Log.w(TAG, "release query failed", e)
             return@withContext Result.Failed(e.message ?: e.javaClass.simpleName)
+                .also { _latestResult.value = it }
         }
 
-        val json = runCatching { JSONObject(body) }.getOrElse {
-            return@withContext Result.Failed("Unreadable reply from GitHub")
-        }
-        val tag = json.optString("tag_name").ifBlank {
-            return@withContext Result.Failed("Release carried no tag")
-        }
-        val url = json.optString("html_url").ifBlank {
-            "https://github.com/GlassHaven/Haven/releases/tag/$tag"
-        }
-        val latest = normaliseVersion(tag)
-
-        if (isNewer(latest, installed)) {
-            Log.i(TAG, "update available: $installed -> $latest")
-            Result.Available(latest, url)
-        } else {
-            Log.i(TAG, "up to date at $installed (latest $latest)")
-            Result.UpToDate(installed)
+        parseReleaseJson(body, installed).also { result ->
+            when (result) {
+                is Result.Available -> Log.i(TAG, "update available: $installed -> ${result.version}")
+                is Result.UpToDate -> Log.i(TAG, "up to date at $installed")
+                else -> Unit
+            }
+            _latestResult.value = result
         }
     }
 
@@ -260,6 +277,34 @@ class UpdateChecker @Inject constructor(
     }
 
     internal companion object {
+        fun resolveChannel(signerSha256Digests: List<String>): Channel = when {
+            signerSha256Digests.any { it.equals(GITHUB_RELEASE_SIGNER_SHA256, ignoreCase = true) } ->
+                Channel.GITHUB_RELEASE
+            signerSha256Digests.any { it.equals(FDROID_SIGNER_SHA256, ignoreCase = true) } ->
+                Channel.FDROID
+            else -> Channel.OTHER
+        }
+
+        fun parseReleaseJson(body: String, installed: String): Result {
+            val json = runCatching { JSONObject(body) }.getOrElse {
+                return Result.Failed("Unreadable reply from GitHub")
+            }
+            val tag = json.optString("tag_name").ifBlank {
+                return Result.Failed("Release carried no tag")
+            }
+            val url = json.optString("html_url").ifBlank {
+                "https://github.com/GlassHaven/Haven/releases/tag/$tag"
+            }
+            val notes = if (json.isNull("body")) "" else json.optString("body").trim()
+            val latest = normaliseVersion(tag)
+
+            return if (isNewer(latest, installed)) {
+                Result.Available(latest, url, notes)
+            } else {
+                Result.UpToDate(installed)
+            }
+        }
+
         /**
          * Gate one: may we make the request at all? Returns null to proceed.
          *

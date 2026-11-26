@@ -547,5 +547,11 @@
     <string name="settings_mcp_tools_cat_senses">Сензори и локација</string>
     <string name="settings_mcp_tools_cat_agent">Контрола агента и уређаја</string>
     <string name="settings_mcp_tools_cat_other">Остало</string>
+    <string name="settings_update_view_changelog_subtitle">Тапните да прочитате напомене о издању или да отворите страницу издања</string>
+    <string name="settings_update_changelog_dialog_title">Шта је ново у %1$s</string>
+    <string name="settings_update_changelog_empty">Уз ову изградњу нису приложене напомене о издању.</string>
+    <string name="settings_update_open_github_release">Отвори страницу издања</string>
+    <string name="settings_update_fdroid_subtitle">Инсталирано са F-Droid — тапните да отворите Haven на F-Droid</string>
+    <string name="settings_about_rolling_release">Haven објављује текућа издања чим поправке прођу проверу; прочитајте напомене о издању пре ажурирања.</string>
 </resources>
 

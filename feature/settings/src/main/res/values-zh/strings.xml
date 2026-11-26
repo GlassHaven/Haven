@@ -611,4 +611,10 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_mcp_https_p12_imported_toast">已导入自定义 HTTPS 证书</string>
     <string name="settings_mcp_https_p12_import_failed_toast">无法导入 PKCS#12 证书包：%1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">已恢复为自动生成的根 CA</string>
+    <string name="settings_update_view_changelog_subtitle">点按阅读更新日志或打开发行版页面</string>
+    <string name="settings_update_changelog_dialog_title">%1$s 更新内容</string>
+    <string name="settings_update_changelog_empty">此构建未附带更新说明。</string>
+    <string name="settings_update_open_github_release">打开发行版页面</string>
+    <string name="settings_update_fdroid_subtitle">通过 F-Droid 安装 — 点按在 F-Droid 中打开 Haven</string>
+    <string name="settings_about_rolling_release">Haven 采用滚动发布模式，修复完成后即发布新版本；更新前请先查看更新说明。</string>
 </resources>

@@ -613,4 +613,10 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_mcp_https_p12_imported_toast">Certificado HTTPS personalizado importado</string>
     <string name="settings_mcp_https_p12_import_failed_toast">No se pudo importar el paquete PKCS#12: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">Se volvió a la CA raíz generada automáticamente</string>
+    <string name="settings_update_view_changelog_subtitle">Toca para leer las notas de la versión o abrir la página de lanzamiento</string>
+    <string name="settings_update_changelog_dialog_title">Novedades en %1$s</string>
+    <string name="settings_update_changelog_empty">Esta compilación no incluye notas de la versión.</string>
+    <string name="settings_update_open_github_release">Abrir página de lanzamiento</string>
+    <string name="settings_update_fdroid_subtitle">Instalado desde F-Droid — toca para abrir Haven en F-Droid</string>
+    <string name="settings_about_rolling_release">Haven publica versiones continuas conforme llegan las correcciones; revisa las notas de la versión antes de actualizar.</string>
 </resources>

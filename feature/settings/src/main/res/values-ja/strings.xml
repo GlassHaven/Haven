@@ -612,4 +612,10 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_mcp_https_p12_imported_toast">カスタム HTTPS 証明書をインポートしました</string>
     <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 バンドルをインポートできませんでした: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">自動生成ルート CA に戻しました</string>
+    <string name="settings_update_view_changelog_subtitle">タップしてリリースノートを読むかリリースページを開く</string>
+    <string name="settings_update_changelog_dialog_title">%1$s の変更点</string>
+    <string name="settings_update_changelog_empty">このビルドにはリリースノートが含まれていません。</string>
+    <string name="settings_update_open_github_release">リリースページを開く</string>
+    <string name="settings_update_fdroid_subtitle">F-Droid からインストール済み — タップして F-Droid の Haven ページを開く</string>
+    <string name="settings_about_rolling_release">Haven は修正が整い次第ローリングリリースを公開します。更新前にリリースノートをご確認ください。</string>
 </resources>

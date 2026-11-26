@@ -658,4 +658,10 @@ Every private key already stored in Haven will need to be imported or generated 
     <string name="settings_desktop_gesture_middle_click">Middle-click</string>
     <string name="settings_desktop_gesture_left_click">Left-click</string>
     <string name="settings_desktop_gesture_disabled">Disabled</string>
+    <string name="settings_update_view_changelog_subtitle">Tap to read release notes or open the release page</string>
+    <string name="settings_update_changelog_dialog_title">What\'s new in %1$s</string>
+    <string name="settings_update_changelog_empty">No release notes were included with this build.</string>
+    <string name="settings_update_open_github_release">Open release page</string>
+    <string name="settings_update_fdroid_subtitle">Installed from F-Droid — tap to open Haven on F-Droid</string>
+    <string name="settings_about_rolling_release">Haven ships rolling releases as fixes land; check release notes before updating.</string>
 </resources>

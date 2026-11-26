@@ -3249,6 +3249,7 @@ class McpTools private constructor(
                     put("status", "UPDATE_AVAILABLE")
                     put("latestVersion", result.version)
                     put("releaseUrl", result.releaseUrl)
+                    put("releaseNotes", result.releaseNotes)
                 }
                 is sh.haven.core.data.update.UpdateChecker.Result.Failed -> {
                     put("status", "FAILED")

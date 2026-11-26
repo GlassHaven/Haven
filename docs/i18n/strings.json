@@ -41827,6 +41827,128 @@
       "sr": "Онемогућено",
       "zh": "已禁用"
      }
+    },
+    {
+     "name": "settings_update_view_changelog_subtitle",
+     "en": "Tap to read release notes or open the release page",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "اضغط لقراءة ملاحظات الإصدار أو فتح صفحة الإصدار",
+      "bn": "রিলিজ নোট পড়তে বা রিলিজ পেজ খুলতে ট্যাপ করুন",
+      "de": "Tippen, um die Versionshinweise zu lesen oder die Release-Seite zu öffnen",
+      "es": "Toca para leer las notas de la versión o abrir la página de lanzamiento",
+      "fr": "Toucher pour lire les notes de version ou ouvrir la page de publication",
+      "hi": "रिलीज़ नोट्स पढ़ने या रिलीज़ पेज खोलने के लिए टैप करें",
+      "ja": "タップしてリリースノートを読むかリリースページを開く",
+      "ko": "탭하여 릴리스 노트를 읽거나 릴리스 페이지 열기",
+      "pt": "Toque para ler as notas de lançamento ou abrir a página da versão",
+      "ru": "Нажмите, чтобы прочитать список изменений или открыть страницу выпуска",
+      "sr": "Тапните да прочитате напомене о издању или да отворите страницу издања",
+      "zh": "点按阅读更新日志或打开发行版页面"
+     }
+    },
+    {
+     "name": "settings_update_changelog_dialog_title",
+     "en": "What\\'s new in %1$s",
+     "comment": "Offline user guide (#833)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الجديد في %1$s",
+      "bn": "%1$s-এ নতুন কী আছে",
+      "de": "Neu in %1$s",
+      "es": "Novedades en %1$s",
+      "fr": "Nouveautés dans %1$s",
+      "hi": "%1$s में नया क्या है",
+      "ja": "%1$s の変更点",
+      "ko": "%1$s의 새로운 기능",
+      "pt": "Novidades na %1$s",
+      "ru": "Что нового в %1$s",
+      "sr": "Шта је ново у %1$s",
+      "zh": "%1$s 更新内容"
+     }
+    },
+    {
+     "name": "settings_update_changelog_empty",
+     "en": "No release notes were included with this build.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "لم تُدرج ملاحظات إصدار مع هذه البنية.",
+      "bn": "এই বিল্ডের সাথে কোনো রিলিজ নোট যুক্ত করা হয়নি।",
+      "de": "Für diesen Build wurden keine Versionshinweise hinterlegt.",
+      "es": "Esta compilación no incluye notas de la versión.",
+      "fr": "Aucune note de version n\\'accompagnait cette version.",
+      "hi": "इस बिल्ड के साथ कोई रिलीज़ नोट शामिल नहीं था।",
+      "ja": "このビルドにはリリースノートが含まれていません。",
+      "ko": "이 빌드에는 릴리스 노트가 포함되지 않았습니다.",
+      "pt": "Nenhuma nota de lançamento foi incluída nesta compilação.",
+      "ru": "К этой сборке не приложено описание изменений.",
+      "sr": "Уз ову изградњу нису приложене напомене о издању.",
+      "zh": "此构建未附带更新说明。"
+     }
+    },
+    {
+     "name": "settings_update_open_github_release",
+     "en": "Open release page",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "فتح صفحة الإصدار",
+      "bn": "রিলিজ পেজ খুলুন",
+      "de": "Release-Seite öffnen",
+      "es": "Abrir página de lanzamiento",
+      "fr": "Ouvrir la page de publication",
+      "hi": "रिलीज़ पेज खोलें",
+      "ja": "リリースページを開く",
+      "ko": "릴리스 페이지 열기",
+      "pt": "Abrir página da versão",
+      "ru": "Открыть страницу выпуска",
+      "sr": "Отвори страницу издања",
+      "zh": "打开发行版页面"
+     }
+    },
+    {
+     "name": "settings_update_fdroid_subtitle",
+     "en": "Installed from F-Droid — tap to open Haven on F-Droid",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "مُثبَّت من F-Droid — اضغط لفتح Haven على F-Droid",
+      "bn": "F-Droid থেকে ইনস্টল করা — F-Droid-এ Haven খুলতে ট্যাপ করুন",
+      "de": "Über F-Droid installiert — tippen, um Haven auf F-Droid zu öffnen",
+      "es": "Instalado desde F-Droid — toca para abrir Haven en F-Droid",
+      "fr": "Installé depuis F-Droid — toucher pour ouvrir Haven sur F-Droid",
+      "hi": "F-Droid से इंस्टॉल किया गया — F-Droid पर Haven खोलने के लिए टैप करें",
+      "ja": "F-Droid からインストール済み — タップして F-Droid の Haven ページを開く",
+      "ko": "F-Droid에서 설치됨 — 탭하여 F-Droid에서 Haven 열기",
+      "pt": "Instalado pelo F-Droid — toque para abrir o Haven no F-Droid",
+      "ru": "Установлено из F-Droid — нажмите, чтобы открыть Haven в F-Droid",
+      "sr": "Инсталирано са F-Droid — тапните да отворите Haven на F-Droid",
+      "zh": "通过 F-Droid 安装 — 点按在 F-Droid 中打开 Haven"
+     }
+    },
+    {
+     "name": "settings_about_rolling_release",
+     "en": "Haven ships rolling releases as fixes land; check release notes before updating.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "يُصدر Haven تحديثات متلاحقة فور جاهزية الإصلاحات؛ راجع ملاحظات الإصدار قبل التحديث.",
+      "bn": "সমাধান প্রস্তুত হলেই Haven রোলিং রিলিজ প্রকাশ করে; আপডেট করার আগে রিলিজ নোট দেখে নিন।",
+      "de": "Haven veröffentlicht fortlaufende Releases, sobald Korrekturen fertig sind; prüfen Sie vor dem Aktualisieren die Versionshinweise.",
+      "es": "Haven publica versiones continuas conforme llegan las correcciones; revisa las notas de la versión antes de actualizar.",
+      "fr": "Haven publie des versions continues au fil des correctifs ; consultez les notes de version avant de mettre à jour.",
+      "hi": "सुधार तैयार होते ही Haven रोलिंग रिलीज़ जारी करता है; अपडेट करने से पहले रिलीज़ नोट्स देख लें।",
+      "ja": "Haven は修正が整い次第ローリングリリースを公開します。更新前にリリースノートをご確認ください。",
+      "ko": "Haven은 수정 사항이 반영되는 대로 롤링 릴리스를 배포합니다. 업데이트 전에 릴리스 노트를 확인하세요.",
+      "pt": "O Haven publica versões contínuas à medida que as correções ficam prontas; consulte as notas de lançamento antes de atualizar.",
+      "ru": "Haven выпускает непрерывные обновления по мере готовности исправлений; проверяйте описание изменений перед обновлением.",
+      "sr": "Haven објављује текућа издања чим поправке прођу проверу; прочитајте напомене о издању пре ажурирања.",
+      "zh": "Haven 采用滚动发布模式，修复完成后即发布新版本；更新前请先查看更新说明。"
+     }
     }
    ]
   },

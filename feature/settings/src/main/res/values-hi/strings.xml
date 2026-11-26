@@ -613,4 +613,10 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_mcp_https_p12_imported_toast">कस्टम HTTPS प्रमाणपत्र आयात किया गया</string>
     <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 बंडल आयात नहीं हो सका: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">स्वतः जनित रूट CA पर वापस लौटा गया</string>
+    <string name="settings_update_view_changelog_subtitle">रिलीज़ नोट्स पढ़ने या रिलीज़ पेज खोलने के लिए टैप करें</string>
+    <string name="settings_update_changelog_dialog_title">%1$s में नया क्या है</string>
+    <string name="settings_update_changelog_empty">इस बिल्ड के साथ कोई रिलीज़ नोट शामिल नहीं था।</string>
+    <string name="settings_update_open_github_release">रिलीज़ पेज खोलें</string>
+    <string name="settings_update_fdroid_subtitle">F-Droid से इंस्टॉल किया गया — F-Droid पर Haven खोलने के लिए टैप करें</string>
+    <string name="settings_about_rolling_release">सुधार तैयार होते ही Haven रोलिंग रिलीज़ जारी करता है; अपडेट करने से पहले रिलीज़ नोट्स देख लें।</string>
 </resources>

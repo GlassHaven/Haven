@@ -90,6 +90,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -290,6 +291,7 @@ fun SettingsScreen(
     var showDarkColorSchemeDialog by remember { mutableStateOf(false) }
     var showBackgroundOpacityDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showUpdateChangelogDialog by remember { mutableStateOf(false) }
     var showUserGuideDialog by remember { mutableStateOf(false) }
     var showToolbarConfigDialog by remember { mutableStateOf(false) }
     var showKeyboardModeDialog by remember { mutableStateOf(false) }
@@ -1736,7 +1738,12 @@ fun SettingsScreen(
         }
 
         }
-        CollapsibleSettingsSection(stringResource(R.string.settings_section_about), settingsExpanded[9], { settingsExpanded[9] = !settingsExpanded[9] }) {
+        CollapsibleSettingsSection(
+            title = stringResource(R.string.settings_section_about),
+            expanded = settingsExpanded[9],
+            onToggle = { settingsExpanded[9] = !settingsExpanded[9] },
+            showBadge = updateCheckResult is UpdateChecker.Result.Available,
+        ) {
         SettingsItem(
             icon = Icons.Filled.Info,
             title = stringResource(R.string.settings_about_title),
@@ -1749,57 +1756,68 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_user_guide_subtitle),
             onClick = { showUserGuideDialog = true },
         )
-        // #578. Only a copy signed with the GitHub-release key can install a
-        // GitHub release over itself, so on any other channel the honest thing
-        // is to say where updates come from rather than offer a download that
-        // Android will refuse.
-        if (viewModel.updateChannel == UpdateChecker.Channel.GITHUB_RELEASE) {
-            SettingsToggleItem(
-                icon = Icons.Filled.SystemUpdate,
-                title = stringResource(R.string.settings_update_check_title),
-                subtitle = stringResource(R.string.settings_update_check_subtitle),
-                checked = updateCheckEnabled,
-                onCheckedChange = viewModel::setUpdateCheckEnabled,
-            )
-            val updateSubtitle = when (val r = updateCheckResult) {
-                null -> stringResource(R.string.settings_update_check_now_subtitle)
-                is UpdateChecker.Result.Available ->
-                    stringResource(R.string.settings_update_check_available)
-                is UpdateChecker.Result.UpToDate ->
-                    stringResource(R.string.settings_update_check_up_to_date, r.installedVersion)
-                is UpdateChecker.Result.Failed ->
-                    stringResource(R.string.settings_update_check_failed, r.message)
-                UpdateChecker.Result.WrongChannel ->
-                    stringResource(R.string.settings_update_check_other_channel)
+        // #578 / #874. Only a copy signed with the GitHub-release key can
+        // install a GitHub release over itself. F-Droid copies link directly to
+        // Haven's F-Droid listing, and self-built copies state why no release
+        // download is offered.
+        when (viewModel.updateChannel) {
+            UpdateChecker.Channel.GITHUB_RELEASE -> {
+                SettingsToggleItem(
+                    icon = Icons.Filled.SystemUpdate,
+                    title = stringResource(R.string.settings_update_check_title),
+                    subtitle = stringResource(R.string.settings_update_check_subtitle),
+                    checked = updateCheckEnabled,
+                    onCheckedChange = viewModel::setUpdateCheckEnabled,
+                )
+                val updateSubtitle = when (val r = updateCheckResult) {
+                    null -> stringResource(R.string.settings_update_check_now_subtitle)
+                    is UpdateChecker.Result.Available ->
+                        stringResource(R.string.settings_update_view_changelog_subtitle)
+                    is UpdateChecker.Result.UpToDate ->
+                        stringResource(R.string.settings_update_check_up_to_date, r.installedVersion)
+                    is UpdateChecker.Result.Failed ->
+                        stringResource(R.string.settings_update_check_failed, r.message)
+                    UpdateChecker.Result.WrongChannel ->
+                        stringResource(R.string.settings_update_check_other_channel)
+                }
+                val available = updateCheckResult as? UpdateChecker.Result.Available
+                SettingsItem(
+                    icon = if (available != null) Icons.Filled.Download else Icons.Filled.Refresh,
+                    title = if (updateCheckRunning) {
+                        stringResource(R.string.settings_update_checking)
+                    } else if (available != null) {
+                        stringResource(R.string.settings_update_open_release, available.version)
+                    } else {
+                        stringResource(R.string.settings_update_check_now_title)
+                    },
+                    subtitle = updateSubtitle,
+                    onClick = {
+                        if (available != null) {
+                            showUpdateChangelogDialog = true
+                        } else if (!updateCheckRunning) {
+                            viewModel.checkForUpdateNow()
+                        }
+                    },
+                )
             }
-            val available = updateCheckResult as? UpdateChecker.Result.Available
-            SettingsItem(
-                icon = if (available != null) Icons.Filled.Download else Icons.Filled.Refresh,
-                title = if (updateCheckRunning) {
-                    stringResource(R.string.settings_update_checking)
-                } else if (available != null) {
-                    stringResource(R.string.settings_update_open_release, available.version)
-                } else {
-                    stringResource(R.string.settings_update_check_now_title)
-                },
-                subtitle = updateSubtitle,
-                onClick = {
-                    if (available != null) {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(available.releaseUrl)),
-                        )
-                    } else if (!updateCheckRunning) {
-                        viewModel.checkForUpdateNow()
-                    }
-                },
-            )
-        } else {
-            SettingsItem(
-                icon = Icons.Filled.SystemUpdate,
-                title = stringResource(R.string.settings_update_check_title),
-                subtitle = stringResource(R.string.settings_update_check_other_channel),
-                onClick = {},
-            )
+            UpdateChecker.Channel.FDROID -> {
+                SettingsItem(
+                    icon = Icons.Filled.SystemUpdate,
+                    title = stringResource(R.string.settings_update_check_title),
+                    subtitle = stringResource(R.string.settings_update_fdroid_subtitle),
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(FDROID_URL)))
+                    },
+                )
+            }
+            UpdateChecker.Channel.OTHER -> {
+                SettingsItem(
+                    icon = Icons.Filled.SystemUpdate,
+                    title = stringResource(R.string.settings_update_check_title),
+                    subtitle = stringResource(R.string.settings_update_check_other_channel),
+                    onClick = {},
+                )
+            }
         }
         SettingsItem(
             icon = Icons.Filled.Favorite,
@@ -1835,6 +1853,22 @@ fun SettingsScreen(
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(KOFI_URL)))
             },
         )
+    }
+
+    if (showUpdateChangelogDialog) {
+        val available = updateCheckResult as? UpdateChecker.Result.Available
+        if (available != null) {
+            UpdateChangelogDialog(
+                available = available,
+                onDismiss = { showUpdateChangelogDialog = false },
+                onOpenReleasePage = {
+                    showUpdateChangelogDialog = false
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(available.releaseUrl)))
+                },
+            )
+        } else {
+            showUpdateChangelogDialog = false
+        }
     }
 
     if (showUserGuideDialog) {
@@ -2834,8 +2868,43 @@ private fun BackupPasswordDialog(
     )
 }
 
-private const val GITHUB_URL = "https://github.com/GlassOnTin/Haven"
+private const val GITHUB_URL = "https://github.com/GlassHaven/Haven"
+private const val FDROID_URL = "https://f-droid.org/en/packages/sh.haven.app/"
 private const val KOFI_URL = "https://ko-fi.com/glassontin"
+
+@Composable
+private fun UpdateChangelogDialog(
+    available: UpdateChecker.Result.Available,
+    onDismiss: () -> Unit,
+    onOpenReleasePage: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(R.string.settings_update_changelog_dialog_title, available.version))
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = available.releaseNotes.ifBlank {
+                        stringResource(R.string.settings_update_changelog_empty)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onOpenReleasePage) {
+                Text(stringResource(R.string.settings_update_open_github_release))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_close))
+            }
+        },
+    )
+}
 
 @Composable
 private fun AboutDialog(
@@ -2872,6 +2941,12 @@ private fun AboutDialog(
                 Text(
                     text = stringResource(R.string.settings_about_android, Build.VERSION.RELEASE, Build.VERSION.SDK_INT),
                     style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_about_rolling_release),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -3692,6 +3767,7 @@ private fun CollapsibleSettingsSection(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
+    showBadge: Boolean = false,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     androidx.compose.foundation.layout.Row(
@@ -3707,6 +3783,10 @@ private fun CollapsibleSettingsSection(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
+        if (showBadge) {
+            Badge()
+            Spacer(Modifier.width(8.dp))
+        }
         Icon(
             imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
             contentDescription = null,

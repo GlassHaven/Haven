@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.81
+
+- Add `/etc/os-release` distro and minimum `VERSION_ID` gating plus per-distro `extraPackages` to community Guest App Pack and Guest Service Preset recipes, filter incompatible recipes in `Desktop -> Manage` and MCP catalog listings, and document the `schemaVersion: 1` JSON recipe format (#891, thanks pixel4696).
+
 ## v5.94.80
 
 - Add a resizable Saved Connections home-screen widget with protocol badges, optional per-widget connection group filtering, saved-order or recent-first sorting, automatic updates when saved connections change, and one-tap connect across cold start and biometric lock (#852, thanks LeoMerlino).

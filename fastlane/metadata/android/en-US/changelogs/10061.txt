@@ -1,0 +1,1 @@
+- Add /etc/os-release distro and minimum VERSION_ID gating plus per-distro extraPackages to community Guest App Pack and Guest Service Preset recipes, filter incompatible recipes in Desktop -> Manage and MCP catalog listings, and document the schemaVersion 1 JSON recipe format (#891, thanks pixel4696).

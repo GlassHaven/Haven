@@ -424,4 +424,13 @@
     <string name="app_desktop_engine_description">المحرك المستخدم لأصداف وسطح مكتب arm64 الأصليين. يعود تلقائياً إلى PRoot عند تفعيل محاكاة QEMU أو إعادة توجيه المنافذ المنخفضة أو حظر الاتصالات المباشرة.</string>
     <string name="app_desktop_engine_proot">PRoot (افتراضي)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp، arm64)</string>
+    <string name="app_recipe_import_button">استيراد وصفة…</string>
+    <string name="app_recipe_import_title">استيراد وصفة ضيف</string>
+    <string name="app_recipe_import_description">حمّل بيان وصفة من رابط HTTPS أو ملف JSON. راجع أوامر الصدفة المُنشأة قبل الإضافة.</string>
+    <string name="app_recipe_import_url_label">رابط HTTPS للبيان (اختياري)</string>
+    <string name="app_recipe_import_sha256_label">بصمة SHA-256 المتوقعة (اختياري، 64 خانة ست عشرية)</string>
+    <string name="app_recipe_import_json_label">أو الصق JSON الخاص بالوصفة</string>
+    <string name="app_recipe_import_load_file">تحميل ملف .json</string>
+    <string name="app_recipe_import_review">مراجعة النصوص البرمجية</string>
+    <string name="app_recipe_import_confirm">إضافة الوصفات</string>
 </resources>

@@ -408,4 +408,13 @@
     <string name="app_desktop_engine_description">Motor para terminais e ambientes gráficos arm64 nativos. Volta automaticamente ao PRoot quando a emulação QEMU, o remapeamento de portas baixas ou o bloqueio de tráfego direto está ativo.</string>
     <string name="app_desktop_engine_proot">PRoot (padrão)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
+    <string name="app_recipe_import_button">Importar receita…</string>
+    <string name="app_recipe_import_title">Importar receita do convidado</string>
+    <string name="app_recipe_import_description">Carregue um manifesto de receita de um URL HTTPS ou ficheiro JSON. Reveja os comandos shell gerados antes de adicionar.</string>
+    <string name="app_recipe_import_url_label">URL HTTPS do manifesto (opcional)</string>
+    <string name="app_recipe_import_sha256_label">SHA-256 esperado (opcional, 64 hex)</string>
+    <string name="app_recipe_import_json_label">Ou cole o JSON da receita</string>
+    <string name="app_recipe_import_load_file">Carregar ficheiro .json</string>
+    <string name="app_recipe_import_review">Rever scripts</string>
+    <string name="app_recipe_import_confirm">Adicionar receitas</string>
 </resources>

@@ -408,4 +408,13 @@
     <string name="app_desktop_engine_description">नेटिव arm64 शेल और डेस्कटॉप के लिए इंजन। QEMU इम्यूलेशन, लो-पोर्ट रीमैपिंग या डायरेक्ट ट्रैफ़िक ब्लॉकिंग सक्रिय होने पर अपने-आप PRoot का उपयोग करता है।</string>
     <string name="app_desktop_engine_proot">PRoot (डिफ़ॉल्ट)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
+    <string name="app_recipe_import_button">रेसिपी आयात करें…</string>
+    <string name="app_recipe_import_title">गेस्ट रेसिपी आयात करें</string>
+    <string name="app_recipe_import_description">HTTPS URL या JSON फ़ाइल से रेसिपी मैनिफ़ेस्ट लोड करें। जोड़ने से पहले शेल कमांड की समीक्षा करें।</string>
+    <string name="app_recipe_import_url_label">मैनिफ़ेस्ट HTTPS URL (वैकल्पिक)</string>
+    <string name="app_recipe_import_sha256_label">अपेक्षित SHA-256 (वैकल्पिक, 64 हेक्स)</string>
+    <string name="app_recipe_import_json_label">या रेसिपी JSON पेस्ट करें</string>
+    <string name="app_recipe_import_load_file">.json फ़ाइल लोड करें</string>
+    <string name="app_recipe_import_review">स्क्रिप्ट देखें</string>
+    <string name="app_recipe_import_confirm">रेसिपी जोड़ें</string>
 </resources>

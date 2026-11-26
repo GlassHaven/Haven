@@ -1150,6 +1150,173 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    // --- Community guest recipe import & script preview (#891) ---
+
+    private val guestRecipeRepository get() = localSessionManager.guestRecipeRepository
+
+    val importedRecipeManifest: StateFlow<sh.haven.core.local.proot.GuestRecipeManifest> =
+        guestRecipeRepository.importedManifest
+
+    data class RecipeImportDraft(
+        val url: String = "",
+        val sha256: String = "",
+        val jsonText: String = "",
+        val loading: Boolean = false,
+        val error: String? = null,
+        val previewJsonText: String? = null,
+        val previewSummary: String? = null,
+        val previewScripts: String? = null,
+    )
+
+    private val _recipeImportDraft = MutableStateFlow<RecipeImportDraft?>(null)
+    val recipeImportDraft: StateFlow<RecipeImportDraft?> = _recipeImportDraft.asStateFlow()
+
+    fun openRecipeImportDialog() {
+        _recipeImportDraft.value = RecipeImportDraft()
+    }
+
+    fun dismissRecipeImportDialog() {
+        _recipeImportDraft.value = null
+    }
+
+    fun updateRecipeImportDraft(
+        url: String? = null,
+        sha256: String? = null,
+        jsonText: String? = null,
+    ) {
+        _recipeImportDraft.update { cur ->
+            val base = cur ?: RecipeImportDraft()
+            base.copy(
+                url = url ?: base.url,
+                sha256 = sha256 ?: base.sha256,
+                jsonText = jsonText ?: base.jsonText,
+                error = null,
+                previewJsonText = null,
+                previewSummary = null,
+                previewScripts = null,
+            )
+        }
+    }
+
+    fun clearRecipeImportPreview() {
+        _recipeImportDraft.update { cur ->
+            cur?.copy(
+                error = null,
+                previewJsonText = null,
+                previewSummary = null,
+                previewScripts = null,
+            )
+        }
+    }
+
+    fun previewRecipeImport() {
+        val snap = _recipeImportDraft.value ?: return
+        if (snap.loading) return
+        _recipeImportDraft.update { it?.copy(loading = true, error = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val rawJson = when {
+                    snap.jsonText.isNotBlank() -> snap.jsonText
+                    snap.url.isNotBlank() -> guestRecipeRepository.fetchManifestJson(
+                        httpsUrl = snap.url.trim(),
+                        expectedSha256 = snap.sha256.trim().ifEmpty { null },
+                    )
+                    else -> throw sh.haven.core.local.proot.RecipeValidationException(
+                        "Enter an https:// manifest URL or paste recipe JSON.",
+                    )
+                }
+                val manifest = sh.haven.core.local.proot.GuestRecipeManifest.parse(rawJson)
+                if (manifest.packs.isEmpty() && manifest.services.isEmpty()) {
+                    throw sh.haven.core.local.proot.RecipeValidationException(
+                        "Manifest contains no app packs or service presets.",
+                    )
+                }
+                for (p in manifest.packs) {
+                    if (sh.haven.core.local.proot.GuestAppCatalog.byId(p.id) != null) {
+                        throw sh.haven.core.local.proot.RecipeValidationException(
+                            "Pack '${p.id}' conflicts with a built-in GuestAppCatalog entry.",
+                        )
+                    }
+                }
+                for (s in manifest.services) {
+                    if (sh.haven.core.local.proot.GuestServiceCatalog.byId(s.id) != null) {
+                        throw sh.haven.core.local.proot.RecipeValidationException(
+                            "Service '${s.id}' conflicts with a built-in GuestServiceCatalog entry.",
+                        )
+                    }
+                }
+                val activeFamily = prootManager.activeDistro.family
+                val scripts = buildString {
+                    manifest.packs.forEachIndexed { i, pack ->
+                        if (i > 0) append("\n\n")
+                        val fam = if (pack.packages.containsKey(activeFamily)) {
+                            activeFamily
+                        } else {
+                            pack.packages.keys.first()
+                        }
+                        append(sh.haven.core.local.proot.GuestRecipeManifest.previewPackInstall(pack, fam))
+                    }
+                    manifest.services.forEachIndexed { i, svc ->
+                        if (isNotEmpty() || i > 0) append("\n\n")
+                        val fam = if (svc.packages.containsKey(activeFamily)) {
+                            activeFamily
+                        } else {
+                            svc.packages.keys.first()
+                        }
+                        append(sh.haven.core.local.proot.GuestRecipeManifest.previewServiceInstall(svc, fam))
+                    }
+                }
+                val summary = buildString {
+                    val parts = mutableListOf<String>()
+                    if (manifest.packs.isNotEmpty()) {
+                        parts.add("${manifest.packs.size} app pack(s): ${manifest.packs.joinToString { it.label }}")
+                    }
+                    if (manifest.services.isNotEmpty()) {
+                        parts.add("${manifest.services.size} service(s): ${manifest.services.joinToString { it.label }}")
+                    }
+                    append(parts.joinToString(" · "))
+                }
+                _recipeImportDraft.update { cur ->
+                    cur?.copy(
+                        loading = false,
+                        error = null,
+                        previewJsonText = rawJson,
+                        previewSummary = summary,
+                        previewScripts = scripts,
+                    )
+                }
+            } catch (e: Exception) {
+                _recipeImportDraft.update { cur ->
+                    cur?.copy(loading = false, error = e.message ?: "Invalid recipe manifest")
+                }
+            }
+        }
+    }
+
+    fun confirmRecipeImport() {
+        val rawJson = _recipeImportDraft.value?.previewJsonText ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val res = guestRecipeRepository.importJson(rawJson)
+                val total = res.packIds.size + res.serviceIds.size
+                _recipeImportDraft.value = null
+                _userMessages.emit("Added $total guest recipe(s)")
+            } catch (e: Exception) {
+                _recipeImportDraft.update { cur ->
+                    cur?.copy(error = e.message ?: "Failed to import recipe manifest")
+                }
+            }
+        }
+    }
+
+    fun removeImportedRecipe(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (guestRecipeRepository.removeImported(id)) {
+                _userMessages.emit("Removed imported recipe '$id'")
+            }
+        }
+    }
+
     // --- Installed-app launcher ("Browse installed apps", xfce4-style menu) ---
 
     private val _installedApps = MutableStateFlow<AppScanResult?>(null)

@@ -414,4 +414,13 @@
     <string name="app_desktop_engine_description">네이티브 arm64 셸 및 데스크톱에 사용하는 엔진입니다. QEMU 에뮬레이션, 낮은 포트 리매핑 또는 직접 트래픽 차단이 활성화된 경우 자동으로 PRoot로 전환됩니다.</string>
     <string name="app_desktop_engine_proot">PRoot (기본값)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
+    <string name="app_recipe_import_button">레시피 가져오기…</string>
+    <string name="app_recipe_import_title">게스트 레시피 가져오기</string>
+    <string name="app_recipe_import_description">HTTPS URL 또는 JSON 파일에서 레시피 매니페스트를 불러옵니다. 추가하기 전에 생성된 셸 명령을 확인하세요.</string>
+    <string name="app_recipe_import_url_label">매니페스트 HTTPS URL (선택)</string>
+    <string name="app_recipe_import_sha256_label">예상 SHA-256 (선택, 64자리 16진수)</string>
+    <string name="app_recipe_import_json_label">또는 레시피 JSON 붙여넣기</string>
+    <string name="app_recipe_import_load_file">.json 파일 불러오기</string>
+    <string name="app_recipe_import_review">스크립트 검토</string>
+    <string name="app_recipe_import_confirm">레시피 추가</string>
 </resources>

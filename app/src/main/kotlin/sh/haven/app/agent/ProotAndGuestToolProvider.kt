@@ -253,12 +253,12 @@ internal class ProotAndGuestToolProvider(
         ) { args -> runInProot(args) },
 
         "list_app_packs" to ToolHandler(
-            description = "List the curated guest-app installer packs (#470) — one-tap recipes that collate everything a working cage/app-window app needs: guest packages per package family, config drops that fix silent-failure defaults (e.g. qmmp's ALSA-in-proot output), the audio-bridge requirement, the app-window def to register, and optional sha256-pinned assets (e.g. Winamp skins). Each entry reports whether it's compatible with the ACTIVE distro's family, whether it looks installed there (verify binary present), whether its app window is already registered, and which families are device-verified. Read-only; install with install_app_pack.",
+            description = "List curated and imported guest-app installer packs (#470, #891) — one-tap recipes that collate guest packages per package family, PRoot config drops, audio-bridge flags, app-window registration, architecture filters, and sha256-pinned assets. Each entry reports source (builtin/imported), compatibleWithActive, installedOnActive, appWindowRegistered, and verifiedFamilies. Read-only; install with install_app_pack.",
             inputSchema = emptyObjectSchema(),
         ) { _ -> listAppPacks() },
 
         "install_app_pack" to ToolHandler(
-            description = "Install a curated guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: \"running\" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.",
+            description = "Install a curated or imported guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: \"running\" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.",
             inputSchema = objectSchema {
                 string("id", "Pack id from list_app_packs (e.g. \"qmmp\"). Required unless polling via jobId.")
                 boolean("includeAssets", "Also fetch the pack's optional pinned assets (skins, sample content). Default true.")
@@ -271,6 +271,57 @@ internal class ProotAndGuestToolProvider(
                 else "Install the '${args.optString("id")}' app pack into the guest"
             },
         ) { args -> installAppPack(args) },
+
+        "list_service_presets" to ToolHandler(
+            description = "List curated and imported guest background service presets (#734, #891), such as MariaDB or community loopback daemons. Reports id, label, port, source (builtin/imported), supported families/arches, compatibleWithActive, installedOnActive, and registeredOnActive. Install with install_service_preset.",
+            inputSchema = emptyObjectSchema(),
+        ) { _ -> listServicePresets() },
+
+        "install_service_preset" to ToolHandler(
+            description = "Install and start a guest service preset (from list_service_presets) in the ACTIVE distro: installs distro packages, writes idempotent config stanzas, downloads sha256-pinned assets, runs postInstallScript, verifies the daemon binary, registers the supervised service in GuestServiceManager, and starts it on loopback. Long-running: returns { jobId, status: \"running\" }; poll with jobId.",
+            inputSchema = objectSchema {
+                string("id", "Service preset id from list_service_presets (e.g. \"mariadb\"). Required unless polling via jobId.")
+                boolean("includeAssets", "Fetch sha256-pinned service assets when declared. Default true.")
+                string("jobId", "Poll a previously started service-preset install job.")
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val jid = args.optString("jobId").takeIf { it.isNotBlank() }
+                if (jid != null) "Let the agent read service-preset install progress"
+                else "Install and start the '${args.optString("id")}' service preset in the guest"
+            },
+        ) { args -> installServicePresetTool(args) },
+
+        "import_guest_recipes" to ToolHandler(
+            description = "Import, remove, or clear community Guest App Pack and Guest Service Preset recipes (#891). Supply `json` (manifest JSON text) or `url` (`https://` manifest URL, optionally pinned by `sha256`), or pass `removeId` / `clear:true` to remove imported recipes. Every recipe is validated (schemaVersion 1, safe package tokens, rootfs-relative verify binaries, https + 64-hex sha256 on assets, no shadowing of built-in ids) before persistence.",
+            inputSchema = objectSchema {
+                string("json", "Raw GuestRecipeManifest JSON string to validate and import.")
+                string("url", "HTTPS URL to a GuestRecipeManifest JSON file (max 1 MiB).")
+                string("sha256", "Optional 64-char hex SHA-256 pin verified against the fetched `url` manifest bytes.")
+                string("removeId", "Remove a single previously imported pack or service recipe by id.")
+                boolean("clear", "If true, remove all imported custom recipes.")
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                when {
+                    args.optBoolean("clear", false) -> "Clear all imported guest recipes?"
+                    args.optString("removeId").isNotBlank() ->
+                        "Remove imported guest recipe '${args.optString("removeId")}'?"
+                    args.optString("url").isNotBlank() ->
+                        "Import guest recipes from ${args.optString("url")}?"
+                    else -> "Import custom guest recipe JSON into Haven?"
+                }
+            },
+        ) { args -> importGuestRecipesTool(args) },
+
+        "export_guest_recipes" to ToolHandler(
+            description = "Export Haven's GuestRecipeManifest JSON (`schemaVersion: 1`) for built-in and/or imported packs and service presets (#891), suitable for seeding or validating a standalone community recipe repository.",
+            inputSchema = objectSchema {
+                boolean("includeBuiltIn", "Include compiled-in GuestAppCatalog and GuestServiceCatalog entries. Default true.")
+                boolean("includeImported", "Include user-imported custom entries. Default true.")
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> exportGuestRecipesTool(args) },
 
         "register_guest_service" to ToolHandler(
             description = "Register a long-lived helper process to run inside the ACTIVE distro's proot guest — typically an app-native MCP server (KiCad/FreeCAD/OpenSCAD) the agent drives for structured control. Haven supervises it: starts it (if autostart) when the MCP endpoint comes up, re-launches it after an app restart, and — when an MCP reverse-tunnel endpoint is configured — multiplexes its loopback `port` back to the remote MCP client alongside Haven's own endpoint (no adb forward needed). The registry is persisted per-distro. Returns the generated service id. Use start_guest_service to launch it now.",
@@ -493,18 +544,25 @@ internal class ProotAndGuestToolProvider(
 
     // --- guest app packs (#470) ---
 
-    /** Live background `install_app_pack` jobs, keyed by jobId. */
+    /** Live background `install_app_pack` and `install_service_preset` jobs, keyed by jobId. */
     private val packJobs = java.util.concurrent.ConcurrentHashMap<String, ProotJob>()
+    private val servicePresetJobs = java.util.concurrent.ConcurrentHashMap<String, ProotJob>()
+
+    private val recipeRepository get() = localSessionManager.guestRecipeRepository
 
     private suspend fun listAppPacks(): JSONObject {
         val family = prootManager.activeDistro.family
         val defs = preferencesRepository.appWindowDefs.first().items
         val arr = JSONArray()
-        for (p in GuestAppCatalog.PACKS) {
+        for (p in recipeRepository.allPacks()) {
             arr.put(JSONObject().apply {
                 put("id", p.id)
                 put("label", p.label)
                 put("description", p.description)
+                put("source", if (recipeRepository.isImportedPack(p.id)) "imported" else "builtin")
+                put("supportedArches", JSONArray().apply {
+                    sh.haven.core.local.proot.Arch.entries.filter { it in p.supportedArches }.forEach { put(it.slug) }
+                })
                 put("families", JSONArray().apply { p.packages.keys.forEach { put(it.name) } })
                 put("verifiedFamilies", JSONArray().apply { p.verifiedFamilies.forEach { put(it.name) } })
                 put("compatibleWithActive", p.packages.containsKey(family))
@@ -534,7 +592,7 @@ internal class ProotAndGuestToolProvider(
             }
         }
         val id = args.optString("id").ifEmpty { throw McpError(-32602, "Missing required argument: id") }
-        val pack = GuestAppCatalog.byId(id)
+        val pack = recipeRepository.findPackById(id)
             ?: throw McpError(-32602, "Unknown pack '$id' — see list_app_packs")
         if (!prootManager.isRootfsInstalled) {
             throw McpError(-32603, "Active distro '${prootManager.activeDistroId}' has no installed rootfs")
@@ -598,6 +656,185 @@ internal class ProotAndGuestToolProvider(
             put("pack", pack.id)
             put("family", family.name)
             put("poll", "install_app_pack with jobId=$jobId")
+        }
+    }
+
+    private fun listServicePresets(): JSONObject {
+        val family = prootManager.activeDistro.family
+        val registeredIds = localSessionManager.guestServiceManager.registered().map { it.id }.toSet()
+        val arr = JSONArray()
+        for (s in recipeRepository.allServicePresets()) {
+            arr.put(JSONObject().apply {
+                put("id", s.id)
+                put("label", s.label)
+                put("description", s.description)
+                put("port", s.port)
+                put("source", if (recipeRepository.isImportedService(s.id)) "imported" else "builtin")
+                put("supportedArches", JSONArray().apply {
+                    sh.haven.core.local.proot.Arch.entries.filter { it in s.supportedArches }.forEach { put(it.slug) }
+                })
+                put("families", JSONArray().apply { s.packages.keys.forEach { put(it.name) } })
+                put("compatibleWithActive", s.packages.containsKey(family))
+                put("installedOnActive", s.isBinaryPresent(prootManager.activeRootfsDir))
+                put("registeredOnActive", s.id in registeredIds)
+                put("assetCount", s.assets.size)
+            })
+        }
+        return JSONObject().apply {
+            put("activeDistroId", prootManager.activeDistroId)
+            put("activeFamily", family.name)
+            put("count", arr.length())
+            put("presets", arr)
+        }
+    }
+
+    private fun installServicePresetTool(args: JSONObject): JSONObject {
+        val jid = args.optString("jobId").takeIf { it.isNotBlank() }
+        if (jid != null) {
+            val job = servicePresetJobs[jid] ?: throw McpError(-32602, "Unknown service-preset jobId: $jid")
+            return JSONObject().apply {
+                put("jobId", jid)
+                put("status", if (job.running) "running" else "done")
+                job.exitCode?.let { put("exitCode", it) }
+                put("output", synchronized(job.output) { job.output.toString() }.takeLast(8000))
+            }
+        }
+        val id = args.optString("id").ifEmpty { throw McpError(-32602, "Missing required argument: id") }
+        val preset = recipeRepository.findServicePresetById(id)
+            ?: throw McpError(-32602, "Unknown service preset '$id' — see list_service_presets")
+        if (!prootManager.isRootfsInstalled) {
+            throw McpError(-32603, "Active distro '${prootManager.activeDistroId}' has no installed rootfs")
+        }
+        val family = prootManager.activeDistro.family
+        val pkgs = preset.packages[family] ?: throw McpError(
+            -32602,
+            "Service preset '$id' has no package list for $family (active distro " +
+                "'${prootManager.activeDistroId}') — compatible families: ${preset.packages.keys.joinToString()}",
+        )
+        val script = sh.haven.core.local.proot.buildServicePresetInstallScript(
+            preset = preset,
+            pkgs = pkgs,
+            family = family,
+            includeAssets = args.optBoolean("includeAssets", true),
+        )
+        val jobId = java.util.UUID.randomUUID().toString()
+        val job = ProotJob()
+        servicePresetJobs[jobId] = job
+        ctx.backgroundScope.launch {
+            try {
+                val proc = prootManager.startCommandInProot(script)
+                proc.inputStream.bufferedReader().forEachLine { line ->
+                    synchronized(job.output) { job.output.append(line).append('\n') }
+                }
+                val code = proc.waitFor()
+                if (code != 0) {
+                    synchronized(job.output) { job.output.append("\n[service-preset] guest phase failed (exit $code)\n") }
+                    job.exitCode = code
+                    return@launch
+                }
+                if (!preset.isBinaryPresent(prootManager.activeRootfsDir)) {
+                    synchronized(job.output) {
+                        job.output.append("\n[service-preset] verify failed: none of ${preset.verifyBinaries} found after install\n")
+                    }
+                    job.exitCode = 1
+                    return@launch
+                }
+                val gsm = localSessionManager.guestServiceManager
+                gsm.register(
+                    sh.haven.core.local.GuestServiceManager.GuestServiceSpec(
+                        id = preset.id,
+                        label = preset.label,
+                        command = preset.serviceCommand,
+                        port = preset.port,
+                        autostart = preset.autostart,
+                    ),
+                )
+                gsm.start(preset.id)
+                ctx.invalidateGuestTools()
+                synchronized(job.output) {
+                    job.output.append("\n[service-preset] ${preset.id} installed and started")
+                    if (preset.port > 0) job.output.append(" on 127.0.0.1:${preset.port}")
+                    job.output.append('\n')
+                }
+                job.exitCode = 0
+            } catch (e: Exception) {
+                synchronized(job.output) { job.output.append("\n[service-preset] install error: ${e.message}\n") }
+                job.exitCode = -1
+            } finally {
+                job.running = false
+            }
+        }
+        return JSONObject().apply {
+            put("jobId", jobId)
+            put("status", "running")
+            put("preset", preset.id)
+            put("family", family.name)
+            put("poll", "install_service_preset with jobId=$jobId")
+        }
+    }
+
+    private suspend fun importGuestRecipesTool(args: JSONObject): JSONObject {
+        if (args.optBoolean("clear", false)) {
+            recipeRepository.clearImported()
+            return JSONObject().apply { put("status", "cleared") }
+        }
+        val removeId = if (args.isNull("removeId")) "" else args.optString("removeId").trim()
+        if (removeId.isNotEmpty()) {
+            val removed = recipeRepository.removeImported(removeId)
+            return JSONObject().apply {
+                put("id", removeId)
+                put("removed", removed)
+            }
+        }
+        val rawJson = if (args.isNull("json")) "" else args.optString("json")
+        val url = if (args.isNull("url")) "" else args.optString("url").trim()
+        val sha256 = if (args.isNull("sha256")) null else args.optString("sha256").trim().ifEmpty { null }
+        val manifestText = when {
+            rawJson.isNotBlank() -> rawJson
+            url.isNotBlank() -> try {
+                withContext(Dispatchers.IO) { recipeRepository.fetchManifestJson(url, sha256) }
+            } catch (e: sh.haven.core.local.proot.RecipeValidationException) {
+                throw McpError(-32602, e.message ?: "Invalid recipe manifest URL")
+            } catch (e: Exception) {
+                throw McpError(-32603, "Failed to fetch recipe manifest: ${e.message}")
+            }
+            else -> throw McpError(-32602, "Provide `json`, `url`, `removeId`, or `clear:true`")
+        }
+        val summary = try {
+            recipeRepository.importJson(manifestText)
+        } catch (e: sh.haven.core.local.proot.RecipeValidationException) {
+            throw McpError(-32602, e.message ?: "Recipe validation failed")
+        }
+        return JSONObject().apply {
+            put("status", "imported")
+            summary.sourceRepo?.let { put("sourceRepo", it) }
+            put("importedPacks", JSONArray().apply { summary.packIds.forEach { put(it) } })
+            put("importedServices", JSONArray().apply { summary.serviceIds.forEach { put(it) } })
+        }
+    }
+
+    private fun exportGuestRecipesTool(args: JSONObject): JSONObject {
+        val includeBuiltIn = args.optBoolean("includeBuiltIn", true)
+        val includeImported = args.optBoolean("includeImported", true)
+        val imported = recipeRepository.importedManifest.value
+        val manifest = sh.haven.core.local.proot.GuestRecipeManifest(
+            schemaVersion = sh.haven.core.local.proot.GuestRecipeManifest.CURRENT_SCHEMA_VERSION,
+            sourceRepo = if (includeImported) imported.sourceRepo else null,
+            packs = buildList {
+                if (includeBuiltIn) addAll(GuestAppCatalog.PACKS)
+                if (includeImported) addAll(imported.packs)
+            },
+            services = buildList {
+                if (includeBuiltIn) addAll(sh.haven.core.local.proot.GuestServiceCatalog.PRESETS)
+                if (includeImported) addAll(imported.services)
+            },
+        )
+        val json = sh.haven.core.local.proot.GuestRecipeManifest.toJson(manifest)
+        return JSONObject().apply {
+            put("schemaVersion", manifest.schemaVersion)
+            put("packCount", manifest.packs.size)
+            put("serviceCount", manifest.services.size)
+            put("json", json)
         }
     }
 

@@ -77,6 +77,7 @@ data class GuestAppPack(
      * [packages] but not here are offered as unverified.
      */
     val verifiedFamilies: Set<PackageFamily> = emptySet(),
+    val supportedArches: Set<Arch> = Arch.entries.toSet(),
 )
 
 /** Single-quote [s] for POSIX sh. */
@@ -97,6 +98,7 @@ fun buildPackInstallScript(
 ): String {
     val ops = PackageOps.forFamily(family)
     val sb = StringBuilder("set -e\n")
+    appendGuestArchGuard(sb, pack.supportedArches)
     sb.append(ops.updateCmd()).append('\n')
     sb.append(ops.installCmd(pkgs)).append('\n')
     for (w in pack.configWrites) {

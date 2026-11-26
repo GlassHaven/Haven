@@ -142,6 +142,7 @@ class LocalSessionManager @Inject constructor(
     val desktopManager: DesktopManager,
     val systemVmManager: SystemVmManager,
     val guestServiceManager: GuestServiceManager,
+    val guestRecipeRepository: sh.haven.core.local.proot.GuestRecipeRepository,
     val audioBridge: AudioBridge,
     private val preferences: UserPreferencesRepository,
     private val connectionLog: ConnectionLogRepository,

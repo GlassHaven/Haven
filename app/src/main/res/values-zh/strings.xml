@@ -404,4 +404,13 @@
     <string name="app_desktop_engine_description">用于原生 arm64 终端与桌面的运行引擎。启用 QEMU 模拟、低端口重映射或直接流量拦截时会自动回退到 PRoot。</string>
     <string name="app_desktop_engine_proot">PRoot（默认）</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng（seccomp，arm64）</string>
+    <string name="app_recipe_import_button">导入配方…</string>
+    <string name="app_recipe_import_title">导入容器安装配方</string>
+    <string name="app_recipe_import_description">从 HTTPS 链接或 JSON 文件加载配方清单，并在添加前检查生成的 Shell 命令。</string>
+    <string name="app_recipe_import_url_label">清单 HTTPS 链接（可选）</string>
+    <string name="app_recipe_import_sha256_label">预期 SHA-256（可选，64 位十六进制）</string>
+    <string name="app_recipe_import_json_label">或粘贴配方 JSON</string>
+    <string name="app_recipe_import_load_file">加载 .json 文件</string>
+    <string name="app_recipe_import_review">检查脚本</string>
+    <string name="app_recipe_import_confirm">添加配方</string>
 </resources>

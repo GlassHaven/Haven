@@ -7645,6 +7645,186 @@
       "sr": "chroot-ng (seccomp, arm64)",
       "zh": "chroot-ng（seccomp，arm64）"
      }
+    },
+    {
+     "name": "app_recipe_import_button",
+     "en": "Import recipe…",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "استيراد وصفة…",
+      "bn": "রেসিপি ইমপোর্ট করুন…",
+      "de": "Rezept importieren…",
+      "es": "Importar receta…",
+      "fr": "Importer une recette…",
+      "hi": "रेसिपी आयात करें…",
+      "ja": "レシピをインポート…",
+      "ko": "레시피 가져오기…",
+      "pt": "Importar receita…",
+      "ru": "Импорт рецепта…",
+      "sr": "Увези рецепт…",
+      "zh": "导入配方…"
+     }
+    },
+    {
+     "name": "app_recipe_import_title",
+     "en": "Import guest recipe",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "استيراد وصفة ضيف",
+      "bn": "গেস্ট রেসিপি ইমপোর্ট",
+      "de": "Gast-Rezept importieren",
+      "es": "Importar receta de invitado",
+      "fr": "Importer une recette invitée",
+      "hi": "गेस्ट रेसिपी आयात करें",
+      "ja": "ゲスト用レシピのインポート",
+      "ko": "게스트 레시피 가져오기",
+      "pt": "Importar receita do convidado",
+      "ru": "Импорт гостевого рецепта",
+      "sr": "Увоз гостујућег рецепта",
+      "zh": "导入容器安装配方"
+     }
+    },
+    {
+     "name": "app_recipe_import_description",
+     "en": "Load a recipe manifest from an HTTPS URL or JSON file. Review the generated guest shell commands before adding.",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "حمّل بيان وصفة من رابط HTTPS أو ملف JSON. راجع أوامر الصدفة المُنشأة قبل الإضافة.",
+      "bn": "HTTPS URL বা JSON ফাইল থেকে রেসিপি ম্যানিফেস্ট লোড করুন। যোগ করার আগে শেল কমান্ডগুলো যাচাই করুন।",
+      "de": "Rezept-Manifest per HTTPS-URL oder JSON-Datei laden. Prüfen Sie die erzeugten Shell-Befehle vor dem Hinzufügen.",
+      "es": "Cargue un manifiesto de receta desde una URL HTTPS o un archivo JSON. Revise los comandos de shell antes de añadirla.",
+      "fr": "Chargez un manifeste de recette depuis une URL HTTPS ou un fichier JSON. Vérifiez les commandes shell générées avant l’ajout.",
+      "hi": "HTTPS URL या JSON फ़ाइल से रेसिपी मैनिफ़ेस्ट लोड करें। जोड़ने से पहले शेल कमांड की समीक्षा करें।",
+      "ja": "HTTPS URL または JSON ファイルからレシピマニフェストを読み込みます。追加する前に生成されたシェルコマンドを確認してください。",
+      "ko": "HTTPS URL 또는 JSON 파일에서 레시피 매니페스트를 불러옵니다. 추가하기 전에 생성된 셸 명령을 확인하세요.",
+      "pt": "Carregue um manifesto de receita de um URL HTTPS ou ficheiro JSON. Reveja os comandos shell gerados antes de adicionar.",
+      "ru": "Загрузите манифест рецепта по HTTPS-ссылке или из JSON-файла. Проверьте команды оболочки перед добавлением.",
+      "sr": "Учитајте манифест рецепта са HTTPS адресе или из JSON датотеке. Прегледајте генерисане команде пре додавања.",
+      "zh": "从 HTTPS 链接或 JSON 文件加载配方清单，并在添加前检查生成的 Shell 命令。"
+     }
+    },
+    {
+     "name": "app_recipe_import_url_label",
+     "en": "Manifest HTTPS URL (optional)",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "رابط HTTPS للبيان (اختياري)",
+      "bn": "ম্যানিফেস্ট HTTPS URL (ঐচ্ছিক)",
+      "de": "Manifest-HTTPS-URL (optional)",
+      "es": "URL HTTPS del manifiesto (opcional)",
+      "fr": "URL HTTPS du manifeste (facultatif)",
+      "hi": "मैनिफ़ेस्ट HTTPS URL (वैकल्पिक)",
+      "ja": "マニフェストの HTTPS URL（任意）",
+      "ko": "매니페스트 HTTPS URL (선택)",
+      "pt": "URL HTTPS do manifesto (opcional)",
+      "ru": "HTTPS-ссылка на манифест (необязательно)",
+      "sr": "HTTPS адреса манифеста (опционо)",
+      "zh": "清单 HTTPS 链接（可选）"
+     }
+    },
+    {
+     "name": "app_recipe_import_sha256_label",
+     "en": "Expected SHA-256 (optional, 64 hex)",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "بصمة SHA-256 المتوقعة (اختياري، 64 خانة ست عشرية)",
+      "bn": "প্রত্যাশিত SHA-256 (ঐচ্ছিক, 64 হেক্স)",
+      "de": "Erwarteter SHA-256 (optional, 64 Hex-Zeichen)",
+      "es": "SHA-256 esperado (opcional, 64 hex)",
+      "fr": "SHA-256 attendu (facultatif, 64 hex)",
+      "hi": "अपेक्षित SHA-256 (वैकल्पिक, 64 हेक्स)",
+      "ja": "期待する SHA-256（任意・64桁16進）",
+      "ko": "예상 SHA-256 (선택, 64자리 16진수)",
+      "pt": "SHA-256 esperado (opcional, 64 hex)",
+      "ru": "Ожидаемый SHA-256 (необязательно, 64 hex)",
+      "sr": "Очекивани SHA-256 (опционо, 64 хекс)",
+      "zh": "预期 SHA-256（可选，64 位十六进制）"
+     }
+    },
+    {
+     "name": "app_recipe_import_json_label",
+     "en": "Or paste recipe JSON",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "أو الصق JSON الخاص بالوصفة",
+      "bn": "অথবা রেসিপি JSON পেস্ট করুন",
+      "de": "Oder Rezept-JSON einfügen",
+      "es": "O pegue el JSON de la receta",
+      "fr": "Ou collez le JSON de la recette",
+      "hi": "या रेसिपी JSON पेस्ट करें",
+      "ja": "またはレシピ JSON を貼り付け",
+      "ko": "또는 레시피 JSON 붙여넣기",
+      "pt": "Ou cole o JSON da receita",
+      "ru": "Или вставьте JSON рецепта",
+      "sr": "Или налепите JSON рецепта",
+      "zh": "或粘贴配方 JSON"
+     }
+    },
+    {
+     "name": "app_recipe_import_load_file",
+     "en": "Load .json file",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "تحميل ملف .json",
+      "bn": ".json ফাইল লোড করুন",
+      "de": ".json-Datei laden",
+      "es": "Cargar archivo .json",
+      "fr": "Charger un fichier .json",
+      "hi": ".json फ़ाइल लोड करें",
+      "ja": ".json ファイルを読み込む",
+      "ko": ".json 파일 불러오기",
+      "pt": "Carregar ficheiro .json",
+      "ru": "Загрузить файл .json",
+      "sr": "Учитај .json датотеку",
+      "zh": "加载 .json 文件"
+     }
+    },
+    {
+     "name": "app_recipe_import_review",
+     "en": "Review scripts",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "مراجعة النصوص البرمجية",
+      "bn": "স্ক্রিপ্ট যাচাই করুন",
+      "de": "Skripte prüfen",
+      "es": "Revisar scripts",
+      "fr": "Vérifier les scripts",
+      "hi": "स्क्रिप्ट देखें",
+      "ja": "スクリプトを確認",
+      "ko": "스크립트 검토",
+      "pt": "Rever scripts",
+      "ru": "Проверить скрипты",
+      "sr": "Прегледај скрипте",
+      "zh": "检查脚本"
+     }
+    },
+    {
+     "name": "app_recipe_import_confirm",
+     "en": "Add recipes",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "إضافة الوصفات",
+      "bn": "রেসিপি যোগ করুন",
+      "de": "Rezepte hinzufügen",
+      "es": "Añadir recetas",
+      "fr": "Ajouter les recettes",
+      "hi": "रेसिपी जोड़ें",
+      "ja": "レシピを追加",
+      "ko": "레시피 추가",
+      "pt": "Adicionar receitas",
+      "ru": "Добавить рецепты",
+      "sr": "Додај рецепте",
+      "zh": "添加配方"
+     }
     }
    ]
   },

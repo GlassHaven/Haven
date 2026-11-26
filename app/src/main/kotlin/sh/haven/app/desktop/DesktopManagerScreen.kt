@@ -156,6 +156,8 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val installingPackIds by viewModel.installingPackIds.collectAsState()
     val guestServices by viewModel.guestServices.collectAsState()
     val installingServicePresetIds by viewModel.installingServicePresetIds.collectAsState()
+    val importedRecipes by viewModel.importedRecipeManifest.collectAsState()
+    val recipeImportDraft by viewModel.recipeImportDraft.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
     val scanningApps by viewModel.scanningApps.collectAsState()
     val defaultResolution by viewModel.appWindowDefaultResolution.collectAsState()
@@ -260,9 +262,25 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
         }
 
         val activeFamilyForPacks = DistroCatalog.lookup(activeDistroId)?.family
-        val availablePacks = remember(activeFamilyForPacks, appWindowDefs) {
-            sh.haven.core.local.proot.GuestAppCatalog.PACKS.filter { pack ->
+        val deviceArch = remember { sh.haven.core.local.proot.Arch.current() }
+        val activeArchForPacks = remember(activeDistroId, deviceArch) {
+            when {
+                activeDistroId.endsWith("-x86_64") -> sh.haven.core.local.proot.Arch.X86_64
+                activeDistroId.endsWith("-aarch64") -> sh.haven.core.local.proot.Arch.AARCH64
+                activeDistroId.endsWith("-armv7") -> sh.haven.core.local.proot.Arch.ARM
+                else -> deviceArch
+            }
+        }
+        val importedPackIds = remember(importedRecipes) {
+            importedRecipes.packs.map { it.id }.toSet()
+        }
+        val importedPresetIds = remember(importedRecipes) {
+            importedRecipes.services.map { it.id }.toSet()
+        }
+        val availablePacks = remember(activeFamilyForPacks, activeArchForPacks, appWindowDefs, importedRecipes) {
+            (sh.haven.core.local.proot.GuestAppCatalog.PACKS + importedRecipes.packs).filter { pack ->
                 (activeFamilyForPacks == null || pack.packages.containsKey(activeFamilyForPacks)) &&
+                    (activeArchForPacks == null || activeArchForPacks in pack.supportedArches) &&
                     appWindowDefs.none { it.command == pack.appCommand }
             }
         }
@@ -271,6 +289,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             defs = appWindowDefs,
             launchingIds = launchingIds,
             availablePacks = availablePacks,
+            importedPackIds = importedPackIds,
             installingPackIds = installingPackIds,
             defaultResolution = defaultResolution,
             defaultScale = defaultScale,
@@ -279,6 +298,8 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onDelete = { viewModel.deleteAppWindow(it.id) },
             onPinToHome = { viewModel.pinAppWindow(it) },
             onInstallPack = { viewModel.installAppPack(it) },
+            onRemoveImportedPack = { viewModel.removeImportedRecipe(it) },
+            onImportRecipe = { viewModel.openRecipeImportDialog() },
             onAdd = { viewModel.openAppWindowDialog(DesktopViewModel.AppWindowDraft()) },
             onBrowse = { viewModel.setShowInstalledApps(true) },
             onSetDefaultResolution = { viewModel.setAppWindowDefaultResolution(it) },
@@ -286,17 +307,21 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
         )
 
         if (!quick || !viewModel.umlAvailable) {
-            val availableServicePresets = remember(activeFamilyForPacks, guestServices) {
-                sh.haven.core.local.proot.GuestServiceCatalog.PRESETS.filter { preset ->
+            val availableServicePresets = remember(activeFamilyForPacks, activeArchForPacks, guestServices, importedRecipes) {
+                (sh.haven.core.local.proot.GuestServiceCatalog.PRESETS + importedRecipes.services).filter { preset ->
                     (activeFamilyForPacks == null || preset.packages.containsKey(activeFamilyForPacks)) &&
+                        (activeArchForPacks == null || activeArchForPacks in preset.supportedArches) &&
                         guestServices.none { it.spec.id == preset.id }
                 }
             }
             GuestServicesSection(
                 services = guestServices,
                 availablePresets = availableServicePresets,
+                importedPresetIds = importedPresetIds,
                 installingPresetIds = installingServicePresetIds,
                 onInstallPreset = { viewModel.installServicePreset(it) },
+                onRemoveImportedPreset = { viewModel.removeImportedRecipe(it) },
+                onImportRecipe = { viewModel.openRecipeImportDialog() },
                 onStart = { viewModel.startGuestService(it) },
                 onStop = { viewModel.stopGuestService(it) },
                 onDelete = { viewModel.deleteGuestService(it) },
@@ -315,6 +340,19 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onStart = { viewModel.startSystemVm(it.id) },
             onStop = { viewModel.stopSystemVm() },
             onDelete = { viewModel.deleteSystemVmImage(it.id) },
+        )
+    }
+
+    recipeImportDraft?.let { draft ->
+        RecipeImportDialog(
+            draft = draft,
+            onUpdateDraft = { url, sha256, jsonText ->
+                viewModel.updateRecipeImportDraft(url = url, sha256 = sha256, jsonText = jsonText)
+            },
+            onReview = { viewModel.previewRecipeImport() },
+            onClearPreview = { viewModel.clearRecipeImportPreview() },
+            onConfirm = { viewModel.confirmRecipeImport() },
+            onDismiss = { viewModel.dismissRecipeImportDialog() },
         )
     }
 
@@ -496,11 +534,13 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
  * launched) with Launch/delete, and an add button. Launching opens the same
  * present_media overlay the assistant uses.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppWindowsSection(
     defs: List<AppWindowDef>,
     launchingIds: Set<String>,
     availablePacks: List<sh.haven.core.local.proot.GuestAppPack>,
+    importedPackIds: Set<String>,
     installingPackIds: Set<String>,
     defaultResolution: String,
     defaultScale: Float,
@@ -509,6 +549,8 @@ private fun AppWindowsSection(
     onDelete: (AppWindowDef) -> Unit,
     onPinToHome: (AppWindowDef) -> Unit,
     onInstallPack: (sh.haven.core.local.proot.GuestAppPack) -> Unit,
+    onRemoveImportedPack: (String) -> Unit,
+    onImportRecipe: () -> Unit,
     onAdd: () -> Unit,
     onBrowse: () -> Unit,
     onSetDefaultResolution: (String) -> Unit,
@@ -617,15 +659,23 @@ private fun AppWindowsSection(
                                 Icon(Icons.Filled.Download, contentDescription = pack.label)
                             }
                         }
+                        if (pack.id in importedPackIds) {
+                            IconButton(onClick = { onRemoveImportedPack(pack.id) }) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = stringResource(AppR.string.app_desktop_app_window_delete_cd, pack.label),
+                                )
+                            }
+                        }
                     }
                     HorizontalDivider()
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Row {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onBrowse) { Text(stringResource(AppR.string.app_desktop_browse_installed_apps)) }
-                Spacer(Modifier.width(8.dp))
                 TextButton(onClick = onAdd) { Text(stringResource(AppR.string.app_desktop_add_app_window)) }
+                TextButton(onClick = onImportRecipe) { Text(stringResource(AppR.string.app_recipe_import_button)) }
             }
             HorizontalDivider()
             Spacer(Modifier.height(8.dp))
@@ -643,13 +693,15 @@ private fun AppWindowsSection(
 private fun GuestServicesSection(
     services: List<sh.haven.core.local.GuestServiceManager.GuestServiceInstance>,
     availablePresets: List<sh.haven.core.local.proot.GuestServicePreset>,
+    importedPresetIds: Set<String>,
     installingPresetIds: Set<String>,
     onInstallPreset: (sh.haven.core.local.proot.GuestServicePreset) -> Unit,
+    onRemoveImportedPreset: (String) -> Unit,
+    onImportRecipe: () -> Unit,
     onStart: (String) -> Unit,
     onStop: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    if (services.isEmpty() && availablePresets.isEmpty()) return
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -755,11 +807,169 @@ private fun GuestServicesSection(
                             Icon(Icons.Filled.Download, contentDescription = preset.label)
                         }
                     }
+                    if (preset.id in importedPresetIds) {
+                        IconButton(onClick = { onRemoveImportedPreset(preset.id) }) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(AppR.string.app_system_vm_delete_cd, preset.label),
+                            )
+                        }
+                    }
                 }
                 HorizontalDivider()
             }
+
+            Spacer(Modifier.height(4.dp))
+            TextButton(onClick = onImportRecipe) {
+                Text(stringResource(AppR.string.app_recipe_import_button))
+            }
         }
     }
+}
+
+@Composable
+private fun RecipeImportDialog(
+    draft: DesktopViewModel.RecipeImportDraft,
+    onUpdateDraft: (url: String?, sha256: String?, jsonText: String?) -> Unit,
+    onReview: () -> Unit,
+    onClearPreview: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val ioScope = rememberCoroutineScope()
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            ioScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                        val out = java.io.ByteArrayOutputStream()
+                        val buf = ByteArray(8192)
+                        while (true) {
+                            val n = stream.read(buf)
+                            if (n < 0) break
+                            if (out.size() + n > sh.haven.core.local.proot.GuestRecipeRepository.MAX_MANIFEST_BYTES) {
+                                error("File exceeds 1 MiB limit")
+                            }
+                            out.write(buf, 0, n)
+                        }
+                        out.toByteArray()
+                    } ?: error("Unable to open selected file")
+                    bytes.toString(Charsets.UTF_8)
+                }.onSuccess { text ->
+                    onUpdateDraft(null, null, text)
+                }
+            }
+        }
+    }
+
+    val showingPreview = draft.previewScripts != null
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(AppR.string.app_recipe_import_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                if (!showingPreview) {
+                    Text(
+                        stringResource(AppR.string.app_recipe_import_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = draft.url,
+                        onValueChange = { onUpdateDraft(it, null, null) },
+                        label = { Text(stringResource(AppR.string.app_recipe_import_url_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = draft.sha256,
+                        onValueChange = { onUpdateDraft(null, it, null) },
+                        label = { Text(stringResource(AppR.string.app_recipe_import_sha256_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = { filePicker.launch(arrayOf("application/json", "text/*")) }) {
+                        Icon(Icons.Filled.FolderOpen, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(AppR.string.app_recipe_import_load_file))
+                    }
+                    OutlinedTextField(
+                        value = draft.jsonText,
+                        onValueChange = { onUpdateDraft(null, null, it) },
+                        label = { Text(stringResource(AppR.string.app_recipe_import_json_label)) },
+                        minLines = 3,
+                        maxLines = 6,
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    draft.previewSummary?.let { summary ->
+                        Text(summary, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(240.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(10.dp),
+                        ) {
+                            Text(
+                                text = draft.previewScripts.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                    }
+                }
+                if (draft.loading) {
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                draft.error?.let { err ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = err,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (!showingPreview) {
+                TextButton(
+                    onClick = onReview,
+                    enabled = !draft.loading && (draft.url.isNotBlank() || draft.jsonText.isNotBlank()),
+                ) {
+                    Text(stringResource(AppR.string.app_recipe_import_review))
+                }
+            } else {
+                TextButton(onClick = onConfirm, enabled = !draft.loading) {
+                    Text(stringResource(AppR.string.app_recipe_import_confirm))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { if (showingPreview) onClearPreview() else onDismiss() },
+                enabled = !draft.loading,
+            ) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
 }
 
 /**

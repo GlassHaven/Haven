@@ -374,5 +374,14 @@
     <string name="app_guest_services_description">Позадински сервери који се извршавају у активној Линукс дистрибуцији на loopback интерфејсу.</string>
     <string name="app_guest_services_running">Извршава се · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">Заустављено · 127.0.0.1:%1$d</string>
+    <string name="app_recipe_import_button">Увези рецепт…</string>
+    <string name="app_recipe_import_title">Увоз гостујућег рецепта</string>
+    <string name="app_recipe_import_description">Учитајте манифест рецепта са HTTPS адресе или из JSON датотеке. Прегледајте генерисане команде пре додавања.</string>
+    <string name="app_recipe_import_url_label">HTTPS адреса манифеста (опционо)</string>
+    <string name="app_recipe_import_sha256_label">Очекивани SHA-256 (опционо, 64 хекс)</string>
+    <string name="app_recipe_import_json_label">Или налепите JSON рецепта</string>
+    <string name="app_recipe_import_load_file">Учитај .json датотеку</string>
+    <string name="app_recipe_import_review">Прегледај скрипте</string>
+    <string name="app_recipe_import_confirm">Додај рецепте</string>
 </resources>
 

@@ -422,4 +422,13 @@
     <string name="app_desktop_engine_description">Движок для нативных оболочек и рабочих столов arm64. Автоматически переключается на PRoot при включённой эмуляции QEMU, перенаправлении младших портов или блокировке прямого трафика.</string>
     <string name="app_desktop_engine_proot">PRoot (по умолчанию)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
+    <string name="app_recipe_import_button">Импорт рецепта…</string>
+    <string name="app_recipe_import_title">Импорт гостевого рецепта</string>
+    <string name="app_recipe_import_description">Загрузите манифест рецепта по HTTPS-ссылке или из JSON-файла. Проверьте команды оболочки перед добавлением.</string>
+    <string name="app_recipe_import_url_label">HTTPS-ссылка на манифест (необязательно)</string>
+    <string name="app_recipe_import_sha256_label">Ожидаемый SHA-256 (необязательно, 64 hex)</string>
+    <string name="app_recipe_import_json_label">Или вставьте JSON рецепта</string>
+    <string name="app_recipe_import_load_file">Загрузить файл .json</string>
+    <string name="app_recipe_import_review">Проверить скрипты</string>
+    <string name="app_recipe_import_confirm">Добавить рецепты</string>
 </resources>

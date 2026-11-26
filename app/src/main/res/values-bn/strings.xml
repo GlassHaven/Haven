@@ -408,4 +408,13 @@
     <string name="app_desktop_engine_description">নেটিভ arm64 শেল ও ডেস্কটপের ইঞ্জিন। QEMU এমুলেশন, লো-পোর্ট রিম্যাপিং বা সরাসরি ট্রাফিক ব্লকিং সক্রিয় থাকলে স্বয়ংক্রিয়ভাবে PRoot ব্যবহৃত হয়।</string>
     <string name="app_desktop_engine_proot">PRoot (ডিফল্ট)</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
+    <string name="app_recipe_import_button">রেসিপি ইমপোর্ট করুন…</string>
+    <string name="app_recipe_import_title">গেস্ট রেসিপি ইমপোর্ট</string>
+    <string name="app_recipe_import_description">HTTPS URL বা JSON ফাইল থেকে রেসিপি ম্যানিফেস্ট লোড করুন। যোগ করার আগে শেল কমান্ডগুলো যাচাই করুন।</string>
+    <string name="app_recipe_import_url_label">ম্যানিফেস্ট HTTPS URL (ঐচ্ছিক)</string>
+    <string name="app_recipe_import_sha256_label">প্রত্যাশিত SHA-256 (ঐচ্ছিক, 64 হেক্স)</string>
+    <string name="app_recipe_import_json_label">অথবা রেসিপি JSON পেস্ট করুন</string>
+    <string name="app_recipe_import_load_file">.json ফাইল লোড করুন</string>
+    <string name="app_recipe_import_review">স্ক্রিপ্ট যাচাই করুন</string>
+    <string name="app_recipe_import_confirm">রেসিপি যোগ করুন</string>
 </resources>

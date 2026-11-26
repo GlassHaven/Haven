@@ -404,4 +404,13 @@
     <string name="app_desktop_engine_description">ネイティブ arm64 のシェルとデスクトップで使用するエンジン。QEMU エミュレーション、低番号ポートの再マッピング、または直接通信の遮断が有効な場合は自動的に PRoot へ切り替わります。</string>
     <string name="app_desktop_engine_proot">PRoot（既定）</string>
     <string name="app_desktop_engine_chroot_ng">chroot-ng（seccomp, arm64）</string>
+    <string name="app_recipe_import_button">レシピをインポート…</string>
+    <string name="app_recipe_import_title">ゲスト用レシピのインポート</string>
+    <string name="app_recipe_import_description">HTTPS URL または JSON ファイルからレシピマニフェストを読み込みます。追加する前に生成されたシェルコマンドを確認してください。</string>
+    <string name="app_recipe_import_url_label">マニフェストの HTTPS URL（任意）</string>
+    <string name="app_recipe_import_sha256_label">期待する SHA-256（任意・64桁16進）</string>
+    <string name="app_recipe_import_json_label">またはレシピ JSON を貼り付け</string>
+    <string name="app_recipe_import_load_file">.json ファイルを読み込む</string>
+    <string name="app_recipe_import_review">スクリプトを確認</string>
+    <string name="app_recipe_import_confirm">レシピを追加</string>
 </resources>

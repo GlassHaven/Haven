@@ -23,6 +23,8 @@ data class GuestServicePreset(
     /** Foreground shell command supervised by `GuestServiceManager`. */
     val serviceCommand: String,
     val autostart: Boolean = false,
+    val assets: List<PackAsset> = emptyList(),
+    val supportedArches: Set<Arch> = Arch.entries.toSet(),
 ) {
     fun isBinaryPresent(rootfsDir: File): Boolean =
         verifyBinaries.any { rel -> File(rootfsDir, rel).exists() }
@@ -37,9 +39,11 @@ fun buildServicePresetInstallScript(
     preset: GuestServicePreset,
     pkgs: List<String>,
     family: PackageFamily,
+    includeAssets: Boolean = true,
 ): String {
     val ops = PackageOps.forFamily(family)
     val sb = StringBuilder("set -e\n")
+    appendGuestArchGuard(sb, preset.supportedArches)
     sb.append("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
     sb.append(ops.updateCmd()).append('\n')
     sb.append(ops.installCmd(pkgs)).append('\n')
@@ -50,6 +54,14 @@ fun buildServicePresetInstallScript(
             "grep -qxF ${shqService(guard)} ${shqService(w.path)} 2>/dev/null || " +
                 "printf '%s\\n' ${shqService(w.stanza)} >> ${shqService(w.path)}\n",
         )
+    }
+    if (includeAssets) {
+        for (a in preset.assets) {
+            val dest = "${a.destDir}/${a.url.substringAfterLast('/')}"
+            sb.append("mkdir -p ${shqService(a.destDir)}\n")
+            sb.append("curl -fsSL --retry 2 -o ${shqService(dest)} ${shqService(a.url)}\n")
+            sb.append("printf '%s  %s\\n' ${shqService(a.sha256)} ${shqService(dest)} | sha256sum -c -\n")
+        }
     }
     if (preset.postInstallScript.isNotBlank()) {
         sb.append(preset.postInstallScript.trim()).append('\n')

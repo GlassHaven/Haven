@@ -1,0 +1,1 @@
+- Download and install Haven updates directly from the Settings -> About release-notes dialog on GitHub Release installs: automatically matches your CPU ABI and build flavour (full, storage, or terminal), verifies the APK against `SHA256SUMS` and Haven's release signing key, and installs via Shizuku or Android's system package installer (#874, thanks n1x0l4s).

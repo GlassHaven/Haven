@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.78
+
+- Download and install Haven updates directly from the Settings -> About release-notes dialog on GitHub Release installs: automatically matches your CPU ABI and build flavour (full, storage, or terminal), verifies the APK against `SHA256SUMS` and Haven's release signing key, and installs via Shizuku or Android's system package installer (#874, thanks n1x0l4s).
+
 ## v5.94.77
 
 - Show release notes inline in Settings -> About when a newer GitHub release is available, add a quiet badge dot on Settings and About instead of extra notifications, link F-Droid installs directly to Haven's F-Droid page, and document Haven's rolling-release cadence (#874, thanks n1x0l4s).

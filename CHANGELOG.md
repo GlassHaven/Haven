@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.75
+
+- Enforce Android private-keyboard mode across PasswordField, credential/PIN/token/key inputs, and remote-desktop and terminal compose bars so secrets are not fed into keyboard learning dictionaries.
+- Add per-connection RDP microphone input redirection (#890, thanks CXwudi).
+- Surface backgrounded agent egress consent on an urgent channel with direct Allow once, Allow session, and Deny actions (#889).
+
+Revealing a password now switches the input type to `PasswordVisible` with autocorrect disabled while preserving `IME_FLAG_NO_PERSONALIZED_LEARNING` on `EditorInfo.imeOptions`. The repository also now includes the Linux host network-jail bundle (`host/linux-sandbox/`) for pairing desktop agent sandboxes with Haven's signed egress-consent gate.
+
 ## v5.94.74
 
 - Add per-connection RDP sound and device redirection: choose remote audio routing (Play on this device, Play on remote PC, or Never), two-way text clipboard sync, single-folder sharing via Android's folder picker, location forwarding, and camera redirection (#890, thanks CXwudi).

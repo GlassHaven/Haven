@@ -1,0 +1,3 @@
+- Enforce Android private-keyboard mode across PasswordField, credential/PIN/token/key inputs, and remote-desktop and terminal compose bars so secrets are not fed into keyboard learning dictionaries.
+- Add per-connection RDP microphone input redirection (#890, thanks CXwudi).
+- Surface backgrounded agent egress consent on an urgent channel with direct Allow once, Allow session, and Deny actions (#889).

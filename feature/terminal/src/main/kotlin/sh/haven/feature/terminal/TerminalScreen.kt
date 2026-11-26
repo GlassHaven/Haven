@@ -127,6 +127,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import sh.haven.core.ui.KeyEventInterceptor
+import sh.haven.core.ui.PhysicalDeadKeyComposer
 import sh.haven.core.ui.rebindImeTarget
 import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.ui.platform.LocalClipboardManager

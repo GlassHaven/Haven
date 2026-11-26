@@ -4,6 +4,7 @@ import io.mockk.mockk
 import io.mockk.every
 import io.mockk.verify
 import io.mockk.slot
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,5 +61,33 @@ class VncClientEventLoopTest {
 
         client.paused = false
         assertFalse(client.paused)
+    }
+
+    @Test
+    fun `typeText encodes ASCII shift, Latin-1, BMP Unicode, and supplementary code points as X11 KeySyms`() {
+        val client = VncClient(VncConfig())
+        val mockSession = mockk<VncSession>(relaxed = true)
+        val events = mutableListOf<String>()
+        every { mockSession.sendKeyEvent(any(), any()) } answers {
+            val sym = firstArg<Int>()
+            val pressed = secondArg<Boolean>()
+            events.add("${if (pressed) "down" else "up"}:${sym.toString(16)}")
+        }
+        val sessionField = VncClient::class.java.getDeclaredField("session").apply { isAccessible = true }
+        sessionField.set(client, mockSession)
+
+        // 'A' (shifted ASCII), 'é' (Latin-1 0x00e9), '€' (BMP 0x20ac -> 0x010020ac),
+        // and '😀' (U+1F600 -> single supplementary code point 0x0101f600, not surrogate halves)
+        client.typeText("Aé€\uD83D\uDE00")
+
+        assertEquals(
+            listOf(
+                "down:ffe1", "down:41", "up:41", "up:ffe1",
+                "down:e9", "up:e9",
+                "down:10020ac", "up:10020ac",
+                "down:101f600", "up:101f600",
+            ),
+            events,
+        )
     }
 }

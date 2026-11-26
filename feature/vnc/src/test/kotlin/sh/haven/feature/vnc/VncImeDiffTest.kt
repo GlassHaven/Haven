@@ -231,4 +231,101 @@ class VncImeDiffTest {
         assertEquals(1, wheel.feed(-0.6f))
         assertEquals(-1, wheel.feed(1.2f))
     }
+
+    @Test
+    fun `charToKeySym encodes non-Latin-1 BMP characters with X11 Unicode prefix`() {
+        assertEquals('a'.code, charToKeySym('a'))
+        assertEquals(0x00e9, charToKeySym('é'))
+        assertEquals(0x010020ac, charToKeySym('€'))
+        assertEquals(0x0100010d, charToKeySym('č'))
+        assertEquals(0xff0d, charToKeySym('\n'))
+    }
+
+    @Test
+    fun `VncHardwareKeyDispatcher composes physical dead keys instead of US QWERTY fallback`() {
+        val events = mutableListOf<String>()
+        var releasedModifiers = 0
+        val dispatcher = VncHardwareKeyDispatcher()
+        val deadAcute = android.view.KeyCharacterMap.COMBINING_ACCENT or 0x00B4
+
+        // Physical Spanish dead acute sits on Key.Apostrophe (or Key.LeftBracket):
+        // must buffer without emitting US '\'' (0x27), then compose 'á' (0xe1) on Key.A.
+        assertTrue(
+            dispatcher.onKeyDown(
+                key = Key.Apostrophe,
+                unicodeChar = deadAcute,
+                shiftHeld = false,
+                hasChordModifier = false,
+                onKeyDown = { events.add("down:${it.toString(16)}") },
+                onKeyUp = { events.add("up:${it.toString(16)}") },
+            ),
+        )
+        assertEquals(emptyList<String>(), events)
+        assertTrue(
+            dispatcher.onKeyUp(
+                key = Key.Apostrophe,
+                unicodeChar = deadAcute,
+                shiftHeld = false,
+                onKeyUp = { events.add("up:${it.toString(16)}") },
+                releaseActiveModifiers = { releasedModifiers++ },
+            ),
+        )
+        assertEquals(emptyList<String>(), events)
+
+        assertTrue(
+            dispatcher.onKeyDown(
+                key = Key.A,
+                unicodeChar = 'a'.code,
+                shiftHeld = false,
+                hasChordModifier = false,
+                onKeyDown = { events.add("down:${it.toString(16)}") },
+                onKeyUp = { events.add("up:${it.toString(16)}") },
+            ),
+        )
+        assertTrue(
+            dispatcher.onKeyUp(
+                key = Key.A,
+                unicodeChar = 'a'.code,
+                shiftHeld = false,
+                onKeyUp = { events.add("up:${it.toString(16)}") },
+                releaseActiveModifiers = { releasedModifiers++ },
+            ),
+        )
+        assertEquals(listOf("down:e1", "up:e1"), events)
+        assertEquals(1, releasedModifiers)
+
+        // Dead acute + Shift + A -> Shift_L down, 'Á' (0xc1) down/up, Shift_L up
+        events.clear()
+        dispatcher.onKeyDown(Key.Apostrophe, deadAcute, false, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.Apostrophe, deadAcute, false, { events.add("up:${it.toString(16)}") }, {})
+        dispatcher.onKeyDown(Key.ShiftLeft, 0, true, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyDown(Key.A, 'A'.code, true, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.A, 'A'.code, true, { events.add("up:${it.toString(16)}") }, {})
+        dispatcher.onKeyUp(Key.ShiftLeft, 0, false, { events.add("up:${it.toString(16)}") }, {})
+        assertEquals(listOf("down:ffe1", "down:c1", "up:c1", "up:ffe1"), events)
+
+        // Non-combinable dead acute + 'q' -> spacing ´ (0xb4) tap then 'q' (0x71) held/released
+        events.clear()
+        dispatcher.onKeyDown(Key.Apostrophe, deadAcute, false, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.Apostrophe, deadAcute, false, { events.add("up:${it.toString(16)}") }, {})
+        dispatcher.onKeyDown(Key.Q, 'q'.code, false, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.Q, 'q'.code, false, { events.add("up:${it.toString(16)}") }, {})
+        assertEquals(listOf("down:b4", "up:b4", "down:71", "up:71"), events)
+
+        // Ctrl+C chord clears pending dead key and emits 'c' while XK_CONTROL_L is held
+        events.clear()
+        dispatcher.onKeyDown(Key.Apostrophe, deadAcute, false, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.Apostrophe, deadAcute, false, { events.add("up:${it.toString(16)}") }, {})
+        dispatcher.onKeyDown(Key.CtrlLeft, 0, false, true, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyDown(Key.C, 'c'.code, false, true, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.C, 'c'.code, false, { events.add("up:${it.toString(16)}") }, {})
+        dispatcher.onKeyUp(Key.CtrlLeft, 0, false, { events.add("up:${it.toString(16)}") }, {})
+        assertEquals(listOf("down:ffe3", "down:63", "up:63", "up:ffe3"), events)
+
+        // AltGr+E ('€' = U+20AC) resolves to X11 Unicode KeySym 0x010020ac
+        events.clear()
+        dispatcher.onKeyDown(Key.E, 0x20ac, false, false, { events.add("down:${it.toString(16)}") }, { events.add("up:${it.toString(16)}") })
+        dispatcher.onKeyUp(Key.E, 0x20ac, false, { events.add("up:${it.toString(16)}") }, {})
+        assertEquals(listOf("down:10020ac", "up:10020ac"), events)
+    }
 }

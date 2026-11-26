@@ -157,8 +157,11 @@ class VncClient(private val config: VncConfig) : Closeable {
         // faster than this drop chars against QEMU's VNC.
         keyboardLock.lock()
         try {
-            for (ch in text) {
-                val (keySym, needsShift) = charToKeyEvent(ch)
+            var offset = 0
+            while (offset < text.length) {
+                val cp = text.codePointAt(offset)
+                offset += Character.charCount(cp)
+                val (keySym, needsShift) = codePointToKeyEvent(cp) ?: continue
                 if (needsShift) {
                     session?.sendKeyEvent(SHIFT_L, true)
                     if (sleep(10)) return
@@ -188,28 +191,32 @@ class VncClient(private val config: VncConfig) : Closeable {
     }
 
     /**
-     * Map a printable character to (literal X11 keysym, needsShift).
-     * The keysym is *always* the literal X11 keysym for the printed
-     * character (e.g. 0x41 for 'A', 0x3a for ':'); needsShift tells us
-     * whether to wrap with Shift_L events. QEMU's keymap relies on both
-     * being correct — see [typeText].
+     * Map a Unicode code point to `(literal X11 keysym, needsShift)`.
+     * The keysym is the literal X11 keysym for the printed character (e.g.
+     * `0x41` for `'A'`, `0x3a` for `':'`, `0x00e9` for `'é'`, and
+     * `0x01000000 or codePoint` for BMP/supplementary Unicode `>= 0x0100`);
+     * `needsShift` wraps shifted US-layout ASCII characters with `Shift_L`.
      */
-    private fun charToKeyEvent(ch: Char): Pair<Int, Boolean> = when (ch) {
-        '\n', '\r' -> RETURN to false
-        '\t'       -> TAB to false
-        '\b'       -> BACKSPACE to false
-        ' '        -> 0x20 to false
-        in 'a'..'z' -> ch.code to false
-        in 'A'..'Z' -> ch.code to true
-        in '0'..'9' -> ch.code to false
+    private fun codePointToKeyEvent(codePoint: Int): Pair<Int, Boolean>? = when (codePoint) {
+        '\n'.code, '\r'.code -> RETURN to false
+        '\t'.code       -> TAB to false
+        '\b'.code       -> BACKSPACE to false
+        ' '.code        -> 0x20 to false
+        in 'a'.code..'z'.code -> codePoint to false
+        in 'A'.code..'Z'.code -> codePoint to true
+        in '0'.code..'9'.code -> codePoint to false
         // Unshifted US-layout symbols
-        '-', '=', '[', ']', '\\', ';', '\'', ',', '.', '/', '`' -> ch.code to false
+        '-'.code, '='.code, '['.code, ']'.code, '\\'.code, ';'.code,
+        '\''.code, ','.code, '.'.code, '/'.code, '`'.code -> codePoint to false
         // Shifted US-layout symbols
-        '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
-        '_', '+', '{', '}', '|', ':', '"', '<', '>', '?', '~' -> ch.code to true
-        // Latin-1 / Unicode pass-through, no shift. Won't render
-        // correctly on non-US server keymaps; needs per-layout work.
-        else -> ch.code to false
+        '!'.code, '@'.code, '#'.code, '$'.code, '%'.code, '^'.code, '&'.code,
+        '*'.code, '('.code, ')'.code, '_'.code, '+'.code, '{'.code, '}'.code,
+        '|'.code, ':'.code, '"'.code, '<'.code, '>'.code, '?'.code, '~'.code -> codePoint to true
+        // Latin-1 supplement maps 1:1 to X11 KeySym
+        in 0xa0..0xff -> codePoint to false
+        // Non-Latin-1 BMP and supplementary Unicode use standard X11 0x01000000 | codePoint
+        in 0x0100..0x10ffff -> (0x01000000 or codePoint) to false
+        else -> null
     }
 
     private companion object {

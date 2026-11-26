@@ -1,21 +1,19 @@
-package sh.haven.feature.terminal
+package sh.haven.core.ui
 
 import android.view.KeyCharacterMap
 import java.text.Normalizer
 
 /**
- * Stateful dead-key composer for [TerminalScreen]'s Activity-level physical
- * keyboard interceptor (`KeyEventInterceptor` -> `handleLayoutAwareKeyEvent`) (#759).
+ * Stateful dead-key composer for physical hardware keyboard handlers (#759).
  *
- * `MainActivity.dispatchKeyEvent` invokes `handleLayoutAwareKeyEvent` before
- * `termlib`'s `KeyboardHandler` sees physical key events. Previously
- * `handleLayoutAwareKeyEvent` ignored negative `COMBINING_ACCENT` codepoints
- * (`unicodeChar <= 0`) while consuming subsequent positive base letters
- * (`'a'`), and dispatched spacing dead accents (`´`, `¨`) directly to
- * `TerminalEmulator.dispatchCharacter`, bypassing `KeyboardHandler`'s dead-key
- * buffer in both Raw and Standard modes.
+ * Composes both negative [KeyCharacterMap.COMBINING_ACCENT] codepoints and
+ * standalone spacing/combining dead accents (`´`, `¨`, U+0300..U+036F) with
+ * the next base character via [KeyCharacterMap.getDeadChar] and Unicode NFC,
+ * matching standard desktop dead-key behaviour (including Shift between dead
+ * key and uppercase vowel, double-tap or Space to emit the spacing accent,
+ * and two-character fallback on non-combinable base characters).
  */
-internal class PhysicalDeadKeyComposer {
+class PhysicalDeadKeyComposer {
 
     data class Result(
         val handled: Boolean,
@@ -139,7 +137,11 @@ internal class PhysicalDeadKeyComposer {
             if (base == dead || base == spacingDead || base == ' '.code) {
                 return spacingDead
             }
-            val kcmComposed = KeyCharacterMap.getDeadChar(spacingDead, base)
+            val kcmComposed = try {
+                KeyCharacterMap.getDeadChar(spacingDead, base)
+            } catch (_: RuntimeException) {
+                0
+            }
             if (kcmComposed != 0) return kcmComposed
 
             val combining = deadToCombiningMarks(dead) ?: return 0

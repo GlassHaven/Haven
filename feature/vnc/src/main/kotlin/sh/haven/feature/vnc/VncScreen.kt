@@ -98,6 +98,7 @@ import kotlinx.coroutines.flow.StateFlow
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.ui.CursorOverlay
 import sh.haven.core.ui.DesktopOrientationMode
+import sh.haven.core.ui.PhysicalDeadKeyComposer
 import sh.haven.core.ui.RemoteDesktopCameraFollowEffect
 import sh.haven.core.ui.RemoteDesktopImeField
 import sh.haven.core.ui.RemoteDesktopViewport
@@ -611,7 +612,7 @@ private fun VncViewer(
     val hardwareKeyFocus = remember { FocusRequester() }
     var canvasFocused by remember { mutableStateOf(false) }
     var fieldFocused by remember { mutableStateOf(false) }
-    val pressedHardwareKeySyms = remember { mutableMapOf<Key, Int>() }
+    val hardwareKeyDispatcher = remember { VncHardwareKeyDispatcher() }
     val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
         if (fieldFocused) {
             // Soft keyboard attached: the field's own onPreviewKeyEvent /
@@ -621,40 +622,38 @@ private fun VncViewer(
             val native = event.nativeKeyEvent
             val shiftHeld = shiftActive ||
                 (native.metaState and AndroidKeyEvent.META_SHIFT_MASK) != 0
-            // Strip Ctrl/Alt/Meta when querying getUnicodeChar so Ctrl+C still
-            // resolves to 'c' while XK_CONTROL_L is held on the wire (#774).
-            val charMeta = (native.metaState and (
-                AndroidKeyEvent.META_CTRL_MASK or
-                    AndroidKeyEvent.META_ALT_MASK or
-                    AndroidKeyEvent.META_META_MASK
-                ).inv()) or (if (shiftActive) AndroidKeyEvent.META_SHIFT_ON else 0)
-            val resolvedKeySym = hardwareKeyEventToKeySym(
-                key = event.key,
-                unicodeChar = native.getUnicodeChar(charMeta),
-                shiftHeld = shiftHeld,
-            )
+            // Preserve AltGr (right Alt without Ctrl/Meta/left-Alt) so non-US
+            // layouts resolve AltGr symbols and dead keys (#759), while still
+            // stripping Ctrl/left-Alt/Meta so Ctrl+C resolves to 'c' (#774).
+            val hasAltGr = (native.metaState and AndroidKeyEvent.META_ALT_RIGHT_ON) != 0 &&
+                (native.metaState and AndroidKeyEvent.META_ALT_LEFT_ON) == 0 &&
+                !ctrlActive && !altActive && !superActive &&
+                (native.metaState and (AndroidKeyEvent.META_CTRL_MASK or AndroidKeyEvent.META_META_MASK)) == 0
+            val stripMask = AndroidKeyEvent.META_CTRL_MASK or
+                AndroidKeyEvent.META_META_MASK or
+                (if (hasAltGr) 0 else AndroidKeyEvent.META_ALT_MASK)
+            val charMeta = (native.metaState and stripMask.inv()) or
+                (if (shiftActive) AndroidKeyEvent.META_SHIFT_ON else 0)
+            val hasChordModifier = ctrlActive || altActive || superActive ||
+                (native.metaState and (AndroidKeyEvent.META_CTRL_MASK or AndroidKeyEvent.META_META_MASK)) != 0 ||
+                ((native.metaState and AndroidKeyEvent.META_ALT_MASK) != 0 && !hasAltGr)
+            val unicodeChar = native.getUnicodeChar(charMeta)
             when (event.type) {
-                KeyEventType.KeyDown -> {
-                    if (resolvedKeySym != null) {
-                        pressedHardwareKeySyms[event.key] = resolvedKeySym
-                        onKeyDown(resolvedKeySym)
-                        true
-                    } else {
-                        false
-                    }
-                }
-                KeyEventType.KeyUp -> {
-                    val keySym = pressedHardwareKeySyms.remove(event.key) ?: resolvedKeySym
-                    if (keySym != null) {
-                        onKeyUp(keySym)
-                        if (!isModifierKeySym(keySym)) {
-                            releaseActiveModifiers()
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                }
+                KeyEventType.KeyDown -> hardwareKeyDispatcher.onKeyDown(
+                    key = event.key,
+                    unicodeChar = unicodeChar,
+                    shiftHeld = shiftHeld,
+                    hasChordModifier = hasChordModifier,
+                    onKeyDown = onKeyDown,
+                    onKeyUp = onKeyUp,
+                )
+                KeyEventType.KeyUp -> hardwareKeyDispatcher.onKeyUp(
+                    key = event.key,
+                    unicodeChar = unicodeChar,
+                    shiftHeld = shiftHeld,
+                    onKeyUp = onKeyUp,
+                    releaseActiveModifiers = releaseActiveModifiers,
+                )
                 else -> false
             }
         }
@@ -1565,12 +1564,13 @@ private const val XK_F12 = 0xffc9
 internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> =
     sh.haven.core.ui.diffRemoteImeCommit(oldText, newText)
 
-/** Convert a printable character to its X11 KeySym. */
-fun charToKeySym(ch: Char): Int = when (ch) {
-    '\n', '\r' -> XK_RETURN
-    '\t' -> XK_TAB
-    '\b' -> XK_BACKSPACE
-    else -> ch.code // Latin-1 characters map directly to Unicode code point
+/** Convert a printable BMP character to its X11 RFB KeySym. */
+fun charToKeySym(ch: Char): Int = when (val code = ch.code) {
+    '\n'.code, '\r'.code -> XK_RETURN
+    '\t'.code -> XK_TAB
+    '\b'.code -> XK_BACKSPACE
+    in 0x0100..0xffff -> 0x01000000 or code
+    else -> code // ASCII and Latin-1 (0x20..0xff) map 1:1 to Unicode code point
 }
 
 /**
@@ -1621,8 +1621,106 @@ internal fun hardwareKeyEventToKeySym(
     shiftHeld: Boolean = false,
 ): Int? {
     androidKeyToKeySym(key)?.let { return it }
+    if ((unicodeChar and android.view.KeyCharacterMap.COMBINING_ACCENT) != 0) {
+        return null
+    }
     unicodeToKeySym(unicodeChar)?.let { return it }
     return androidPrintableKeyToKeySym(key, shiftHeld)
+}
+
+/**
+ * Stateful physical-keyboard dispatcher for [VncSessionContent] (#759, #774).
+ *
+ * Composes dead keys (`COMBINING_ACCENT < 0` and standalone dead accents) via
+ * [PhysicalDeadKeyComposer] instead of falling back to the US QWERTY symbol on
+ * [androidPrintableKeyToKeySym], while tracking pressed KeySyms per physical
+ * [Key] so [onKeyUp] releases the exact KeySym sent on [onKeyDown].
+ */
+internal class VncHardwareKeyDispatcher {
+    private val deadKeyComposer = PhysicalDeadKeyComposer()
+    private val pressedKeySyms = mutableMapOf<Key, List<Int>>()
+
+    fun onKeyDown(
+        key: Key,
+        unicodeChar: Int,
+        shiftHeld: Boolean,
+        hasChordModifier: Boolean,
+        onKeyDown: (Int) -> Unit,
+        onKeyUp: (Int) -> Unit,
+    ): Boolean {
+        val specialKeySym = androidKeyToKeySym(key)
+        if (specialKeySym != null) {
+            if (!preservesDeadKeyBuffer(specialKeySym)) {
+                deadKeyComposer.clear()
+            }
+            pressedKeySyms[key] = listOf(specialKeySym)
+            onKeyDown(specialKeySym)
+            return true
+        }
+
+        if (!hasChordModifier) {
+            val composed = deadKeyComposer.onUnicodeChar(unicodeChar)
+            if (composed.handled) {
+                if (composed.codePoints.isEmpty()) {
+                    pressedKeySyms[key] = emptyList()
+                    return true
+                }
+                val keySyms = composed.codePoints.mapNotNull { unicodeToKeySym(it) }
+                if (keySyms.isNotEmpty()) {
+                    for (prefixSym in keySyms.dropLast(1)) {
+                        onKeyDown(prefixSym)
+                        onKeyUp(prefixSym)
+                    }
+                    val heldSym = keySyms.last()
+                    pressedKeySyms[key] = listOf(heldSym)
+                    onKeyDown(heldSym)
+                    return true
+                }
+            }
+        } else {
+            deadKeyComposer.clear()
+        }
+
+        val fallbackSym = hardwareKeyEventToKeySym(key, unicodeChar, shiftHeld) ?: return false
+        pressedKeySyms[key] = listOf(fallbackSym)
+        onKeyDown(fallbackSym)
+        return true
+    }
+
+    fun onKeyUp(
+        key: Key,
+        unicodeChar: Int,
+        shiftHeld: Boolean,
+        onKeyUp: (Int) -> Unit,
+        releaseActiveModifiers: () -> Unit,
+    ): Boolean {
+        val recorded = pressedKeySyms.remove(key)
+        if (recorded != null) {
+            if (recorded.isEmpty()) return true
+            for (sym in recorded) {
+                onKeyUp(sym)
+            }
+            if (recorded.any { !isModifierKeySym(it) }) {
+                releaseActiveModifiers()
+            }
+            return true
+        }
+
+        val fallbackSym = hardwareKeyEventToKeySym(key, unicodeChar, shiftHeld) ?: return false
+        onKeyUp(fallbackSym)
+        if (!isModifierKeySym(fallbackSym)) {
+            releaseActiveModifiers()
+        }
+        return true
+    }
+
+    private fun preservesDeadKeyBuffer(keySym: Int): Boolean = when (keySym) {
+        XK_SHIFT_L, XK_SHIFT_R,
+        XK_ALT_R,
+        XK_CAPS_LOCK, XK_NUM_LOCK, XK_SCROLL_LOCK,
+        -> true
+        else -> false
+    }
 }
 
 internal fun androidPrintableKeyToKeySym(key: Key, shiftHeld: Boolean = false): Int? = when (key) {

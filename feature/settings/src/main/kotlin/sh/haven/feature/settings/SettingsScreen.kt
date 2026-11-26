@@ -382,13 +382,10 @@ fun SettingsScreen(
             },
             title = { Text(stringResource(R.string.settings_mcp_https_import_p12_title)) },
             text = {
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = mcpPkcs12Password,
                     onValueChange = { mcpPkcs12Password = it },
-                    label = { Text(stringResource(R.string.settings_mcp_https_p12_password_label)) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    label = stringResource(R.string.settings_mcp_https_p12_password_label),
                     modifier = Modifier.fillMaxWidth(),
                 )
             },

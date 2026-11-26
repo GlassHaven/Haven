@@ -871,11 +871,10 @@ fun ConnectionEditDialog(
                                 modifier = Modifier.weight(1f),
                             )
                             if (proxyType != "SOCKS4") {
-                                OutlinedTextField(
+                                sh.haven.core.ui.PasswordField(
                                     value = proxyPassword,
                                     onValueChange = { proxyPassword = it },
-                                    label = { Text(stringResource(R.string.connections_field_proxy_password)) },
-                                    singleLine = true,
+                                    label = stringResource(R.string.connections_field_proxy_password),
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -1028,18 +1027,16 @@ fun ConnectionEditDialog(
             )
             val spaError = parsedSpa.exceptionOrNull()?.message
             val spaConfig = parsedSpa.getOrNull()
-            OutlinedTextField(
+            sh.haven.core.ui.PasswordField(
                 value = spaKey,
                 onValueChange = { spaKey = it },
-                label = { Text(stringResource(R.string.connections_field_spa_key)) },
-                supportingText = {
-                    when {
-                        spaError != null -> Text(spaError, color = MaterialTheme.colorScheme.error)
-                        spaConfig != null -> Text(stringResource(R.string.connections_helper_spa_active))
-                        else -> Text(stringResource(R.string.connections_helper_spa_blank))
-                    }
+                label = stringResource(R.string.connections_field_spa_key),
+                isError = spaError != null,
+                supportingText = when {
+                    spaError != null -> spaError
+                    spaConfig != null -> stringResource(R.string.connections_helper_spa_active)
+                    else -> stringResource(R.string.connections_helper_spa_blank)
                 },
-                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (spaKey.isNotBlank()) {
@@ -1058,11 +1055,10 @@ fun ConnectionEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(4.dp))
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = spaHmacKey,
                     onValueChange = { spaHmacKey = it },
-                    label = { Text(stringResource(R.string.connections_field_spa_hmac_key)) },
-                    singleLine = true,
+                    label = stringResource(R.string.connections_field_spa_hmac_key),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (spaHmacKey.isNotBlank()) {
@@ -1616,24 +1612,35 @@ fun ConnectionEditDialog(
                         )
                         Spacer(Modifier.height(8.dp))
                         rcloneOptions.forEach { opt ->
-                            OutlinedTextField(
-                                value = rcloneParams[opt.name] ?: opt.default,
-                                onValueChange = {
-                                    rcloneParams[opt.name] = it
-                                    // Changing a credential invalidates the verified
-                                    // remote — must re-Configure before saving (#295).
-                                    rcloneConfigured = false
-                                    rcloneCfgVm.clearStatus()
-                                },
-                                label = {
-                                    Text(opt.name.replace('_', ' ').replaceFirstChar { c -> c.uppercase() })
-                                },
-                                singleLine = true,
-                                supportingText = opt.help.takeIf { it.isNotBlank() }?.let {
-                                    { Text(it, style = MaterialTheme.typography.labelSmall) }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            val optLabel = opt.name.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }
+                            val optValue = rcloneParams[opt.name] ?: opt.default
+                            val onOptChange: (String) -> Unit = {
+                                rcloneParams[opt.name] = it
+                                // Changing a credential invalidates the verified
+                                // remote — must re-Configure before saving (#295).
+                                rcloneConfigured = false
+                                rcloneCfgVm.clearStatus()
+                            }
+                            if (opt.isPassword) {
+                                sh.haven.core.ui.PasswordField(
+                                    value = optValue,
+                                    onValueChange = onOptChange,
+                                    label = optLabel,
+                                    supportingText = opt.help.takeIf { it.isNotBlank() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            } else {
+                                OutlinedTextField(
+                                    value = optValue,
+                                    onValueChange = onOptChange,
+                                    label = { Text(optLabel) },
+                                    singleLine = true,
+                                    supportingText = opt.help.takeIf { it.isNotBlank() }?.let {
+                                        { Text(it, style = MaterialTheme.typography.labelSmall) }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                             Spacer(Modifier.height(4.dp))
                         }
                         val requiredFilled = rcloneOptions.filter { it.required }
@@ -2048,11 +2055,10 @@ fun ConnectionEditDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = vncPassword,
                         onValueChange = { vncPassword = it },
-                        label = { Text(stringResource(R.string.connections_field_password_optional)) },
-                        singleLine = true,
+                        label = stringResource(R.string.connections_field_password_optional),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
@@ -3843,11 +3849,10 @@ fun ConnectionEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(4.dp))
-                        OutlinedTextField(
+                        sh.haven.core.ui.PasswordField(
                             value = vncPassword,
                             onValueChange = { vncPassword = it },
-                            label = { Text(stringResource(R.string.connections_field_vnc_password)) },
-                            singleLine = true,
+                            label = stringResource(R.string.connections_field_vnc_password),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(4.dp))

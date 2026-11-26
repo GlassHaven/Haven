@@ -529,33 +529,38 @@ internal fun FloatingTextInputDialog(
                     // providers when both are non-null (see the provider's
                     // class docs), and this also gives a mouse right-click
                     // the same in-window menu.
+                    val textFieldModifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .focusRequester(textFieldFocusRequester)
                     CompositionLocalProvider(
                         LocalTextToolbar provides selectionTextToolbar,
                         LocalTextContextMenuToolbarProvider provides textContextMenuProvider,
                         LocalTextContextMenuDropdownProvider provides textContextMenuProvider,
                     ) {
-                        TextField(
-                            value = text,
-                            onValueChange = onTextChange,
-                            placeholder = {
-                                Text(stringResource(R.string.terminal_text_input_placeholder))
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                            ),
-                            visualTransformation = SpecialCharVisualTransformation,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 12.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .focusRequester(textFieldFocusRequester),
-                        )
+                        sh.haven.core.ui.PrivateKeyboard {
+                            TextField(
+                                value = text,
+                                onValueChange = onTextChange,
+                                placeholder = {
+                                    Text(stringResource(R.string.terminal_text_input_placeholder))
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = KeyboardType.Text,
+                                ),
+                                visualTransformation = SpecialCharVisualTransformation,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                shape = RoundedCornerShape(bottomStart = 12.dp),
+                                modifier = textFieldModifier,
+                            )
+                        }
                     }
 
                     Column(

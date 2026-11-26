@@ -636,11 +636,10 @@ private fun McpServersSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            sh.haven.core.ui.PasswordField(
                 value = token,
                 onValueChange = { token = it },
-                placeholder = { Text(stringResource(R.string.chat_mcp_token_hint)) },
-                singleLine = true,
+                placeholder = stringResource(R.string.chat_mcp_token_hint),
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(

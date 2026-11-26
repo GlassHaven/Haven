@@ -133,29 +133,30 @@ internal fun VncComposeBar(
     ) {
         Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    placeholder = { Text(stringResource(R.string.vnc_compose_placeholder)) },
-                    visualTransformation = if (masked) {
-                        PasswordVisualTransformation()
-                    } else {
-                        HighlightUntypeable(highlight)
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        autoCorrectEnabled = false,
-                        // Password type is what makes IMEs drop suggestions and
-                        // stop learning; visibility is the eye toggle's job.
-                        keyboardType = KeyboardType.Password,
-                    ),
-                    singleLine = false,
-                    maxLines = 4,
-                    isError = !typeable,
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
-                )
+                val fieldModifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester)
+                sh.haven.core.ui.PrivateKeyboard {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        placeholder = { Text(stringResource(R.string.vnc_compose_placeholder)) },
+                        visualTransformation = if (masked) {
+                            PasswordVisualTransformation()
+                        } else {
+                            HighlightUntypeable(highlight)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                            autoCorrectEnabled = false,
+                            keyboardType = if (masked) KeyboardType.Password else KeyboardType.PasswordVisible,
+                        ),
+                        singleLine = false,
+                        maxLines = 4,
+                        isError = !typeable,
+                        modifier = fieldModifier,
+                    )
+                }
                 IconButton(onClick = { masked = !masked }) {
                     Icon(
                         if (masked) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,

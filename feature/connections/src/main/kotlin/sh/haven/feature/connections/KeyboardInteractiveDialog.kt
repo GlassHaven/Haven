@@ -114,17 +114,25 @@ fun KeyboardInteractiveDialog(
                     val isLast = i == challenge.prompts.lastIndex
                     val imeAction = if (isLast) ImeAction.Go else ImeAction.Next
                     if (prompt.echo) {
-                        OutlinedTextField(
-                            value = responses[i],
-                            onValueChange = { responses[i] = it },
-                            label = { Text(prompt.text.ifBlank { stringResource(R.string.connections_ki_response_fallback) }) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = imeAction,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        sh.haven.core.ui.PrivateKeyboard {
+                            OutlinedTextField(
+                                value = responses[i],
+                                onValueChange = { responses[i] = it },
+                                label = { Text(prompt.text.ifBlank { stringResource(R.string.connections_ki_response_fallback) }) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = imeAction,
+                                ),
+                                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                    onGo = { if (isLast) submit() },
+                                    onDone = { if (isLast) submit() },
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     } else {
                         PasswordField(
                             value = responses[i],

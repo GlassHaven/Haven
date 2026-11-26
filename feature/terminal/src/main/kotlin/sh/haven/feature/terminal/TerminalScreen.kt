@@ -3291,11 +3291,10 @@ private fun VncSettingsDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.terminal_password)) },
-                    singleLine = true,
+                    label = stringResource(R.string.terminal_password),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))

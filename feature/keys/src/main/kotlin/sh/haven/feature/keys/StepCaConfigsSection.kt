@@ -536,17 +536,11 @@ private fun StepCaConfigDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = oidcClientSecret,
                     onValueChange = { oidcClientSecret = it },
-                    label = { Text(stringResource(R.string.stepca_field_oidc_client_secret)) },
-                    placeholder = { Text(stringResource(R.string.stepca_field_oidc_client_secret_hint)) },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        capitalization = KeyboardCapitalization.None,
-                    ),
+                    label = stringResource(R.string.stepca_field_oidc_client_secret),
+                    placeholder = stringResource(R.string.stepca_field_oidc_client_secret_hint),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(

@@ -1644,28 +1644,31 @@ fun RemoteDesktopImeField(
             handled
         }
 
-    BasicTextField(
-        value = textFieldValue,
-        onValueChange = { newValue ->
-            val synced = controller.onValueChanged(
-                newText = newValue.text,
-                hasActiveModifier = currentHasActiveModifier,
-                onBackspace = currentOnBackspace,
-                onTypeChar = currentOnTypeChar,
-                onTypeText = currentOnTypeText,
-                releaseActiveModifiers = currentReleaseModifiers,
-            )
-            textFieldValue = if (synced == newValue.text) {
-                newValue
-            } else {
-                TextFieldValue(synced, TextRange(synced.length))
-            }
-        },
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.None,
-        ),
-        modifier = fieldModifier,
-    )
+    PrivateKeyboard {
+        BasicTextField(
+            value = textFieldValue,
+            onValueChange = { newValue ->
+                val synced = controller.onValueChanged(
+                    newText = newValue.text,
+                    hasActiveModifier = currentHasActiveModifier,
+                    onBackspace = currentOnBackspace,
+                    onTypeChar = currentOnTypeChar,
+                    onTypeText = currentOnTypeText,
+                    releaseActiveModifiers = currentReleaseModifiers,
+                )
+                textFieldValue = if (synced == newValue.text) {
+                    newValue
+                } else {
+                    TextFieldValue(synced, TextRange(synced.length))
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+            ),
+            modifier = fieldModifier,
+        )
+    }
 }
 
 /** Shared trackpad sensitivity slider dialog (#696) for VNC and RDP/SPICE/GLKVM. */

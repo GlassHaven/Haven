@@ -36,6 +36,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.activity.compose)
 }
 
 kotlin {

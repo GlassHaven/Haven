@@ -1309,23 +1309,18 @@ private fun RegisterOnSecurityKeyDialog(
                     Text(stringResource(R.string.keys_register_verify_required))
                     Switch(checked = verifyRequired, onCheckedChange = { verifyRequired = it })
                 }
-                OutlinedTextField(
+                PasswordField(
                     value = pin,
                     onValueChange = { pin = it },
-                    label = { Text(stringResource(R.string.keys_register_pin)) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    label = stringResource(R.string.keys_register_pin),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                PasswordField(
                     value = confirm,
                     onValueChange = { confirm = it },
-                    label = { Text(stringResource(R.string.keys_register_pin_confirm)) },
-                    singleLine = true,
+                    label = stringResource(R.string.keys_register_pin_confirm),
                     isError = mismatch,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    onImeAction = { if (canRegister) onRegister(label, verifyRequired, pin) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(

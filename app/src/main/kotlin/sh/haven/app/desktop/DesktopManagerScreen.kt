@@ -3584,11 +3584,10 @@ private fun DesktopSetupDialog(
                             style = MaterialTheme.typography.bodySmall,
                         )
                         if (!selectedDe.isWayland) {
-                            OutlinedTextField(
+                            sh.haven.core.ui.PasswordField(
                                 value = password,
                                 onValueChange = { onDraftChange(draft.copy(password = it)) },
-                                label = { Text(stringResource(R.string.connections_desktop_vnc_password)) },
-                                singleLine = true,
+                                label = stringResource(R.string.connections_desktop_vnc_password),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             // Per-DE VNC port. Defaults to the next free

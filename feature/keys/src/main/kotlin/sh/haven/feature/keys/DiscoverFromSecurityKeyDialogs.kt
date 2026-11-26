@@ -134,23 +134,19 @@ private fun PinEntryDialog(prompt: FidoTouchPrompt.EnterPin) {
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = pin,
                     onValueChange = { pin = it },
-                    label = { Text(stringResource(R.string.keys_fido_pin_label)) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    label = stringResource(R.string.keys_fido_pin_label),
+                    onImeAction = { if (canSubmit) prompt.submit(pin) },
                 )
                 if (settingNew) {
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = confirm,
                         onValueChange = { confirm = it },
-                        label = { Text(stringResource(R.string.keys_fido_pin_confirm_label)) },
-                        singleLine = true,
+                        label = stringResource(R.string.keys_fido_pin_confirm_label),
                         isError = mismatch,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        onImeAction = { if (canSubmit) prompt.submit(pin) },
                     )
                     if (mismatch) {
                         Text(

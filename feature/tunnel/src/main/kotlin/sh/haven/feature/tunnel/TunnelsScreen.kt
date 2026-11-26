@@ -911,27 +911,34 @@ private fun AddTunnelDialog(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.tunnel_load_from_file))
                     }
-                    OutlinedTextField(
-                        value = configText,
-                        onValueChange = { configText = it },
-                        label = { Text(stringResource(R.string.tunnel_wireguard_config)) },
-                        placeholder = {
-                            Text(
-                                "[Interface]\nPrivateKey = …\nAddress = 10.0.0.2/32\n\n[Peer]\nPublicKey = …\nEndpoint = vpn.example.com:51820\nAllowedIPs = 0.0.0.0/0",
+                    val wireGuardFieldModifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                    sh.haven.core.ui.PrivateKeyboard {
+                        OutlinedTextField(
+                            value = configText,
+                            onValueChange = { configText = it },
+                            label = { Text(stringResource(R.string.tunnel_wireguard_config)) },
+                            placeholder = {
+                                Text(
+                                    "[Interface]\nPrivateKey = …\nAddress = 10.0.0.2/32\n\n[Peer]\nPublicKey = …\nEndpoint = vpn.example.com:51820\nAllowedIPs = 0.0.0.0/0",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                )
+                            },
+                            singleLine = false,
+                            minLines = 10,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+                                autoCorrectEnabled = false,
+                            ),
+                            modifier = wireGuardFieldModifier,
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
-                            )
-                        },
-                        singleLine = false,
-                        minLines = 10,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                        ),
-                    )
+                            ),
+                        )
+                    }
                 }
                 TunnelConfigType.TAILSCALE -> {
                     Text(
@@ -939,11 +946,10 @@ private fun AddTunnelDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = authKey,
                         onValueChange = { authKey = it },
-                        label = { Text(stringResource(R.string.tunnel_tailscale_authkey_label)) },
-                        singleLine = true,
+                        label = stringResource(R.string.tunnel_tailscale_authkey_label),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
                             fontFamily = FontFamily.Monospace,
@@ -979,11 +985,10 @@ private fun AddTunnelDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = setupKey,
                         onValueChange = { setupKey = it },
-                        label = { Text(stringResource(R.string.tunnel_netbird_setup_key_label)) },
-                        singleLine = true,
+                        label = stringResource(R.string.tunnel_netbird_setup_key_label),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
                             fontFamily = FontFamily.Monospace,
@@ -1060,17 +1065,11 @@ private fun AddTunnelDialog(
                             fontFamily = FontFamily.Monospace,
                         ),
                     )
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = yggPrivateKey,
                         onValueChange = { yggPrivateKey = it },
-                        label = { Text(stringResource(R.string.tunnel_yggdrasil_private_key_label)) },
-                        supportingText = {
-                            Text(
-                                stringResource(R.string.tunnel_yggdrasil_private_key_help),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        singleLine = true,
+                        label = stringResource(R.string.tunnel_yggdrasil_private_key_label),
+                        supportingText = stringResource(R.string.tunnel_yggdrasil_private_key_help),
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
                             fontFamily = FontFamily.Monospace,
@@ -1102,11 +1101,10 @@ private fun AddTunnelDialog(
                             fontFamily = FontFamily.Monospace,
                         ),
                     )
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = yggGroupPassword,
                         onValueChange = { yggGroupPassword = it },
-                        label = { Text(stringResource(R.string.tunnel_yggdrasil_group_password_label)) },
-                        singleLine = true,
+                        label = stringResource(R.string.tunnel_yggdrasil_group_password_label),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
@@ -1125,27 +1123,34 @@ private fun AddTunnelDialog(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.tunnel_load_from_file))
                     }
-                    OutlinedTextField(
-                        value = ovpnConfigText,
-                        onValueChange = { ovpnConfigText = it },
-                        label = { Text(stringResource(R.string.tunnel_openvpn_config_label)) },
-                        placeholder = {
-                            Text(
-                                "client\ndev tun\nproto udp\nremote vpn.example.com 1194\n<ca>\n…\n</ca>",
+                    val openVpnFieldModifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                    sh.haven.core.ui.PrivateKeyboard {
+                        OutlinedTextField(
+                            value = ovpnConfigText,
+                            onValueChange = { ovpnConfigText = it },
+                            label = { Text(stringResource(R.string.tunnel_openvpn_config_label)) },
+                            placeholder = {
+                                Text(
+                                    "client\ndev tun\nproto udp\nremote vpn.example.com 1194\n<ca>\n…\n</ca>",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                )
+                            },
+                            singleLine = false,
+                            minLines = 8,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+                                autoCorrectEnabled = false,
+                            ),
+                            modifier = openVpnFieldModifier,
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
-                            )
-                        },
-                        singleLine = false,
-                        minLines = 8,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                        ),
-                    )
+                            ),
+                        )
+                    }
                     // Heuristic only — OpenVPN3 Core is the real authority on
                     // whether the profile actually needs credentials. Shown
                     // whenever the pasted text mentions auth-user-pass so
@@ -1278,14 +1283,11 @@ private fun AnyConnectFields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        sh.haven.core.ui.PasswordField(
             value = form.password,
             onValueChange = { onChange(form.copy(password = it)) },
-            label = { Text(stringResource(R.string.tunnel_anyconnect_password_label)) },
-            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_password_help)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            label = stringResource(R.string.tunnel_anyconnect_password_label),
+            supportingText = stringResource(R.string.tunnel_anyconnect_password_help),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -1296,23 +1298,19 @@ private fun AnyConnectFields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        sh.haven.core.ui.PasswordField(
             value = form.otpSecret,
             onValueChange = { onChange(form.copy(otpSecret = it)) },
-            label = { Text(stringResource(R.string.tunnel_anyconnect_otp_label)) },
-            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_otp_help)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            label = stringResource(R.string.tunnel_anyconnect_otp_label),
+            supportingText = stringResource(R.string.tunnel_anyconnect_otp_help),
             modifier = Modifier.fillMaxWidth(),
             textStyle = mono,
         )
-        OutlinedTextField(
+        sh.haven.core.ui.PasswordField(
             value = form.secondaryPassword,
             onValueChange = { onChange(form.copy(secondaryPassword = it)) },
-            label = { Text(stringResource(R.string.tunnel_anyconnect_secondary_label)) },
-            supportingText = { Text(stringResource(R.string.tunnel_anyconnect_secondary_help)) },
-            singleLine = true,
+            label = stringResource(R.string.tunnel_anyconnect_secondary_label),
+            supportingText = stringResource(R.string.tunnel_anyconnect_secondary_help),
             enabled = form.otpSecret.isBlank(),
             modifier = Modifier.fillMaxWidth(),
         )

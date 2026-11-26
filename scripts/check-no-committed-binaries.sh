@@ -136,6 +136,8 @@ for f in files:
         violations.append(f"{f}  (Android dex)")
     elif m == b"PK\x03\x04" and f.endswith((".jar", ".aar", ".apk", ".aab", ".war")):
         violations.append(f"{f}  (Java/Android archive)")
+    elif f.endswith((".pyc", ".pyo")):
+        violations.append(f"{f}  (Python bytecode)")
 
 if not staged:
     submodule_paths = set()

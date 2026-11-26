@@ -25,9 +25,12 @@ import os
 import random
 import string
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
+
+sys.dont_write_bytecode = True
 
 BUNDLE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROXY_PATH = os.path.join(BUNDLE_DIR, "haven-egress-proxy.py")

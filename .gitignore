@@ -89,3 +89,5 @@ core/ffmpeg/src/main/jniLibs/*/*.so
 # versionCode 8431 on failed; nothing may put it back in the tree.
 app/src/full/assets/uml/rootfs-aarch64.ext4.gz
 .grepai/
+__pycache__/
+*.py[cod]

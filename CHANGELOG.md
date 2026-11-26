@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.82
+
+- Fix physical keyboard dead keys (such as Spanish `´` + `a`) emitting separate characters in terminal tabs by composing `COMBINING_ACCENT` and spacing dead accents in the Activity key interceptor before dispatching to the terminal (#759, thanks gitmoncode).
+- Refresh feature documentation for Tasker/Automate HMAC plug-in actions, the Saved Connections widget, RDP redirection, and the Linux host egress sandbox.
+
 ## v5.94.81
 
 - Add `/etc/os-release` distro and minimum `VERSION_ID` gating plus per-distro `extraPackages` to community Guest App Pack and Guest Service Preset recipes, filter incompatible recipes in `Desktop -> Manage` and MCP catalog listings, and document the `schemaVersion: 1` JSON recipe format (#891, thanks pixel4696).

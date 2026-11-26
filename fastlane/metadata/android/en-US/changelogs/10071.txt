@@ -1,0 +1,2 @@
+- Fix physical keyboard dead keys (such as Spanish acute + vowel) emitting separate characters in terminal tabs by composing combining and spacing dead accents in the Activity key interceptor before dispatching to the terminal (#759, thanks gitmoncode).
+- Refresh automation, connection, desktop, and security feature documentation.

@@ -2123,6 +2123,7 @@ fun TerminalScreen(
                     )
                     val currentFullscreen by rememberUpdatedState(fullscreen)
                     DisposableEffect(activeTab) {
+                        val deadKeyComposer = PhysicalDeadKeyComposer()
                         val interceptor = { event: android.view.KeyEvent ->
                             // F11 toggles fullscreen (#138). Caught here, before
                             // handleLayoutAwareKeyEvent forwards it to the shell —
@@ -2131,6 +2132,7 @@ fun TerminalScreen(
                             if (event.keyCode == android.view.KeyEvent.KEYCODE_F11 &&
                                 event.action == android.view.KeyEvent.ACTION_DOWN
                             ) {
+                                deadKeyComposer.clear()
                                 fullscreen = !currentFullscreen
                                 true
                             } else if (event.keyCode == android.view.KeyEvent.KEYCODE_F11) {
@@ -2141,6 +2143,7 @@ fun TerminalScreen(
                                 handleLayoutAwareKeyEvent(
                                     event, activeTab,
                                     currentSelectionActive, hasHardwareKeyboard, viewModel,
+                                    deadKeyComposer,
                                 )
                             }
                         }
@@ -2832,6 +2835,7 @@ private fun handleLayoutAwareKeyEvent(
     selectionActive: Boolean,
     hasHardwareKeyboard: Boolean,
     viewModel: TerminalViewModel,
+    deadKeyComposer: PhysicalDeadKeyComposer,
 ): Boolean {
     if (event.action != android.view.KeyEvent.ACTION_DOWN) return false
 
@@ -2844,11 +2848,15 @@ private fun handleLayoutAwareKeyEvent(
     if (!event.isFromSource(android.view.InputDevice.SOURCE_KEYBOARD)) return false
 
     // Don't intercept during text selection — termlib manages selection keys
-    if (selectionActive) return false
+    if (selectionActive) {
+        deadKeyComposer.clear()
+        return false
+    }
 
     val keyCode = event.keyCode
 
-    // Skip modifier-only key presses
+    // Skip modifier-only key presses (leaving any pending dead key intact so
+    // sequences like ´ then Shift+A -> Á compose cleanly, #759).
     when (keyCode) {
         android.view.KeyEvent.KEYCODE_SHIFT_LEFT,
         android.view.KeyEvent.KEYCODE_SHIFT_RIGHT,
@@ -2866,7 +2874,10 @@ private fun handleLayoutAwareKeyEvent(
     }
 
     // Let termlib handle special terminal keys (navigation, function keys, numpad)
-    if (isSpecialTerminalKey(keyCode)) return false
+    if (isSpecialTerminalKey(keyCode)) {
+        deadKeyComposer.clear()
+        return false
+    }
 
     // Let termlib handle Ctrl+key and left-Alt+key natively.
     // Control codes (Ctrl+C) and ESC prefix (Alt+x) are key-code based,
@@ -2874,15 +2885,14 @@ private fun handleLayoutAwareKeyEvent(
     // characters via the KeyCharacterMap.
     val meta = event.metaState
     val hasAltGr = (meta and android.view.KeyEvent.META_ALT_RIGHT_ON) != 0
-    if ((meta and android.view.KeyEvent.META_CTRL_ON) != 0 && !hasAltGr) return false
-    if ((meta and android.view.KeyEvent.META_ALT_ON) != 0 && !hasAltGr) return false
-
-    // Get the layout-correct character from Android's KeyCharacterMap.
-    // Returns 0 for non-character keys, negative for combining/dead keys.
-    val unicodeChar = event.getUnicodeChar(meta)
-    if (unicodeChar <= 0) return false
-
-    val char = unicodeChar.toChar()
+    if ((meta and android.view.KeyEvent.META_CTRL_ON) != 0 && !hasAltGr) {
+        deadKeyComposer.clear()
+        return false
+    }
+    if ((meta and android.view.KeyEvent.META_ALT_ON) != 0 && !hasAltGr) {
+        deadKeyComposer.clear()
+        return false
+    }
 
     // Build modifier mask from toolbar state (shift/AltGr already baked
     // into the character by getUnicodeChar).
@@ -2890,12 +2900,25 @@ private fun handleLayoutAwareKeyEvent(
     if (viewModel.ctrlActive.value) modifiers = modifiers or 4
     if (viewModel.altActive.value) modifiers = modifiers or 2
 
-    activeTab.emulator.dispatchCharacter(modifiers, char)
+    val unicodeChar = event.getUnicodeChar(meta)
+    if (modifiers != 0) {
+        deadKeyComposer.clear()
+        if ((unicodeChar and android.view.KeyCharacterMap.COMBINING_ACCENT) != 0 || unicodeChar <= 0) {
+            return false
+        }
+        activeTab.emulator.dispatchCharacter(modifiers, unicodeChar)
+        if (viewModel.ctrlActive.value) viewModel.toggleCtrl()
+        if (viewModel.altActive.value) viewModel.toggleAlt()
+        return true
+    }
 
-    // Clear toolbar modifiers after use (one-shot toggle)
-    if (viewModel.ctrlActive.value) viewModel.toggleCtrl()
-    if (viewModel.altActive.value) viewModel.toggleAlt()
-
+    // Compose dead keys (both COMBINING_ACCENT < 0 and spacing dead accents)
+    // here because Activity.dispatchKeyEvent runs before termlib's KeyboardHandler (#759).
+    val composed = deadKeyComposer.onUnicodeChar(unicodeChar)
+    if (!composed.handled) return false
+    for (cp in composed.codePoints) {
+        activeTab.emulator.dispatchCharacter(0, cp)
+    }
     return true
 }
 

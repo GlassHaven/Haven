@@ -5250,8 +5250,8 @@ class McpTools private constructor(
             // suspended, letting TerminalViewModel.syncSessions race ahead and
             // fork a second PTY.
             localSessionManager.registerSession(
-                profile.id, profile.label, shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
-                profile.prootDistroId, desktopEnv = desktopEnv, localShellMode = shellMode,
+                profile.id, profile.label, shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL, profile.prootDistroId,
+                desktopEnv = desktopEnv, localShellMode = shellMode, localShellRoot = profile.localShellRoot, localWorkingDir = profile.localWorkingDir,
             )
         }
         // Spin up the PTY without a UI tab on top so the agent can

@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">डिफ़ॉल्ट रूप से बंद। वीडियो कैप्चर के लिए डिवाइस के कैमरों को रिमोट सत्र में उपलब्ध कराता है।</string>
     <string name="connections_toggle_rdp_microphone">माइक्रोफ़ोन साझा करें</string>
     <string name="connections_helper_rdp_microphone">डिफ़ॉल्ट रूप से बंद। डिवाइस के माइक्रोफ़ोन ऑडियो को रिमोट सत्र में भेजता है।</string>
+    <string name="connections_toggle_local_shell_root">रूट के रूप में शुरू करें (su)</string>
+    <string name="connections_helper_local_shell_root">डिफ़ॉल्ट रूप से बंद। Android शेल खोलते समय su के माध्यम से इंटरैक्टिव रूट शेल शुरू करता है।</string>
+    <string name="connections_field_local_working_dir">प्रारंभिक निर्देशिका</string>
+    <string name="connections_helper_local_working_dir">वैकल्पिक प्रारंभिक निर्देशिका (जैसे / या /sdcard)। डिफ़ॉल्ट ऐप होम निर्देशिका के लिए खाली छोड़ें।</string>
+    <string name="connections_toggle_ssh_keepalive">SSH कीपअलाइव</string>
+    <string name="connections_helper_ssh_keepalive">निष्क्रिय सत्रों को राउटर या फ़ायरवॉल द्वारा बंद होने से बचाने के लिए समय-समय पर SSH कीपअलाइव संदेश भेजें।</string>
+    <string name="connections_field_ssh_keepalive_interval">कीपअलाइव अंतराल (सेकंड)</string>
+    <string name="connections_helper_ssh_keepalive_interval">15-सेकंड डिफ़ॉल्ट के लिए खाली छोड़ें, या सेकंड में कस्टम अंतराल दर्ज करें (जैसे 60 या 1)।</string>
 </resources>

@@ -107,4 +107,29 @@ class SshEngineTest {
         assertFalse(pulse.critical)
         assertTrue(pulse.selfHealOnBindFailure)
     }
+
+    @Test
+    fun `sshKeepaliveSecondsFromOptionsText and setSshKeepaliveInOptions round-trip cleanly (#895)`() {
+        assertEquals(15, SSH_DEFAULT_KEEPALIVE_SECONDS)
+        assertNull(sshKeepaliveSecondsFromOptionsText(null))
+        assertNull(sshKeepaliveSecondsFromOptionsText(""))
+        assertNull(sshKeepaliveSecondsFromOptionsText("HavenSshEngine sshlib\nServerAliveCountMax 3"))
+
+        val base = "# comment kept\nHavenSshEngine sshlib\nServerAliveCountMax 3"
+        val custom60 = setSshKeepaliveInOptions(base, 60)
+        assertEquals(60, sshKeepaliveSecondsFromOptionsText(custom60))
+        assertTrue(custom60.contains("# comment kept"))
+        assertEquals(SshEngine.SSHLIB, sshEngineFromOptionsText(custom60))
+
+        val custom1 = setSshKeepaliveInOptions(custom60, 1)
+        assertEquals(1, sshKeepaliveSecondsFromOptionsText(custom1))
+        assertEquals(1, custom1.lines().count { it.trim().startsWith("ServerAliveInterval", ignoreCase = true) })
+
+        val disabled = setSshKeepaliveInOptions(custom1, 0)
+        assertEquals(0, sshKeepaliveSecondsFromOptionsText(disabled))
+
+        val restoredDefault = setSshKeepaliveInOptions(disabled, null)
+        assertNull(sshKeepaliveSecondsFromOptionsText(restoredDefault))
+        assertEquals(base, restoredDefault)
+    }
 }

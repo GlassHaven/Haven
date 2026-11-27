@@ -150,6 +150,8 @@ internal class ConnectionsToolProvider(
                 string("connectionType", "SSH | SMB | VNC | RDP | SPICE | GLKVM | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST | LOCAL.", required = true)
                 string("host", "Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection. Ignored for GUEST and LOCAL.")
                 string("localShellMode", "LOCAL only (#837): \"PROOT\" (default), \"ANDROID_SHELL\", or \"SHIZUKU\".")
+                boolean("localShellRoot", "LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`. Default false.")
+                string("localWorkingDir", "LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. \"/\"). Omit for the default app home directory.")
                 string("prootDistroId", "LOCAL/PROOT only: installed distro id to pin to (omit for active distro).")
                 integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.")
                 string("username", "Username for SSH/SMB.")
@@ -189,6 +191,7 @@ internal class ConnectionsToolProvider(
                 boolean("useMosh", "SSH only: when true, the profile uses Mosh on top of the SSH bootstrap. SSH execs `mosh-server new -s`, parses MOSH CONNECT, then the UDP transport takes over. Default false.")
                 string("keyId", "SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.")
                 string("sshOptions", "SSH only: ssh_config-style option lines ('Key value' or 'Key=value', newline-separated) applied to this profile — e.g. 'ServerAliveInterval 60' or the Haven-internal 'HavenSshEngine sshlib' engine toggle (#58).")
+                integer("serverAliveIntervalSeconds", "SSH only (#895): keepalive interval in seconds (`ServerAliveInterval`). 0 disables keepalives; omit to keep Haven's 15-second default.")
                 boolean("forwardX11", "SSH only (#605): one-tap X11 forwarding toggle. Tunnels remote 127.0.0.1:6010 to the phone's X11 display, auto-starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the remote shell.")
                 boolean("forwardPulseAudio", "SSH only (#605): one-tap PulseAudio forwarding toggle. Starts the phone's PulseAudio bridge, tunnels remote 127.0.0.1:14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the remote shell.")
                 string("remoteCommand", "SSH only (#436): run this command via an SSH exec request instead of opening a login shell — it executes before shell startup files, so e.g. 'tmux new -A -s work' attaches to/creates that named session without racing a .bashrc auto-tmux hook. Omit for the normal interactive shell.")
@@ -268,7 +271,10 @@ internal class ConnectionsToolProvider(
                 boolean("forwardX11", "SSH only (#605): enable or disable one-tap X11 forwarding (DISPLAY=localhost:10.0 over -R 6010).")
                 boolean("forwardPulseAudio", "SSH only (#605): enable or disable one-tap PulseAudio forwarding (PULSE_SERVER=tcp:127.0.0.1:14713 over -R 14713:127.0.0.1:4713).")
                 string("localShellMode", "LOCAL only (#837): \"PROOT\", \"ANDROID_SHELL\", or \"SHIZUKU\".")
+                boolean("localShellRoot", "LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`.")
+                string("localWorkingDir", "LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. \"/\"; empty string clears back to default).")
                 string("prootDistroId", "LOCAL/PROOT only: distro id to pin to (empty string clears back to active distro).")
+                integer("serverAliveIntervalSeconds", "SSH only (#895): keepalive interval in seconds (`ServerAliveInterval`). 0 disables keepalives; -1 clears any override back to Haven's 15-second default.")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
@@ -512,8 +518,15 @@ internal class ConnectionsToolProvider(
         }
         if (p.isLocal) {
             put("localShellMode", p.resolvedLocalShellMode.name)
+            if (p.localShellRoot) put("localShellRoot", true)
+            if (!p.localWorkingDir.isNullOrBlank()) put("localWorkingDir", p.localWorkingDir)
             if (!p.prootDistroId.isNullOrBlank()) {
                 put("prootDistroId", p.prootDistroId)
+            }
+        }
+        if (p.isSsh) {
+            sh.haven.core.ssh.sshKeepaliveSecondsFromOptionsText(p.sshOptions)?.let {
+                put("serverAliveIntervalSeconds", it)
             }
         }
         // Rclone
@@ -1008,7 +1021,28 @@ internal class ConnectionsToolProvider(
             } else {
                 existing.prootDistroId
             },
-        )
+            localShellRoot = if (existing.connectionType == "LOCAL") {
+                bool("localShellRoot", existing.localShellRoot)
+            } else {
+                existing.localShellRoot
+            },
+            localWorkingDir = if (existing.connectionType == "LOCAL") {
+                str("localWorkingDir", existing.localWorkingDir)
+            } else {
+                existing.localWorkingDir
+            },
+        ).let { draft ->
+            if (existing.connectionType == "SSH" && args.has("serverAliveIntervalSeconds")) {
+                val sec = args.optInt("serverAliveIntervalSeconds", -1)
+                val rewritten = sh.haven.core.ssh.setSshKeepaliveInOptions(
+                    draft.sshOptions.orEmpty(),
+                    if (sec < 0) null else sec,
+                )
+                draft.copy(sshOptions = rewritten.ifBlank { null })
+            } else {
+                draft
+            }
+        }
         connectionRepository.save(updated)
         return profileToJson(updated)
     }
@@ -1127,6 +1161,13 @@ internal class ConnectionsToolProvider(
                     connectionType = "LOCAL",
                     useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
                     localShellMode = shellMode.name,
+                    localShellRoot = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL &&
+                        args.optBoolean("localShellRoot", false),
+                    localWorkingDir = if (shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL) {
+                        args.optString("localWorkingDir").trim().ifBlank { null }
+                    } else {
+                        null
+                    },
                     prootDistroId = if (shellMode == ConnectionProfile.LocalShellMode.PROOT) {
                         args.optString("prootDistroId").ifBlank { null }
                     } else {
@@ -1150,6 +1191,10 @@ internal class ConnectionsToolProvider(
                     }
                     if (args.has("forwardPulseAudio")) {
                         opts = sh.haven.core.ssh.setForwardPulseAudioInOptions(opts, args.optBoolean("forwardPulseAudio"))
+                    }
+                    if (args.has("serverAliveIntervalSeconds")) {
+                        val sec = args.optInt("serverAliveIntervalSeconds", -1)
+                        opts = sh.haven.core.ssh.setSshKeepaliveInOptions(opts, if (sec < 0) null else sec)
                     }
                     opts.ifBlank { null }
                 },

@@ -1270,6 +1270,8 @@ class BackupServiceTest {
             aiRouteProfileId = "ssh-ai-99",
             useAndroidShell = true,
             localShellMode = "SHIZUKU",
+            localShellRoot = true,
+            localWorkingDir = "/",
             prootDistroId = "debian-trixie",
             moshServerCommand = "/usr/local/bin/mosh-server new -s",
             forwardAgent = true,
@@ -1311,7 +1313,7 @@ class BackupServiceTest {
         val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
         val persistedFields = ConnectionProfile::class.java.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
-        assertEquals(122, persistedFields.size)
+        assertEquals(124, persistedFields.size)
         for (field in persistedFields) {
             field.isAccessible = true
             org.junit.Assert.assertNotEquals(

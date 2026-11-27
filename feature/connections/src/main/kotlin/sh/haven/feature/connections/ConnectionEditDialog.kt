@@ -439,6 +439,8 @@ fun ConnectionEditDialog(
     }
     val useAndroidShell = localShellMode == "ANDROID_SHELL"
     val isProotShell = localShellMode == "PROOT"
+    var localShellRoot by rememberSaveable { mutableStateOf(existing?.localShellRoot ?: false) }
+    var localWorkingDir by rememberSaveable { mutableStateOf(existing?.localWorkingDir ?: "") }
     // null = follow the active distro (the default). Set to a distro id to
     // pin this LOCAL profile to a specific OS. (#per-distro-local)
     var prootDistroId by rememberSaveable { mutableStateOf(existing?.prootDistroId) }
@@ -1423,6 +1425,25 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (useAndroidShell) {
+                        Spacer(Modifier.height(8.dp))
+                        BooleanToggleRow(
+                            label = stringResource(R.string.connections_toggle_local_shell_root),
+                            checked = localShellRoot,
+                            onCheckedChange = { localShellRoot = it },
+                            description = stringResource(R.string.connections_helper_local_shell_root),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = localWorkingDir,
+                            onValueChange = { localWorkingDir = it },
+                            label = { Text(stringResource(R.string.connections_field_local_working_dir)) },
+                            placeholder = { Text(if (localShellRoot) "/" else "~") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_local_working_dir)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     // Pin this Local profile to a specific OS (proot only).
                     // Default "Active distro" = follow the global active one.
                     if (isProotShell && availableDistros.isNotEmpty()) {
@@ -3173,6 +3194,40 @@ fun ConnectionEditDialog(
                         )
                     }
 
+                    // SSH keepalive (#895) — backed by `ServerAliveInterval` in sshOptions
+                    // so existing SSH options overrides and the 15-second default stay in sync.
+                    val parsedKeepaliveSec = sh.haven.core.ssh.sshKeepaliveSecondsFromOptionsText(sshOptions)
+                    val sshKeepaliveEnabled = parsedKeepaliveSec != 0
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_ssh_keepalive),
+                        checked = sshKeepaliveEnabled,
+                        onCheckedChange = { enabled ->
+                            sshOptions = sh.haven.core.ssh.setSshKeepaliveInOptions(
+                                sshOptions,
+                                if (enabled) null else 0,
+                            )
+                        },
+                        description = stringResource(R.string.connections_helper_ssh_keepalive),
+                    )
+                    if (sshKeepaliveEnabled) {
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = parsedKeepaliveSec?.takeIf { it > 0 }?.toString() ?: "",
+                            onValueChange = { raw ->
+                                val clean = raw.filter { c -> c.isDigit() }.take(5)
+                                val sec = clean.toIntOrNull()?.takeIf { it > 0 }
+                                sshOptions = sh.haven.core.ssh.setSshKeepaliveInOptions(sshOptions, sec)
+                            },
+                            label = { Text(stringResource(R.string.connections_field_ssh_keepalive_interval)) },
+                            placeholder = { Text(sh.haven.core.ssh.SSH_DEFAULT_KEEPALIVE_SECONDS.toString()) },
+                            supportingText = { Text(stringResource(R.string.connections_helper_ssh_keepalive_interval)) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
                     // SSH options
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
@@ -4177,6 +4232,8 @@ fun ConnectionEditDialog(
                                 connectionType = "LOCAL",
                                 useAndroidShell = useAndroidShell,
                                 localShellMode = localShellMode,
+                                localShellRoot = useAndroidShell && localShellRoot,
+                                localWorkingDir = if (useAndroidShell) localWorkingDir.trim().ifBlank { null } else null,
                                 prootDistroId = if (isProotShell) prootDistroId else null,
                                 colorTag = colorTag,
                                 groupId = groupId,
@@ -4617,6 +4674,8 @@ fun ConnectionEditDialog(
                                 terminalBackgroundOpacity = terminalBackgroundOpacity,
                                 useAndroidShell = useAndroidShell,
                                 localShellMode = localShellMode,
+                                localShellRoot = useAndroidShell && localShellRoot,
+                                localWorkingDir = if (useAndroidShell) localWorkingDir.trim().ifBlank { null } else null,
                                 prootDistroId = if (isProotShell) prootDistroId else null,
                                 forwardAgent = forwardAgent,
                                 addressFamily = addressFamily,

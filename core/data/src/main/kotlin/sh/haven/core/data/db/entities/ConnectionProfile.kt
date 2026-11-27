@@ -278,6 +278,18 @@ data class ConnectionProfile @Ignore constructor(
      */
     val localShellMode: String? = null,
     /**
+     * Opt-in `su` elevation for `ANDROID_SHELL` `LOCAL` profiles (#894).
+     * Off by default so regular Android shells never invoke `su`.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val localShellRoot: Boolean = false,
+    /**
+     * Optional initial working directory for `ANDROID_SHELL` `LOCAL` profiles
+     * (#894), e.g. `"/"` or `"/sdcard"`. Null/blank keeps the app-private
+     * `filesDir` default.
+     */
+    val localWorkingDir: String? = null,
+    /**
      * For LOCAL profiles: open the proot shell directly in this distro
      * (e.g. `debian-bookworm`, `alpine-3.21`) instead of the global active
      * distro. Null = follow the active distro (the original behaviour, so
@@ -574,6 +586,8 @@ data class ConnectionProfile @Ignore constructor(
         aiRouteProfileId: String?,
         useAndroidShell: Boolean,
         localShellMode: String?,
+        localShellRoot: Boolean,
+        localWorkingDir: String?,
         prootDistroId: String?,
         moshServerCommand: String?,
         forwardAgent: Boolean,
@@ -697,6 +711,8 @@ data class ConnectionProfile @Ignore constructor(
         aiRouteProfileId = aiRouteProfileId,
         useAndroidShell = useAndroidShell,
         localShellMode = localShellMode,
+        localShellRoot = localShellRoot,
+        localWorkingDir = localWorkingDir,
         prootDistroId = prootDistroId,
         moshServerCommand = moshServerCommand,
         forwardAgent = forwardAgent,

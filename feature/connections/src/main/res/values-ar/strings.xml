@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">متوقف افتراضيًا. يعرض كاميرات الجهاز للجلسة البعيدة لالتقاط الفيديو.</string>
     <string name="connections_toggle_rdp_microphone">مشاركة الميكروفون</string>
     <string name="connections_helper_rdp_microphone">متوقف افتراضيًا. يبث صوت ميكروفون الجهاز إلى الجلسة البعيدة.</string>
+    <string name="connections_toggle_local_shell_root">البدء بصلاحيات الجذر (su)</string>
+    <string name="connections_helper_local_shell_root">معطّل افتراضيًا. يفتح صدفة جذر تفاعلية عبر su عند تشغيل صدفة أندرويد.</string>
+    <string name="connections_field_local_working_dir">مجلد البدء</string>
+    <string name="connections_helper_local_working_dir">مجلد ابتدائي اختياري (مثل / أو /sdcard). اتركه فارغًا لاستخدام مجلد التطبيق الافتراضي.</string>
+    <string name="connections_toggle_ssh_keepalive">إبقاء اتصال SSH نشطًا</string>
+    <string name="connections_helper_ssh_keepalive">إرسال رسائل إبقاء اتصال SSH دوريًا لمنع قطع الجلسات الخاملة بواسطة الموجهات أو جدران الحماية.</string>
+    <string name="connections_field_ssh_keepalive_interval">فاصل إبقاء الاتصال (ثوانٍ)</string>
+    <string name="connections_helper_ssh_keepalive_interval">اتركه فارغًا لاستخدام القيمة الافتراضية (15 ثانية)، أو حدد فاصلًا مخصصًا بالثواني (مثل 60 أو 1).</string>
 </resources>

@@ -215,6 +215,13 @@ class SshOptionsApplierTest {
     }
 
     @Test
+    fun `huge ServerAliveInterval clamps cleanly instead of overflowing Int milliseconds (#895)`() {
+        val target = defaultTarget()
+        SshOptionsApplier.apply(target, mapOf("ServerAliveInterval" to "9999999"))
+        assertEquals(86_400_000, target.aliveIntervalMs)
+    }
+
+    @Test
     fun `ServerAliveCountMax routes to the setter`() {
         val target = defaultTarget()
         SshOptionsApplier.apply(target, mapOf("serveralivecountmax" to "5"))

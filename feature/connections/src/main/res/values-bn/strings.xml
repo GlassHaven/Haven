@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">ডিফল্টভাবে বন্ধ। ভিডিও ক্যাপচারের জন্য ডিভাইসের ক্যামেরা রিমোট সেশনে উন্মুক্ত করে।</string>
     <string name="connections_toggle_rdp_microphone">মাইক্রোফোন শেয়ার করুন</string>
     <string name="connections_helper_rdp_microphone">ডিফল্টভাবে বন্ধ। ডিভাইসের মাইক্রোফোন অডিও রিমোট সেশনে পাঠায়।</string>
+    <string name="connections_toggle_local_shell_root">রুট হিসেবে শুরু করুন (su)</string>
+    <string name="connections_helper_local_shell_root">ডিফল্টভাবে বন্ধ। Android শেল খোলার সময় su ব্যবহার করে ইন্টারঅ্যাক্টিভ রুট শেল চালু করে।</string>
+    <string name="connections_field_local_working_dir">প্রাথমিক ডিরেক্টরি</string>
+    <string name="connections_helper_local_working_dir">ঐচ্ছিক প্রাথমিক ডিরেক্টরি (যেমন / বা /sdcard)। ডিফল্ট অ্যাপ হোম ডিরেক্টরি ব্যবহার করতে খালি রাখুন।</string>
+    <string name="connections_toggle_ssh_keepalive">SSH কিপঅ্যালাইভ</string>
+    <string name="connections_helper_ssh_keepalive">নিষ্ক্রিয় সেশন যাতে রাউটার বা ফায়ারওয়াল বিচ্ছিন্ন না করে সেজন্য নিয়মিত SSH কিপঅ্যালাইভ পাঠান।</string>
+    <string name="connections_field_ssh_keepalive_interval">কিপঅ্যালাইভ বিরতি (সেকেন্ড)</string>
+    <string name="connections_helper_ssh_keepalive_interval">১৫-সেকেন্ডের ডিফল্ট রাখতে খালি রাখুন, অথবা সেকেন্ডে কাস্টম বিরতি দিন (যেমন 60 বা 1)।</string>
 </resources>

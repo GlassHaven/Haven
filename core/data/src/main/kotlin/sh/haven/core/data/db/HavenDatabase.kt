@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 95,
+    version = 96,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1457,6 +1457,14 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_94_95 = object : Migration(94, 95) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "rdpMicrophone", "INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** #894: per-profile Android Shell opt-in root (`su`) and starting directory. */
+        val MIGRATION_95_96 = object : Migration(95, 96) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "localShellRoot", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "connection_profiles", "localWorkingDir", "TEXT DEFAULT NULL")
             }
         }
 

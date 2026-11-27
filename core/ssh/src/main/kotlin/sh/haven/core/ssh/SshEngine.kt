@@ -121,6 +121,51 @@ fun setForwardPulseAudioInOptions(options: String, enabled: Boolean): String =
         enabled = enabled,
     )
 
+// ── Per-profile SSH keepalive (`ServerAliveInterval`) helpers (#895) ─────────
+
+/** Haven's default SSH `ServerAliveInterval` in seconds (`SshClient` sets 15,000 ms). */
+const val SSH_DEFAULT_KEEPALIVE_SECONDS = 15
+
+private const val SERVER_ALIVE_INTERVAL_KEY = "serveraliveinterval"
+
+/**
+ * Explicit `ServerAliveInterval` override (in seconds) parsed from raw
+ * `ConnectionProfile.sshOptions` text (#895):
+ * - `null`: not specified in `sshOptions` (session inherits [SSH_DEFAULT_KEEPALIVE_SECONDS]).
+ * - `0`: SSH keepalive explicitly disabled (`ServerAliveInterval 0`).
+ * - `> 0`: explicit keepalive interval in seconds.
+ */
+fun sshKeepaliveSecondsFromOptionsText(sshOptions: String?): Int? {
+    val parsed = ConnectionConfig.parseSshOptions(sshOptions)
+    val raw = parsed.entries
+        .lastOrNull { it.key.trim().lowercase() == SERVER_ALIVE_INTERVAL_KEY }
+        ?.value?.trim() ?: return null
+    val sec = raw.toIntOrNull() ?: return null
+    return if (sec >= 0) sec.coerceAtMost(86_400) else null
+}
+
+/**
+ * Rewrite [options] text with `ServerAliveInterval <seconds>` set or cleared (#895).
+ * Passing `null` removes `ServerAliveInterval` lines so the profile inherits
+ * [SSH_DEFAULT_KEEPALIVE_SECONDS]; passing `0` disables keepalive; passing `> 0`
+ * sets the interval in seconds while preserving comments and other directives.
+ */
+fun setSshKeepaliveInOptions(options: String, seconds: Int?): String {
+    val kept = options.lines().filterNot { line ->
+        val trimmed = line.trim()
+        if (trimmed.startsWith("#")) return@filterNot false
+        val sep = trimmed.indexOfFirst { it == ' ' || it == '=' || it == '\t' }
+        sep > 0 && trimmed.substring(0, sep).trim().lowercase() == SERVER_ALIVE_INTERVAL_KEY
+    }
+    val base = kept.joinToString("\n").trim('\n')
+    val clamped = seconds?.takeIf { it >= 0 }?.coerceAtMost(86_400)
+    return when {
+        clamped == null -> base
+        base.isBlank() -> "ServerAliveInterval $clamped"
+        else -> "$base\nServerAliveInterval $clamped"
+    }
+}
+
 private fun setBooleanDirectiveInOptions(
     options: String,
     canonicalKey: String,

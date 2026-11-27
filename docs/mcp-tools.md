@@ -239,6 +239,8 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `keyId` (string) — SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.
 - `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag matching the guest OS layout (e.g. "en-US", "en-GB", "de-DE", "de-CH", "fr-FR", "fr-BE", "fr-CH", "es-ES", "es-419", "it-IT", "pt-PT", "pt-BR", "sv-SE", "pl-PL"). Omit for device locale.
 - `localShellMode` (string) — LOCAL only (#837): "PROOT" (default), "ANDROID_SHELL", or "SHIZUKU".
+- `localShellRoot` (boolean) — LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`. Default false.
+- `localWorkingDir` (string) — LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. "/"). Omit for the default app home directory.
 - `openaiPathPrefix` (string) — OPENAI only: optional path prefix inserted before /v1 (e.g. "/api" for CLIProxyAPI).
 - `password` (string) — Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.
 - `port` (integer) — TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.
@@ -256,6 +258,7 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `reticulumNetworkName` (string) — RETICULUM only: IFAC network name, when the gateway is authenticated. Optional.
 - `reticulumPassphrase` (string) — RETICULUM only: IFAC passphrase that goes with reticulumNetworkName. Optional, stored.
 - `reticulumPort` (integer) — RETICULUM only: port for reticulumHost. Default 37428, the shared-instance port. A TCP gateway is usually 4242.
+- `serverAliveIntervalSeconds` (integer) — SSH only (#895): keepalive interval in seconds (`ServerAliveInterval`). 0 disables keepalives; omit to keep Haven's 15-second default.
 - `smbDomain` (string) — AD/workgroup domain (SMB). Optional.
 - `smbShare` (string) — Share name (SMB). Required when connectionType=SMB.
 - `spicePassword` (string) — SPICE only: ticket/password (stored). Optional — omit for an unticketed server.
@@ -381,6 +384,8 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag (e.g. "es-ES", "en-US", "de-DE", "fr-FR"). Empty string clears (reverts to device locale).
 - `label` (string) — New user-facing label.
 - `localShellMode` (string) — LOCAL only (#837): "PROOT", "ANDROID_SHELL", or "SHIZUKU".
+- `localShellRoot` (boolean) — LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`.
+- `localWorkingDir` (string) — LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. "/"; empty string clears back to default).
 - `moshServerCommand` (string) — Mosh only: override the command Haven runs over SSH to start mosh-server (default 'mosh-server new -s -c 256 …'). It must print a 'MOSH CONNECT <port> <key>' line, which Haven parses to find the session — so a wrapper can point Haven at a different port (e.g. scripts/mosh-fault-rig.py bootstrap, which puts a fault-injecting relay in front). Empty string restores the default.
 - `openaiPathPrefix` (string) — OPENAI only: path prefix inserted before /v1 (e.g. "/api"). Empty string clears.
 - `password` (string) — New password (stored encrypted). Mapped to the profile's transport (SSH/VNC/RDP/SMB). Pass an empty string to clear it.
@@ -391,6 +396,7 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `rdpSshProfileId` (string) — RDP only: SSH profile id to tunnel through. Empty string clears.
 - `remoteCommand` (string) — SSH only (#436): run this command via an SSH exec request instead of a login shell (e.g. 'tmux new -A -s work'). Empty string clears (back to the normal shell).
 - `requestPty` (boolean) — SSH only (#436): allocate a PTY for remoteCommand (tmux needs one). Ignored when remoteCommand is empty.
+- `serverAliveIntervalSeconds` (integer) — SSH only (#895): keepalive interval in seconds (`ServerAliveInterval`). 0 disables keepalives; -1 clears any override back to Haven's 15-second default.
 - `smbSshForward` (boolean) — SMB only: tunnel through a saved SSH profile (set smbSshProfileId).
 - `smbSshProfileId` (string) — SMB only: SSH profile id to tunnel through. Empty string clears.
 - `spiceSshForward` (boolean) — SPICE only: tunnel through a saved SSH profile (set spiceSshProfileId).

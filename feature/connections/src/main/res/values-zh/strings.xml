@@ -645,4 +645,12 @@
     <string name="connections_helper_rdp_camera">默认关闭。将设备的摄像头暴露给远程会话以进行视频捕获。</string>
     <string name="connections_toggle_rdp_microphone">共享麦克风</string>
     <string name="connections_helper_rdp_microphone">默认关闭。将设备的麦克风音频传输到远程会话。</string>
+    <string name="connections_toggle_local_shell_root">以 root 身份启动 (su)</string>
+    <string name="connections_helper_local_shell_root">默认关闭。打开 Android Shell 时通过 su 启动交互式 root shell。</string>
+    <string name="connections_field_local_working_dir">起始目录</string>
+    <string name="connections_helper_local_working_dir">可选初始工作目录（例如 / 或 /sdcard）。留空则使用默认应用主目录。</string>
+    <string name="connections_toggle_ssh_keepalive">SSH 保活 (Keepalive)</string>
+    <string name="connections_helper_ssh_keepalive">定期发送 SSH 保活消息，防止空闲连接被路由器或防火墙断开。</string>
+    <string name="connections_field_ssh_keepalive_interval">保活间隔（秒）</string>
+    <string name="connections_helper_ssh_keepalive_interval">留空使用默认 15 秒，也可按秒设置自定义间隔（例如 60 或 1）。</string>
 </resources>

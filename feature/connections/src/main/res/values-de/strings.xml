@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">Standardmäßig aus. Stellt die Gerätekameras der Remote-Sitzung für Videoaufnahmen bereit.</string>
     <string name="connections_toggle_rdp_microphone">Mikrofon teilen</string>
     <string name="connections_helper_rdp_microphone">Standardmäßig aus. Überträgt das Mikrofonsignal des Geräts an die Remote-Sitzung.</string>
+    <string name="connections_toggle_local_shell_root">Als Root starten (su)</string>
+    <string name="connections_helper_local_shell_root">Standardmäßig aus. Startet beim Öffnen der Android-Shell eine interaktive Root-Shell über su.</string>
+    <string name="connections_field_local_working_dir">Startverzeichnis</string>
+    <string name="connections_helper_local_working_dir">Optionales Anfangsverzeichnis (z. B. / oder /sdcard). Leer lassen für das Standard-App-Verzeichnis.</string>
+    <string name="connections_toggle_ssh_keepalive">SSH-Keepalive</string>
+    <string name="connections_helper_ssh_keepalive">Sendet regelmäßig SSH-Keepalive-Nachrichten, damit inaktive Sitzungen nicht durch NAT-Router oder Firewalls getrennt werden.</string>
+    <string name="connections_field_ssh_keepalive_interval">Keepalive-Intervall (Sekunden)</string>
+    <string name="connections_helper_ssh_keepalive_interval">Leer lassen für den 15-Sekunden-Standard oder ein eigenes Intervall in Sekunden angeben (z. B. 60 oder 1).</string>
 </resources>

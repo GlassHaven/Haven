@@ -584,5 +584,13 @@
     <string name="connections_helper_rdp_camera">Подразумевано искључено. Излаже камере уређаја удаљеној сесији за снимање видеа.</string>
     <string name="connections_toggle_rdp_microphone">Дели микрофон</string>
     <string name="connections_helper_rdp_microphone">Подразумевано искључено. Преноси звук микрофона уређаја удаљеној сесији.</string>
+    <string name="connections_toggle_local_shell_root">Покрени као root (su)</string>
+    <string name="connections_helper_local_shell_root">Подразумевано искључено. Покреће интерактивну root шкољку преко su при отварању Android шкољке.</string>
+    <string name="connections_field_local_working_dir">Почетни директоријум</string>
+    <string name="connections_helper_local_working_dir">Опциони почетни директоријум (на пример / или /sdcard). Оставите празно за подразумевани директоријум апликације.</string>
+    <string name="connections_toggle_ssh_keepalive">SSH keepalive</string>
+    <string name="connections_helper_ssh_keepalive">Повремено шаље SSH keepalive поруке како неактивне сесије не би биле прекинуте од стране рутера или заштитног зида.</string>
+    <string name="connections_field_ssh_keepalive_interval">Keepalive интервал (секунде)</string>
+    <string name="connections_helper_ssh_keepalive_interval">Оставите празно за подразумеваних 15 секунди или унесите интервал у секундама (нпр. 60 или 1).</string>
 </resources>
 

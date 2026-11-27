@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">По умолчанию выключено. Предоставляет камеры устройства удалённому сеансу для захвата видео.</string>
     <string name="connections_toggle_rdp_microphone">Общий микрофон</string>
     <string name="connections_helper_rdp_microphone">По умолчанию выключено. Передаёт звук микрофона устройства в удалённый сеанс.</string>
+    <string name="connections_toggle_local_shell_root">Запускать от имени root (su)</string>
+    <string name="connections_helper_local_shell_root">По умолчанию выключено. Запускает интерактивную оболочку root через su при открытии Android Shell.</string>
+    <string name="connections_field_local_working_dir">Начальный каталог</string>
+    <string name="connections_helper_local_working_dir">Необязательный рабочий каталог (например, / или /sdcard). Оставьте пустым для домашнего каталога приложения.</string>
+    <string name="connections_toggle_ssh_keepalive">SSH keepalive</string>
+    <string name="connections_helper_ssh_keepalive">Периодически отправлять пакеты SSH keepalive, чтобы неактивные сессии не разрывались маршрутизаторами или межсетевыми экранами.</string>
+    <string name="connections_field_ssh_keepalive_interval">Интервал keepalive (сек)</string>
+    <string name="connections_helper_ssh_keepalive_interval">Оставьте пустым для стандартных 15 секунд или укажите интервал в секундах (например, 60 или 1).</string>
 </resources>

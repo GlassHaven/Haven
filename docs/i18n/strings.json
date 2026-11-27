@@ -22419,6 +22419,166 @@
       "sr": "Подразумевано искључено. Преноси звук микрофона уређаја удаљеној сесији.",
       "zh": "默认关闭。将设备的麦克风音频传输到远程会话。"
      }
+    },
+    {
+     "name": "connections_toggle_local_shell_root",
+     "en": "Start as root (su)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "البدء بصلاحيات الجذر (su)",
+      "bn": "রুট হিসেবে শুরু করুন (su)",
+      "de": "Als Root starten (su)",
+      "es": "Iniciar como root (su)",
+      "fr": "Démarrer en root (su)",
+      "hi": "रूट के रूप में शुरू करें (su)",
+      "ja": "root として起動 (su)",
+      "ko": "루트로 시작 (su)",
+      "pt": "Iniciar como root (su)",
+      "ru": "Запускать от имени root (su)",
+      "sr": "Покрени као root (su)",
+      "zh": "以 root 身份启动 (su)"
+     }
+    },
+    {
+     "name": "connections_helper_local_shell_root",
+     "en": "Off by default. Launches an interactive root shell via su when opening Android Shell.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "معطّل افتراضيًا. يفتح صدفة جذر تفاعلية عبر su عند تشغيل صدفة أندرويد.",
+      "bn": "ডিফল্টভাবে বন্ধ। Android শেল খোলার সময় su ব্যবহার করে ইন্টারঅ্যাক্টিভ রুট শেল চালু করে।",
+      "de": "Standardmäßig aus. Startet beim Öffnen der Android-Shell eine interaktive Root-Shell über su.",
+      "es": "Desactivado de forma predeterminada. Abre un shell root interactivo mediante su al iniciar Android Shell.",
+      "fr": "Désactivé par défaut. Lance un shell root interactif via su à l\\'ouverture du shell Android.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। Android शेल खोलते समय su के माध्यम से इंटरैक्टिव रूट शेल शुरू करता है।",
+      "ja": "デフォルトはオフです。Android シェルを開く際に su で対話型 root シェルを起動します。",
+      "ko": "기본값은 꺼짐입니다. Android 셸을 열 때 su를 통해 대화형 루트 셸을 시작합니다.",
+      "pt": "Desativado por padrão. Abre um shell root interativo via su ao iniciar o Android Shell.",
+      "ru": "По умолчанию выключено. Запускает интерактивную оболочку root через su при открытии Android Shell.",
+      "sr": "Подразумевано искључено. Покреће интерактивну root шкољку преко su при отварању Android шкољке.",
+      "zh": "默认关闭。打开 Android Shell 时通过 su 启动交互式 root shell。"
+     }
+    },
+    {
+     "name": "connections_field_local_working_dir",
+     "en": "Starting directory",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مجلد البدء",
+      "bn": "প্রাথমিক ডিরেক্টরি",
+      "de": "Startverzeichnis",
+      "es": "Directorio inicial",
+      "fr": "Répertoire de départ",
+      "hi": "प्रारंभिक निर्देशिका",
+      "ja": "開始ディレクトリ",
+      "ko": "시작 디렉터리",
+      "pt": "Diretório inicial",
+      "ru": "Начальный каталог",
+      "sr": "Почетни директоријум",
+      "zh": "起始目录"
+     }
+    },
+    {
+     "name": "connections_helper_local_working_dir",
+     "en": "Optional initial directory (for example / or /sdcard). Leave blank to use the default app home directory.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مجلد ابتدائي اختياري (مثل / أو /sdcard). اتركه فارغًا لاستخدام مجلد التطبيق الافتراضي.",
+      "bn": "ঐচ্ছিক প্রাথমিক ডিরেক্টরি (যেমন / বা /sdcard)। ডিফল্ট অ্যাপ হোম ডিরেক্টরি ব্যবহার করতে খালি রাখুন।",
+      "de": "Optionales Anfangsverzeichnis (z. B. / oder /sdcard). Leer lassen für das Standard-App-Verzeichnis.",
+      "es": "Directorio inicial opcional (por ejemplo / o /sdcard). Déjalo en blanco para usar el directorio predeterminado de la aplicación.",
+      "fr": "Répertoire initial facultatif (par exemple / ou /sdcard). Laisser vide pour utiliser le dossier par défaut de l\\'application.",
+      "hi": "वैकल्पिक प्रारंभिक निर्देशिका (जैसे / या /sdcard)। डिफ़ॉल्ट ऐप होम निर्देशिका के लिए खाली छोड़ें।",
+      "ja": "任意の初期ディレクトリ（例: / や /sdcard）。空欄の場合はアプリのデフォルトホームを使用します。",
+      "ko": "선택적 초기 작업 디렉터리(예: / 또는 /sdcard). 비워 두면 기본 앱 홈 디렉터리를 사용합니다.",
+      "pt": "Diretório inicial opcional (por exemplo / ou /sdcard). Deixe em branco para usar o diretório padrão do app.",
+      "ru": "Необязательный рабочий каталог (например, / или /sdcard). Оставьте пустым для домашнего каталога приложения.",
+      "sr": "Опциони почетни директоријум (на пример / или /sdcard). Оставите празно за подразумевани директоријум апликације.",
+      "zh": "可选初始工作目录（例如 / 或 /sdcard）。留空则使用默认应用主目录。"
+     }
+    },
+    {
+     "name": "connections_toggle_ssh_keepalive",
+     "en": "SSH keepalive",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "إبقاء اتصال SSH نشطًا",
+      "bn": "SSH কিপঅ্যালাইভ",
+      "de": "SSH-Keepalive",
+      "es": "Keepalive de SSH",
+      "fr": "Keepalive SSH",
+      "hi": "SSH कीपअलाइव",
+      "ja": "SSH キープアライブ",
+      "ko": "SSH 연결 유지 (Keepalive)",
+      "pt": "Keepalive SSH",
+      "ru": "SSH keepalive",
+      "sr": "SSH keepalive",
+      "zh": "SSH 保活 (Keepalive)"
+     }
+    },
+    {
+     "name": "connections_helper_ssh_keepalive",
+     "en": "Send periodic SSH keepalive messages so idle sessions are not dropped by NAT routers or firewalls.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "إرسال رسائل إبقاء اتصال SSH دوريًا لمنع قطع الجلسات الخاملة بواسطة الموجهات أو جدران الحماية.",
+      "bn": "নিষ্ক্রিয় সেশন যাতে রাউটার বা ফায়ারওয়াল বিচ্ছিন্ন না করে সেজন্য নিয়মিত SSH কিপঅ্যালাইভ পাঠান।",
+      "de": "Sendet regelmäßig SSH-Keepalive-Nachrichten, damit inaktive Sitzungen nicht durch NAT-Router oder Firewalls getrennt werden.",
+      "es": "Envía mensajes keepalive periódicos de SSH para evitar cierres por inactividad en routers NAT o cortafuegos.",
+      "fr": "Envoie périodiquement des messages keepalive SSH afin que les sessions inactives ne soient pas coupées par les routeurs NAT ou pare-feu.",
+      "hi": "निष्क्रिय सत्रों को राउटर या फ़ायरवॉल द्वारा बंद होने से बचाने के लिए समय-समय पर SSH कीपअलाइव संदेश भेजें।",
+      "ja": "定期的に SSH キープアライブを送信し、アイドル状態の接続がルーターやファイアウォールに切断されるのを防ぎます。",
+      "ko": "유휴 세션이 라우터나 방화벽에서 끊어지지 않도록 주기적으로 SSH keepalive 메시지를 보냅니다.",
+      "pt": "Envia mensagens periódicas de keepalive SSH para evitar que sessões ociosas sejam encerradas por roteadores NAT ou firewalls.",
+      "ru": "Периодически отправлять пакеты SSH keepalive, чтобы неактивные сессии не разрывались маршрутизаторами или межсетевыми экранами.",
+      "sr": "Повремено шаље SSH keepalive поруке како неактивне сесије не би биле прекинуте од стране рутера или заштитног зида.",
+      "zh": "定期发送 SSH 保活消息，防止空闲连接被路由器或防火墙断开。"
+     }
+    },
+    {
+     "name": "connections_field_ssh_keepalive_interval",
+     "en": "Keepalive interval (seconds)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "فاصل إبقاء الاتصال (ثوانٍ)",
+      "bn": "কিপঅ্যালাইভ বিরতি (সেকেন্ড)",
+      "de": "Keepalive-Intervall (Sekunden)",
+      "es": "Intervalo de keepalive (segundos)",
+      "fr": "Intervalle keepalive (secondes)",
+      "hi": "कीपअलाइव अंतराल (सेकंड)",
+      "ja": "キープアライブ間隔（秒）",
+      "ko": "Keepalive 간격(초)",
+      "pt": "Intervalo de keepalive (segundos)",
+      "ru": "Интервал keepalive (сек)",
+      "sr": "Keepalive интервал (секунде)",
+      "zh": "保活间隔（秒）"
+     }
+    },
+    {
+     "name": "connections_helper_ssh_keepalive_interval",
+     "en": "Leave blank for the 15-second default, or set a custom interval in seconds (such as 60 or 1).",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "اتركه فارغًا لاستخدام القيمة الافتراضية (15 ثانية)، أو حدد فاصلًا مخصصًا بالثواني (مثل 60 أو 1).",
+      "bn": "১৫-সেকেন্ডের ডিফল্ট রাখতে খালি রাখুন, অথবা সেকেন্ডে কাস্টম বিরতি দিন (যেমন 60 বা 1)।",
+      "de": "Leer lassen für den 15-Sekunden-Standard oder ein eigenes Intervall in Sekunden angeben (z. B. 60 oder 1).",
+      "es": "Déjalo en blanco para usar los 15 segundos predeterminados o indica un intervalo en segundos (como 60 o 1).",
+      "fr": "Laisser vide pour la valeur par défaut de 15 secondes, ou définir un intervalle en secondes (comme 60 ou 1).",
+      "hi": "15-सेकंड डिफ़ॉल्ट के लिए खाली छोड़ें, या सेकंड में कस्टम अंतराल दर्ज करें (जैसे 60 या 1)।",
+      "ja": "空欄の場合はデフォルトの 15 秒になります。秒単位で任意の間隔（60 や 1 など）も指定できます。",
+      "ko": "비워 두면 기본 15초가 적용되며, 초 단위로 직접 지정할 수도 있습니다(예: 60 또는 1).",
+      "pt": "Deixe em branco para o padrão de 15 segundos ou defina um intervalo em segundos (como 60 ou 1).",
+      "ru": "Оставьте пустым для стандартных 15 секунд или укажите интервал в секундах (например, 60 или 1).",
+      "sr": "Оставите празно за подразумеваних 15 секунди или унесите интервал у секундама (нпр. 60 или 1).",
+      "zh": "留空使用默认 15 秒，也可按秒设置自定义间隔（例如 60 或 1）。"
+     }
     }
    ]
   },

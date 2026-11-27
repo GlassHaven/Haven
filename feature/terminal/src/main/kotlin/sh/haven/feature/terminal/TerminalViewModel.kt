@@ -2894,6 +2894,8 @@ class TerminalViewModel @Inject constructor(
                     prootDistroId = existingSession?.prootDistroId ?: profile?.prootDistroId,
                     desktopEnv = desktopEnv,
                     localShellMode = shellMode,
+                    localShellRoot = existingSession?.localShellRoot ?: profile?.localShellRoot ?: false,
+                    localWorkingDir = existingSession?.localWorkingDir ?: profile?.localWorkingDir,
                 )
                 if (plain) plainSessionIds.add(sessionId)
                 localSessionManager.connectSession(sessionId)

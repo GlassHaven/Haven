@@ -4185,6 +4185,8 @@ class ConnectionsViewModel @Inject constructor(
                 useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
                 prootDistroId = profile.prootDistroId,
                 localShellMode = shellMode,
+                localShellRoot = profile.localShellRoot,
+                localWorkingDir = profile.localWorkingDir,
             )
             try {
                 localSessionManager.connectSession(sessionId)
@@ -7376,6 +7378,8 @@ class ConnectionsViewModel @Inject constructor(
             useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
             prootDistroId = profile.prootDistroId,
             localShellMode = shellMode,
+            localShellRoot = profile.localShellRoot,
+            localWorkingDir = profile.localWorkingDir,
         )
         try {
             localSessionManager.connectSession(sessionId)

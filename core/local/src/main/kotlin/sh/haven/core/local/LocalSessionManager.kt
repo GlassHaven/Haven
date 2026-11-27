@@ -84,6 +84,40 @@ private val ANDROID_SHELL_FALLBACK_DIRS = listOf(
 )
 
 /**
+ * Build `(command, args)` for `LocalShellMode.ANDROID_SHELL` (#270, #894).
+ *
+ * - Default (`startAsRoot = false`, `workingDir = null`): changes into
+ *   [defaultHomeDir] and `exec`s an interactive login shell (`-l`), preserving
+ *   today's unprivileged behaviour.
+ * - Custom [workingDir]: shell-escapes single quotes and `cd`s there instead.
+ * - Opt-in [startAsRoot] (`true`): invokes `exec su -c` with `cd` inside the
+ *   elevated command so root-only directories (such as `/` or `/data/adb`) are
+ *   accessible and `exec /system/bin/sh -l` replaces the `-c` subshell cleanly.
+ *   Falls back to an unprivileged shell with a stderr notice if `su` is absent.
+ */
+internal fun buildAndroidShellInvocation(
+    defaultHomeDir: String,
+    startAsRoot: Boolean = false,
+    workingDir: String? = null,
+    shellBinary: String = "/system/bin/sh",
+): Pair<String, Array<String>> {
+    val targetDir = workingDir?.trim()?.takeIf { it.isNotEmpty() } ?: defaultHomeDir
+    val escapedDir = targetDir.replace("'", "'\\''")
+    return if (!startAsRoot) {
+        val plainCmd = "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l"
+        shellBinary to arrayOf(shellBinary, "-c", plainCmd)
+    } else {
+        val escapedShell = shellBinary.replace("'", "'\\''")
+        val innerCmd = "cd '$escapedDir' 2>/dev/null; exec '$escapedShell' -l"
+        val suPayload = innerCmd.replace("'", "'\\''")
+        val rootScript = "if command -v su >/dev/null 2>&1; then exec su -c '$suPayload'; " +
+            "else echo '[haven] su not found on PATH; falling back to unprivileged shell' >&2; " +
+            "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l; fi"
+        shellBinary to arrayOf(shellBinary, "-c", rootScript)
+    }
+}
+
+/**
  * Construct `PATH` for native Android local shells (`LocalShellMode.ANDROID_SHELL`, #842).
  * Preserves Android's `init.environ.rc` directories (`System.getenv("PATH")`, e.g.
  * `/product/bin`, `/apex/.../bin`, `/system_ext/bin`) in order while ensuring standard
@@ -208,6 +242,8 @@ class LocalSessionManager @Inject constructor(
         val localShellMode: ConnectionProfile.LocalShellMode =
             if (useAndroidShell) ConnectionProfile.LocalShellMode.ANDROID_SHELL
             else ConnectionProfile.LocalShellMode.PROOT,
+        val localShellRoot: Boolean = false,
+        val localWorkingDir: String? = null,
         /** Distro to open the proot shell in; null = the active distro. */
         val prootDistroId: String? = null,
         /**
@@ -243,6 +279,8 @@ class LocalSessionManager @Inject constructor(
         localShellMode: ConnectionProfile.LocalShellMode =
             if (useAndroidShell) ConnectionProfile.LocalShellMode.ANDROID_SHELL
             else ConnectionProfile.LocalShellMode.PROOT,
+        localShellRoot: Boolean = false,
+        localWorkingDir: String? = null,
     ): String {
         // Reap any superseded dead shells for this profile before minting a
         // fresh one. A local shell never reconnects, so a DISCONNECTED entry is
@@ -261,6 +299,8 @@ class LocalSessionManager @Inject constructor(
                 status = SessionState.Status.CONNECTING,
                 useAndroidShell = localShellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
                 localShellMode = localShellMode,
+                localShellRoot = localShellRoot,
+                localWorkingDir = localWorkingDir,
                 prootDistroId = prootDistroId,
                 desktopEnv = desktopEnv,
             ))
@@ -360,6 +400,8 @@ class LocalSessionManager @Inject constructor(
         useAndroidShell: Boolean = false,
         plain: Boolean = false,
         distroId: String? = null,
+        startAsRoot: Boolean = false,
+        workingDir: String? = null,
     ): Triple<String, Array<String>, Array<String>> {
         val prootBinary = prootManager.prootBinary
         // A LOCAL profile may pin a specific distro; otherwise follow the
@@ -545,15 +587,15 @@ class LocalSessionManager @Inject constructor(
             )
             Triple(cmd, args, env)
         } else {
-            // Fallback: plain Android shell
-            val cmd = "/system/bin/sh"
-            // The PTY inherits the app process cwd ("/"), which an unprivileged
-            // app can't list — users landed somewhere `ls` failed until they cd'd
-            // (#270). Start the login shell in HOME (app-private, readable) instead.
+            // Fallback / explicit Android shell (#270, #894)
             val home = context.filesDir.absolutePath
-            val args = arrayOf(cmd, "-c", "cd '$home' 2>/dev/null; exec /system/bin/sh -l")
+            val (cmd, args) = buildAndroidShellInvocation(
+                defaultHomeDir = home,
+                startAsRoot = useAndroidShell && startAsRoot,
+                workingDir = if (useAndroidShell) workingDir else null,
+            )
             val env = arrayOf(
-                "HOME=${context.filesDir.absolutePath}",
+                "HOME=$home",
                 "TERM=xterm-256color",
                 "LANG=$terminalLocale",
                 "LC_ALL=$terminalLocale",
@@ -614,6 +656,8 @@ class LocalSessionManager @Inject constructor(
                 useAndroidShell = session.localShellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
                 plain = plain,
                 distroId = session.prootDistroId,
+                startAsRoot = session.localShellRoot,
+                workingDir = session.localWorkingDir,
             )
         }
         // Join a running desktop session (#285): override DISPLAY / WAYLAND_DISPLAY

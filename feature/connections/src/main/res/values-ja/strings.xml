@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">既定ではオフです。ビデオキャプチャ用にデバイスのカメラをリモートセッションに公開します。</string>
     <string name="connections_toggle_rdp_microphone">マイクを共有</string>
     <string name="connections_helper_rdp_microphone">既定ではオフです。デバイスのマイク音声をリモートセッションに送信します。</string>
+    <string name="connections_toggle_local_shell_root">root として起動 (su)</string>
+    <string name="connections_helper_local_shell_root">デフォルトはオフです。Android シェルを開く際に su で対話型 root シェルを起動します。</string>
+    <string name="connections_field_local_working_dir">開始ディレクトリ</string>
+    <string name="connections_helper_local_working_dir">任意の初期ディレクトリ（例: / や /sdcard）。空欄の場合はアプリのデフォルトホームを使用します。</string>
+    <string name="connections_toggle_ssh_keepalive">SSH キープアライブ</string>
+    <string name="connections_helper_ssh_keepalive">定期的に SSH キープアライブを送信し、アイドル状態の接続がルーターやファイアウォールに切断されるのを防ぎます。</string>
+    <string name="connections_field_ssh_keepalive_interval">キープアライブ間隔（秒）</string>
+    <string name="connections_helper_ssh_keepalive_interval">空欄の場合はデフォルトの 15 秒になります。秒単位で任意の間隔（60 や 1 など）も指定できます。</string>
 </resources>

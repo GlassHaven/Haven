@@ -85,7 +85,9 @@ object SshOptionsApplier {
                 // or is negative leaves the session default untouched.
                 lower == "serveraliveinterval" -> {
                     val sec = value.toIntOrNull()
-                    if (sec != null && sec >= 0) target.setServerAliveInterval(sec * 1000)
+                    if (sec != null && sec >= 0) {
+                        target.setServerAliveInterval(sec.coerceAtMost(86_400) * 1000)
+                    }
                 }
                 lower == "serveralivecountmax" -> {
                     val count = value.toIntOrNull()

@@ -647,4 +647,12 @@
     <string name="connections_helper_rdp_camera">Desativado por padrão. Expõe as câmeras do dispositivo à sessão remota para captura de vídeo.</string>
     <string name="connections_toggle_rdp_microphone">Compartilhar microfone</string>
     <string name="connections_helper_rdp_microphone">Desativado por padrão. Transmite o áudio do microfone do dispositivo para a sessão remota.</string>
+    <string name="connections_toggle_local_shell_root">Iniciar como root (su)</string>
+    <string name="connections_helper_local_shell_root">Desativado por padrão. Abre um shell root interativo via su ao iniciar o Android Shell.</string>
+    <string name="connections_field_local_working_dir">Diretório inicial</string>
+    <string name="connections_helper_local_working_dir">Diretório inicial opcional (por exemplo / ou /sdcard). Deixe em branco para usar o diretório padrão do app.</string>
+    <string name="connections_toggle_ssh_keepalive">Keepalive SSH</string>
+    <string name="connections_helper_ssh_keepalive">Envia mensagens periódicas de keepalive SSH para evitar que sessões ociosas sejam encerradas por roteadores NAT ou firewalls.</string>
+    <string name="connections_field_ssh_keepalive_interval">Intervalo de keepalive (segundos)</string>
+    <string name="connections_helper_ssh_keepalive_interval">Deixe em branco para o padrão de 15 segundos ou defina um intervalo em segundos (como 60 ou 1).</string>
 </resources>

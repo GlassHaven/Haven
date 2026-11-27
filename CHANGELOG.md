@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.89
+
+- Add opt-in `Start as root (su)` and `Starting directory` options to `Local` connection profiles in `Android Shell` mode (and `localShellRoot` / `localWorkingDir` on MCP `create_connection` and `update_connection`), running `cd` inside `su -c` before `exec /system/bin/sh -l` while keeping unprivileged shells unchanged by default (#894, thanks iptsh).
+- Add a dedicated `SSH keepalive` toggle and `Keepalive interval (seconds)` field to the SSH connection editor (and `serverAliveIntervalSeconds` on MCP connection tools), synced two-way with `ServerAliveInterval` in `SSH options` while preserving Haven's 15-second default (#895, thanks iptsh).
+
 ## v5.94.88
 
 - Read `/proc/<pid>/cmdline` and `/proc/<pid>/environ` directly in-process in Kotlin inside `DesktopManager` instead of spawning `sh`, `tr`, `awk`, and `grep` child processes, inject `DesktopManager` lazily in `ForegroundSessionParticipantModule.prootDesktops`, and skip startup `Xvnc` orphan cleanup when no Local Linux distro rootfs is installed (#893, thanks iptsh).

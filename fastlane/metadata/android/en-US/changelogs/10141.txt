@@ -1,0 +1,2 @@
+- Add opt-in `Start as root (su)` and `Starting directory` options to `Android Shell` local connection profiles (#894)
+- Add a dedicated `SSH keepalive` toggle and `Keepalive interval (seconds)` field to the SSH connection editor, synced with `ServerAliveInterval` and preserving the 15-second default (#895)

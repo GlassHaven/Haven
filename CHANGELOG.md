@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.87
+
+- Add a `Remember password` checkbox to `KeyboardInteractiveDialog` and mid-handshake SSH `password` prompts so multi-factor SSH profiles (such as `SSH key` + `TOTP` + `Password`) can save or clear the host login password in `Saved password` without conflating it with encrypted SSH key passphrases (#892, thanks iptsh).
+- Give OTP keywords precedence over generic password matching (including localized Linux-PAM password and one-time-password prompts), scope `Confirm OTP before sending` strictly to rounds containing an OTP prompt, preserve inline `Saved password` and multi-factor `TOTP` chains when a connection or group SSH Identity has no stored password, and prompt normally instead of auto-submitting an empty string when `Saved password` is blank (#892).
+
 ## v5.94.86
 
 - Bind WireGuard and Cisco AnyConnect / `ocserv` underlay sockets and endpoint DNS lookups directly to a chosen physical Android network (`Underlay network`: `Wi-Fi`, `Cellular`, or `Ethernet` in the tunnel editor and `wireguardUnderlayNetwork` / `anyconnectUnderlayNetwork` on MCP `create_tunnel`) via `<android/multinetwork.h>` (`android_setsocknetwork` and `android_getaddrinfofornetwork`), so LAN-only Wi-Fi or Ethernet gateways remain reachable when mobile data or another interface holds the phone's default route (#876).

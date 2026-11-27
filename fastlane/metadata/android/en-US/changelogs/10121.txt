@@ -1,0 +1,2 @@
+• Multi-factor SSH profiles (such as SSH key + TOTP + password) can now save the remote login password from the keyboard-interactive or mid-handshake password prompt via a Remember password checkbox (#892)
+• Fixed PAM password and OTP prompt matching (localized prompts, Confirm OTP before sending, blank saved passwords, and key-only SSH Identities) so saved passwords auto-fill reliably (#892)

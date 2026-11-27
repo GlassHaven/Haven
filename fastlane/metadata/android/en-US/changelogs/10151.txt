@@ -1,0 +1,1 @@
+- Confine long-press terminal text selection to drawn tmux, zellij, and herdr multiplexer panes (joining pane-wrapped lines and handling wide CJK sidebar glyphs), with a `Select Whole Screen` / `Select This Pane Only` overflow toggle across all 12 locales (termlib#8, thanks boyce-ywr)

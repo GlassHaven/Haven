@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.90
+
+- Confine long-press terminal text selection to drawn tmux, zellij, and herdr multiplexer panes (`detectPane` in `termlib`), preserving pane column bounds beside wide CJK sidebar glyphs, mapping `Mode: Word` and `Mode: Line` within the pane, joining multiplexer-wrapped lines, and adding a `Select Whole Screen` / `Select This Pane Only` overflow toggle across all 12 locales (`GlassHaven/termlib#8`, thanks boyce-ywr).
+
 ## v5.94.89
 
 - Add opt-in `Start as root (su)` and `Starting directory` options to `Local` connection profiles in `Android Shell` mode (and `localShellRoot` / `localWorkingDir` on MCP `create_connection` and `update_connection`), running `cd` inside `su -c` before `exec /system/bin/sh -l` while keeping unprivileged shells unchanged by default (#894, thanks iptsh).

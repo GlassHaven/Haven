@@ -1,0 +1,2 @@
+- Read `/proc/<pid>/cmdline` and `/proc/<pid>/environ` directly in Kotlin in `DesktopManager` instead of spawning `sh`/`tr`/`awk`/`grep` subprocesses, make `prootDesktops` lazy, and skip startup `Xvnc` orphan cleanup when no Local Linux distro is installed (#893)
+- Support optional `postInstallScript` hooks on community Local Linux app-pack recipes (`install_app_pack`, `list_app_packs`) (#891)

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.88
+
+- Read `/proc/<pid>/cmdline` and `/proc/<pid>/environ` directly in-process in Kotlin inside `DesktopManager` instead of spawning `sh`, `tr`, `awk`, and `grep` child processes, inject `DesktopManager` lazily in `ForegroundSessionParticipantModule.prootDesktops`, and skip startup `Xvnc` orphan cleanup when no Local Linux distro rootfs is installed (#893, thanks iptsh).
+- Support optional `postInstallScript` hooks on community Local Linux `GuestAppPack` recipes (`install_app_pack` and `list_app_packs`), running with `/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` in `PATH` right after distro package installation, `configWrites`, and `sha256sum -c` asset verification (#891, thanks pixel4696).
+
 ## v5.94.87
 
 - Add a `Remember password` checkbox to `KeyboardInteractiveDialog` and mid-handshake SSH `password` prompts so multi-factor SSH profiles (such as `SSH key` + `TOTP` + `Password`) can save or clear the host login password in `Saved password` without conflating it with encrypted SSH key passphrases (#892, thanks iptsh).

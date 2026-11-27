@@ -83,36 +83,141 @@ private val ANDROID_SHELL_FALLBACK_DIRS = listOf(
     "/vendor/bin",
 )
 
+private fun shSingleQuote(s: String): String = "'" + s.replace("'", "'\\''") + "'"
+
 /**
- * Build `(command, args)` for `LocalShellMode.ANDROID_SHELL` (#270, #894).
+ * Startup script sourced via `ENV` by interactive Android `mksh` (`/system/bin/sh`)
+ * sessions (#896, #897).
  *
- * - Default (`startAsRoot = false`, `workingDir = null`): changes into
- *   [defaultHomeDir] and `exec`s an interactive login shell (`-l`), preserving
- *   today's unprivileged behaviour.
- * - Custom [workingDir]: shell-escapes single quotes and `cd`s there instead.
- * - Opt-in [startAsRoot] (`true`): invokes `exec su -c` with `cd` inside the
- *   elevated command so root-only directories (such as `/` or `/data/adb`) are
- *   accessible and `exec /system/bin/sh -l` replaces the `-c` subshell cleanly.
- *   Falls back to an unprivileged shell with a stderr notice if `su` is absent.
+ * Written in portable POSIX syntax so `sh -n` and non-`mksh` `/bin/sh` shells
+ * parse it cleanly:
+ * 1. Sources `/system/etc/mkshrc` first (if readable) to preserve Android's
+ *    `HOSTNAME`, `USER`, `PS1`, `precmd`, and convenience aliases.
+ * 2. Under `mksh` (`KSH_VERSION` non-empty), binds `^L` (`Ctrl+L`, `0x0C`) to
+ *    `clear-screen` (`mksh` defaults `^L` to `redraw` and `^[L` to `clear-screen`).
+ * 3. Applies [customPs1] (when non-blank) or an ANSI-colored prompt wrapped in
+ *    `mksh`'s `\001\r` non-printing escape delimiters (when [colorPrompt] is true)
+ *    so line wrapping never miscounts ANSI colour bytes.
+ * 4. Sources `$HOME/.mkshrc` last (if readable) so user dotfiles can override.
+ */
+internal fun buildAndroidMkshrcContent(
+    colorPrompt: Boolean = false,
+    customPs1: String? = null,
+): String = buildString {
+    appendLine("[ -r /system/etc/mkshrc ] && . /system/etc/mkshrc")
+    appendLine("if [ -n \"\${KSH_VERSION:-}\" ]; then")
+    appendLine("  bind '^L=clear-screen' 2>/dev/null || true")
+    appendLine("fi")
+    val effectiveCustomPs1 = customPs1?.takeIf { it.isNotEmpty() }
+    if (effectiveCustomPs1 != null) {
+        appendLine("PS1=${shSingleQuote(effectiveCustomPs1)}")
+        appendLine("export PS1")
+    } else if (colorPrompt) {
+        appendLine("if [ -n \"\${KSH_VERSION:-}\" ]; then")
+        appendLine("  : \"\${HOSTNAME:=\$(getprop ro.product.device 2>/dev/null)}\"")
+        appendLine("  : \"\${HOSTNAME:=android}\"")
+        appendLine("  : \"\${USER:=\$(id -un 2>/dev/null || echo shell)}\"")
+        appendLine("  _hc_soh=\$(printf '\\001')")
+        appendLine("  _hc_cr=\$(printf '\\r')")
+        appendLine("  _hc_esc=\$(printf '\\033')")
+        appendLine("  _haven_precmd() {")
+        appendLine("    _he=\$?")
+        appendLine("    if [ \"\$_he\" -ne 0 ]; then")
+        appendLine("      printf '%s' \"\${_hc_soh}\${_hc_esc}[1;33m\${_hc_soh}[\${_he}] \${_hc_soh}\${_hc_esc}[0m\${_hc_soh}\"")
+        appendLine("    fi")
+        appendLine("  }")
+        appendLine("  _hc_uid=\"\${USER_ID:-\$(id -u 2>/dev/null || echo 1)}\"")
+        appendLine("  if [ \"\$_hc_uid\" -eq 0 ] 2>/dev/null; then")
+        appendLine("    PS1=\"\${_hc_soh}\${_hc_cr}\\\$(_haven_precmd)\${_hc_soh}\${_hc_esc}[1;31m\${_hc_soh}\\\$USER@\\\$HOSTNAME\${_hc_soh}\${_hc_esc}[0m\${_hc_soh}:\${_hc_soh}\${_hc_esc}[1;34m\${_hc_soh}\\\${PWD:-?}\${_hc_soh}\${_hc_esc}[0m\${_hc_soh} # \"")
+        appendLine("  else")
+        appendLine("    PS1=\"\${_hc_soh}\${_hc_cr}\\\$(_haven_precmd)\${_hc_soh}\${_hc_esc}[1;32m\${_hc_soh}\\\$USER@\\\$HOSTNAME\${_hc_soh}\${_hc_esc}[0m\${_hc_soh}:\${_hc_soh}\${_hc_esc}[1;34m\${_hc_soh}\\\${PWD:-?}\${_hc_soh}\${_hc_esc}[0m\${_hc_soh} \\\$ \"")
+        appendLine("  fi")
+        appendLine("  unset _hc_uid")
+        appendLine("  export HOSTNAME USER PS1")
+        appendLine("fi")
+    }
+    appendLine("[ -n \"\${HOME:-}\" ] && [ -r \"\$HOME/.mkshrc\" ] && . \"\$HOME/.mkshrc\"")
+}
+
+/**
+ * Build `(command, args)` for `LocalShellMode.ANDROID_SHELL` (#270, #894, #896, #897).
+ *
+ * - Default (`startAsRoot = false`, `workingDir = null`, `mkshrcPath = null`,
+ *   `customShell = null`): changes into [defaultHomeDir] and `exec`s an interactive
+ *   login shell (`-l`).
+ * - [mkshrcPath]: exports `ENV` pointing at Haven's generated `mkshrc` wrapper
+ *   (including inside `su -c`, falling back to `/data/local/tmp/.haven-mkshrc` if
+ *   SELinux restricts `su` from reading the app cache dir).
+ * - [customShell]: resolves the requested shell executable (`command -v` + `-x`,
+ *   evaluated inside `su -c` when [startAsRoot] is true), updates `SHELL`, unsets
+ *   the `mksh`-specific `ENV` file for non-`sh`/`mksh` shells (such as `zsh` or
+ *   `bash`) so their own startup files/history/completions run natively, and falls
+ *   back to [shellBinary] with a stderr notice if the binary is unavailable.
  */
 internal fun buildAndroidShellInvocation(
     defaultHomeDir: String,
     startAsRoot: Boolean = false,
     workingDir: String? = null,
     shellBinary: String = "/system/bin/sh",
+    mkshrcPath: String? = null,
+    customShell: String? = null,
+    customPs1: String? = null,
+    colorPrompt: Boolean = false,
 ): Pair<String, Array<String>> {
     val targetDir = workingDir?.trim()?.takeIf { it.isNotEmpty() } ?: defaultHomeDir
     val escapedDir = targetDir.replace("'", "'\\''")
-    return if (!startAsRoot) {
-        val plainCmd = "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l"
-        shellBinary to arrayOf(shellBinary, "-c", plainCmd)
+    val trimmedCustom = customShell?.trim()?.takeIf { it.isNotEmpty() }
+    val trimmedMkshrc = mkshrcPath?.trim()?.takeIf { it.isNotEmpty() }
+
+    if (trimmedCustom == null && trimmedMkshrc == null) {
+        return if (!startAsRoot) {
+            val plainCmd = "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l"
+            shellBinary to arrayOf(shellBinary, "-c", plainCmd)
+        } else {
+            val escapedShell = shellBinary.replace("'", "'\\''")
+            val innerCmd = "cd '$escapedDir' 2>/dev/null; exec '$escapedShell' -l"
+            val suPayload = innerCmd.replace("'", "'\\''")
+            val rootScript = "if command -v su >/dev/null 2>&1; then exec su -c '$suPayload'; " +
+                "else echo '[haven] su not found on PATH; falling back to unprivileged shell' >&2; " +
+                "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l; fi"
+            shellBinary to arrayOf(shellBinary, "-c", rootScript)
+        }
+    }
+
+    val mkshEnvSetup = if (trimmedMkshrc != null) {
+        val qPath = shSingleQuote(trimmedMkshrc)
+        val fallbackContent = shSingleQuote(buildAndroidMkshrcContent(colorPrompt = colorPrompt, customPs1 = customPs1))
+        "if [ -r $qPath ]; then export ENV=$qPath; " +
+            "elif [ -d /data/local/tmp ]; then " +
+            "printf '%s' $fallbackContent > /data/local/tmp/.haven-mkshrc 2>/dev/null && export ENV=/data/local/tmp/.haven-mkshrc; fi; "
     } else {
-        val escapedShell = shellBinary.replace("'", "'\\''")
-        val innerCmd = "cd '$escapedDir' 2>/dev/null; exec '$escapedShell' -l"
-        val suPayload = innerCmd.replace("'", "'\\''")
+        ""
+    }
+
+    val escapedFallback = shellBinary.replace("'", "'\\''")
+    val launchStep = if (trimmedCustom == null) {
+        "${mkshEnvSetup}cd '$escapedDir' 2>/dev/null; exec '$escapedFallback' -l"
+    } else {
+        val qCustom = shSingleQuote(trimmedCustom)
+        val customNotice = shSingleQuote("[haven] Custom shell not found: $trimmedCustom; falling back to $shellBinary")
+        val nonMkshPs1 = customPs1?.takeIf { it.isNotEmpty() }
+            ?.let { "export PS1=${shSingleQuote(it)}; " }
+            .orEmpty()
+        "cd '$escapedDir' 2>/dev/null; " +
+            "_haven_sh=\$(command -v $qCustom 2>/dev/null || true); " +
+            "if [ -n \"\$_haven_sh\" ] && [ -x \"\$_haven_sh\" ]; then " +
+            "case \"\${_haven_sh##*/}\" in sh|mksh) $mkshEnvSetup;; *) unset ENV; $nonMkshPs1;; esac; " +
+            "export SHELL=\"\$_haven_sh\"; exec \"\$_haven_sh\" -l; " +
+            "else echo $customNotice >&2; ${mkshEnvSetup}export SHELL='$escapedFallback'; exec '$escapedFallback' -l; fi"
+    }
+
+    return if (!startAsRoot) {
+        shellBinary to arrayOf(shellBinary, "-c", launchStep)
+    } else {
+        val suPayload = launchStep.replace("'", "'\\''")
         val rootScript = "if command -v su >/dev/null 2>&1; then exec su -c '$suPayload'; " +
             "else echo '[haven] su not found on PATH; falling back to unprivileged shell' >&2; " +
-            "cd '$escapedDir' 2>/dev/null; exec $shellBinary -l; fi"
+            "$launchStep; fi"
         shellBinary to arrayOf(shellBinary, "-c", rootScript)
     }
 }
@@ -244,6 +349,9 @@ class LocalSessionManager @Inject constructor(
             else ConnectionProfile.LocalShellMode.PROOT,
         val localShellRoot: Boolean = false,
         val localWorkingDir: String? = null,
+        val localColorPrompt: Boolean = false,
+        val localCustomPs1: String? = null,
+        val localShellCommand: String? = null,
         /** Distro to open the proot shell in; null = the active distro. */
         val prootDistroId: String? = null,
         /**
@@ -281,6 +389,9 @@ class LocalSessionManager @Inject constructor(
             else ConnectionProfile.LocalShellMode.PROOT,
         localShellRoot: Boolean = false,
         localWorkingDir: String? = null,
+        localColorPrompt: Boolean = false,
+        localCustomPs1: String? = null,
+        localShellCommand: String? = null,
     ): String {
         // Reap any superseded dead shells for this profile before minting a
         // fresh one. A local shell never reconnects, so a DISCONNECTED entry is
@@ -301,6 +412,9 @@ class LocalSessionManager @Inject constructor(
                 localShellMode = localShellMode,
                 localShellRoot = localShellRoot,
                 localWorkingDir = localWorkingDir,
+                localColorPrompt = localColorPrompt,
+                localCustomPs1 = localCustomPs1,
+                localShellCommand = localShellCommand,
                 prootDistroId = prootDistroId,
                 desktopEnv = desktopEnv,
             ))
@@ -402,6 +516,9 @@ class LocalSessionManager @Inject constructor(
         distroId: String? = null,
         startAsRoot: Boolean = false,
         workingDir: String? = null,
+        colorPrompt: Boolean = false,
+        customPs1: String? = null,
+        customShell: String? = null,
     ): Triple<String, Array<String>, Array<String>> {
         val prootBinary = prootManager.prootBinary
         // A LOCAL profile may pin a specific distro; otherwise follow the
@@ -587,22 +704,42 @@ class LocalSessionManager @Inject constructor(
             )
             Triple(cmd, args, env)
         } else {
-            // Fallback / explicit Android shell (#270, #894)
+            // Fallback / explicit Android shell (#270, #894, #896, #897)
             val home = context.filesDir.absolutePath
+            val effectiveColorPrompt = useAndroidShell && colorPrompt
+            val effectiveCustomPs1 = if (useAndroidShell) customPs1 else null
+            val effectiveCustomShell = if (useAndroidShell) customShell else null
+            val mkshrcContent = buildAndroidMkshrcContent(
+                colorPrompt = effectiveColorPrompt,
+                customPs1 = effectiveCustomPs1,
+            )
+            val hashSuffix = Integer.toUnsignedString(mkshrcContent.hashCode(), 16)
+            val mkshrcFile = java.io.File(context.cacheDir, ".haven-mkshrc-$hashSuffix.sh")
+            val stagedMkshrcPath = runCatching {
+                context.cacheDir.mkdirs()
+                mkshrcFile.writeText(mkshrcContent)
+                mkshrcFile.setReadable(true, false)
+                mkshrcFile.absolutePath
+            }.getOrNull()
             val (cmd, args) = buildAndroidShellInvocation(
                 defaultHomeDir = home,
                 startAsRoot = useAndroidShell && startAsRoot,
                 workingDir = if (useAndroidShell) workingDir else null,
+                mkshrcPath = stagedMkshrcPath,
+                customShell = effectiveCustomShell,
+                customPs1 = effectiveCustomPs1,
+                colorPrompt = effectiveColorPrompt,
             )
-            val env = arrayOf(
-                "HOME=$home",
-                "TERM=xterm-256color",
-                "LANG=$terminalLocale",
-                "LC_ALL=$terminalLocale",
-                "PATH=${buildAndroidShellPath()}",
-                "SHELL=/system/bin/sh",
-                "TMPDIR=${context.cacheDir.absolutePath}",
-            )
+            val env = buildList {
+                add("HOME=$home")
+                add("TERM=xterm-256color")
+                add("LANG=$terminalLocale")
+                add("LC_ALL=$terminalLocale")
+                add("PATH=${buildAndroidShellPath()}")
+                add("SHELL=/system/bin/sh")
+                add("TMPDIR=${context.cacheDir.absolutePath}")
+                if (stagedMkshrcPath != null) add("ENV=$stagedMkshrcPath")
+            }.toTypedArray()
             Triple(cmd, args, env)
         }
     }
@@ -658,6 +795,9 @@ class LocalSessionManager @Inject constructor(
                 distroId = session.prootDistroId,
                 startAsRoot = session.localShellRoot,
                 workingDir = session.localWorkingDir,
+                colorPrompt = session.localColorPrompt,
+                customPs1 = session.localCustomPs1,
+                customShell = session.localShellCommand,
             )
         }
         // Join a running desktop session (#285): override DISPLAY / WAYLAND_DISPLAY

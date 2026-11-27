@@ -70,6 +70,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_93_94,
                 HavenDatabase.MIGRATION_94_95,
                 HavenDatabase.MIGRATION_95_96,
+                HavenDatabase.MIGRATION_96_97,
             )
             .build()
 
@@ -110,6 +111,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_93_94,
                 HavenDatabase.MIGRATION_94_95,
                 HavenDatabase.MIGRATION_95_96,
+                HavenDatabase.MIGRATION_96_97,
             )
             .build()
 
@@ -165,6 +167,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_93_94,
                 HavenDatabase.MIGRATION_94_95,
                 HavenDatabase.MIGRATION_95_96,
+                HavenDatabase.MIGRATION_96_97,
             )
             .build()
 
@@ -256,6 +259,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_93_94,
                 HavenDatabase.MIGRATION_94_95,
                 HavenDatabase.MIGRATION_95_96,
+                HavenDatabase.MIGRATION_96_97,
             )
             .build()
 
@@ -278,6 +282,7 @@ class HavenDatabaseMigrationTest {
                         "glkvmPort", "glkvmPassword", "glkvmTargetLayout",
                         "glkvmSshForward", "glkvmSshProfileId", "keyboardLayout",
                         "localShellMode", "localShellRoot", "localWorkingDir",
+                        "localColorPrompt", "localCustomPs1", "localShellCommand",
                         "rdpClipboard", "rdpAudioMode", "rdpSharedFolderUri",
                         "rdpLocation", "rdpCamera", "rdpMicrophone",
                     ),
@@ -306,6 +311,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_93_94,
                 HavenDatabase.MIGRATION_94_95,
                 HavenDatabase.MIGRATION_95_96,
+                HavenDatabase.MIGRATION_96_97,
             )
             .build()
 
@@ -363,6 +369,9 @@ class HavenDatabaseMigrationTest {
                 assertEquals(false, loadedDefault?.rdpMicrophone)
                 assertEquals(false, loadedDefault?.localShellRoot)
                 assertNull(loadedDefault?.localWorkingDir)
+                assertEquals(false, loadedDefault?.localColorPrompt)
+                assertNull(loadedDefault?.localCustomPs1)
+                assertNull(loadedDefault?.localShellCommand)
 
                 val rootLocal = sh.haven.core.data.db.entities.ConnectionProfile(
                     id = "local-root-894",
@@ -375,11 +384,17 @@ class HavenDatabaseMigrationTest {
                     localShellMode = "ANDROID_SHELL",
                     localShellRoot = true,
                     localWorkingDir = "/",
+                    localColorPrompt = true,
+                    localCustomPs1 = "[haven] # ",
+                    localShellCommand = "/data/adb/ksu/bin/zsh",
                 )
                 dao.upsert(rootLocal)
                 val loadedRootLocal = dao.getById("local-root-894")
                 assertEquals(true, loadedRootLocal?.localShellRoot)
                 assertEquals("/", loadedRootLocal?.localWorkingDir)
+                assertEquals(true, loadedRootLocal?.localColorPrompt)
+                assertEquals("[haven] # ", loadedRootLocal?.localCustomPs1)
+                assertEquals("/data/adb/ksu/bin/zsh", loadedRootLocal?.localShellCommand)
             }
         } finally {
             db.close()

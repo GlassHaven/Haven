@@ -2896,6 +2896,9 @@ class TerminalViewModel @Inject constructor(
                     localShellMode = shellMode,
                     localShellRoot = existingSession?.localShellRoot ?: profile?.localShellRoot ?: false,
                     localWorkingDir = existingSession?.localWorkingDir ?: profile?.localWorkingDir,
+                    localColorPrompt = existingSession?.localColorPrompt ?: profile?.localColorPrompt ?: false,
+                    localCustomPs1 = existingSession?.localCustomPs1 ?: profile?.localCustomPs1,
+                    localShellCommand = existingSession?.localShellCommand ?: profile?.localShellCommand,
                 )
                 if (plain) plainSessionIds.add(sessionId)
                 localSessionManager.connectSession(sessionId)

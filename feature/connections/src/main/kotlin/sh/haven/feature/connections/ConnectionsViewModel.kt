@@ -4187,6 +4187,9 @@ class ConnectionsViewModel @Inject constructor(
                 localShellMode = shellMode,
                 localShellRoot = profile.localShellRoot,
                 localWorkingDir = profile.localWorkingDir,
+                localColorPrompt = profile.localColorPrompt,
+                localCustomPs1 = profile.localCustomPs1,
+                localShellCommand = profile.localShellCommand,
             )
             try {
                 localSessionManager.connectSession(sessionId)
@@ -7380,6 +7383,9 @@ class ConnectionsViewModel @Inject constructor(
             localShellMode = shellMode,
             localShellRoot = profile.localShellRoot,
             localWorkingDir = profile.localWorkingDir,
+            localColorPrompt = profile.localColorPrompt,
+            localCustomPs1 = profile.localCustomPs1,
+            localShellCommand = profile.localShellCommand,
         )
         try {
             localSessionManager.connectSession(sessionId)

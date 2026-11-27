@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 96,
+    version = 97,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1465,6 +1465,15 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "localShellRoot", "INTEGER NOT NULL DEFAULT 0")
                 addColumnIfMissing(db, "connection_profiles", "localWorkingDir", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** #897: per-profile Android Shell color prompt, custom PS1, and custom shell executable. */
+        val MIGRATION_96_97 = object : Migration(96, 97) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "localColorPrompt", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "connection_profiles", "localCustomPs1", "TEXT DEFAULT NULL")
+                addColumnIfMissing(db, "connection_profiles", "localShellCommand", "TEXT DEFAULT NULL")
             }
         }
 

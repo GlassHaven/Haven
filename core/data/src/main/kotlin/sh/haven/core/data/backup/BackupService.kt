@@ -164,6 +164,9 @@ class BackupService @Inject constructor(
                 put("localShellMode", p.localShellMode ?: JSONObject.NULL)
                 put("localShellRoot", p.localShellRoot)
                 put("localWorkingDir", p.localWorkingDir ?: JSONObject.NULL)
+                put("localColorPrompt", p.localColorPrompt)
+                put("localCustomPs1", p.localCustomPs1 ?: JSONObject.NULL)
+                put("localShellCommand", p.localShellCommand ?: JSONObject.NULL)
                 put("forwardAgent", p.forwardAgent)
                 put("reticulumNetworkName", p.reticulumNetworkName ?: JSONObject.NULL)
                 put("reticulumPassphrase", p.reticulumPassphrase ?: JSONObject.NULL)
@@ -812,6 +815,9 @@ class BackupService @Inject constructor(
                             },
                             localShellRoot = c.optBoolean("localShellRoot", false),
                             localWorkingDir = c.optStringOrNull("localWorkingDir")?.trim()?.ifEmpty { null },
+                            localColorPrompt = c.optBoolean("localColorPrompt", false),
+                            localCustomPs1 = c.optStringOrNull("localCustomPs1")?.ifEmpty { null },
+                            localShellCommand = c.optStringOrNull("localShellCommand")?.trim()?.ifEmpty { null },
                             prootDistroId = c.optStringOrNull("prootDistroId"),
                             forwardAgent = c.optBoolean("forwardAgent", false),
                             addressFamily = c.optString("addressFamily", "AUTO"),

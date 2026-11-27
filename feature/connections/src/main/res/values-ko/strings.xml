@@ -647,4 +647,10 @@
     <string name="connections_helper_ssh_keepalive">유휴 세션이 라우터나 방화벽에서 끊어지지 않도록 주기적으로 SSH keepalive 메시지를 보냅니다.</string>
     <string name="connections_field_ssh_keepalive_interval">Keepalive 간격(초)</string>
     <string name="connections_helper_ssh_keepalive_interval">비워 두면 기본 15초가 적용되며, 초 단위로 직접 지정할 수도 있습니다(예: 60 또는 1).</string>
+    <string name="connections_toggle_local_color_prompt">컬러 프롬프트</string>
+    <string name="connections_helper_local_color_prompt">사용자, 호스트, 디렉터리, 0이 아닌 종료 상태를 포함한 컬러 mksh 프롬프트를 표시합니다.</string>
+    <string name="connections_field_local_custom_ps1">사용자 지정 프롬프트 (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">mksh용 선택적 PS1 값입니다. 비워 두면 기본 또는 컬러 프롬프트를 사용하며 ~/.mkshrc가 마지막에 실행됩니다.</string>
+    <string name="connections_field_local_shell_command">셸 실행 파일</string>
+    <string name="connections_helper_local_shell_command">선택적 셸 바이너리 경로 또는 이름(예: /data/local/tmp/bin/zsh). 찾을 수 없으면 /system/bin/sh로 대체됩니다.</string>
 </resources>

@@ -1272,6 +1272,9 @@ class BackupServiceTest {
             localShellMode = "SHIZUKU",
             localShellRoot = true,
             localWorkingDir = "/",
+            localColorPrompt = true,
+            localCustomPs1 = "\\u@\\h:\\w\\$ ",
+            localShellCommand = "/data/adb/ksu/bin/zsh",
             prootDistroId = "debian-trixie",
             moshServerCommand = "/usr/local/bin/mosh-server new -s",
             forwardAgent = true,
@@ -1313,7 +1316,7 @@ class BackupServiceTest {
         val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
         val persistedFields = ConnectionProfile::class.java.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
-        assertEquals(124, persistedFields.size)
+        assertEquals(127, persistedFields.size)
         for (field in persistedFields) {
             field.isAccessible = true
             org.junit.Assert.assertNotEquals(

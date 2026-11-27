@@ -441,6 +441,9 @@ fun ConnectionEditDialog(
     val isProotShell = localShellMode == "PROOT"
     var localShellRoot by rememberSaveable { mutableStateOf(existing?.localShellRoot ?: false) }
     var localWorkingDir by rememberSaveable { mutableStateOf(existing?.localWorkingDir ?: "") }
+    var localColorPrompt by rememberSaveable { mutableStateOf(existing?.localColorPrompt ?: false) }
+    var localCustomPs1 by rememberSaveable { mutableStateOf(existing?.localCustomPs1 ?: "") }
+    var localShellCommand by rememberSaveable { mutableStateOf(existing?.localShellCommand ?: "") }
     // null = follow the active distro (the default). Set to a distro id to
     // pin this LOCAL profile to a specific OS. (#per-distro-local)
     var prootDistroId by rememberSaveable { mutableStateOf(existing?.prootDistroId) }
@@ -1440,6 +1443,33 @@ fun ConnectionEditDialog(
                             label = { Text(stringResource(R.string.connections_field_local_working_dir)) },
                             placeholder = { Text(if (localShellRoot) "/" else "~") },
                             supportingText = { Text(stringResource(R.string.connections_helper_local_working_dir)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        BooleanToggleRow(
+                            label = stringResource(R.string.connections_toggle_local_color_prompt),
+                            checked = localColorPrompt,
+                            onCheckedChange = { localColorPrompt = it },
+                            description = stringResource(R.string.connections_helper_local_color_prompt),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = localCustomPs1,
+                            onValueChange = { localCustomPs1 = it },
+                            label = { Text(stringResource(R.string.connections_field_local_custom_ps1)) },
+                            placeholder = { Text("u0_a123@android:/ $ ") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_local_custom_ps1)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = localShellCommand,
+                            onValueChange = { localShellCommand = it },
+                            label = { Text(stringResource(R.string.connections_field_local_shell_command)) },
+                            placeholder = { Text("/system/bin/sh") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_local_shell_command)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -4234,6 +4264,9 @@ fun ConnectionEditDialog(
                                 localShellMode = localShellMode,
                                 localShellRoot = useAndroidShell && localShellRoot,
                                 localWorkingDir = if (useAndroidShell) localWorkingDir.trim().ifBlank { null } else null,
+                                localColorPrompt = useAndroidShell && localColorPrompt,
+                                localCustomPs1 = if (useAndroidShell) localCustomPs1.ifBlank { null } else null,
+                                localShellCommand = if (useAndroidShell) localShellCommand.trim().ifBlank { null } else null,
                                 prootDistroId = if (isProotShell) prootDistroId else null,
                                 colorTag = colorTag,
                                 groupId = groupId,
@@ -4676,6 +4709,9 @@ fun ConnectionEditDialog(
                                 localShellMode = localShellMode,
                                 localShellRoot = useAndroidShell && localShellRoot,
                                 localWorkingDir = if (useAndroidShell) localWorkingDir.trim().ifBlank { null } else null,
+                                localColorPrompt = useAndroidShell && localColorPrompt,
+                                localCustomPs1 = if (useAndroidShell) localCustomPs1.ifBlank { null } else null,
+                                localShellCommand = if (useAndroidShell) localShellCommand.trim().ifBlank { null } else null,
                                 prootDistroId = if (isProotShell) prootDistroId else null,
                                 forwardAgent = forwardAgent,
                                 addressFamily = addressFamily,

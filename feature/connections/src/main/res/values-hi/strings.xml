@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">निष्क्रिय सत्रों को राउटर या फ़ायरवॉल द्वारा बंद होने से बचाने के लिए समय-समय पर SSH कीपअलाइव संदेश भेजें।</string>
     <string name="connections_field_ssh_keepalive_interval">कीपअलाइव अंतराल (सेकंड)</string>
     <string name="connections_helper_ssh_keepalive_interval">15-सेकंड डिफ़ॉल्ट के लिए खाली छोड़ें, या सेकंड में कस्टम अंतराल दर्ज करें (जैसे 60 या 1)।</string>
+    <string name="connections_toggle_local_color_prompt">रंगीन प्रॉम्प्ट</string>
+    <string name="connections_helper_local_color_prompt">उपयोगकर्ता, होस्ट, निर्देशिका और गैर-शून्य एग्ज़िट स्थिति के साथ रंगीन mksh प्रॉम्प्ट दिखाएँ।</string>
+    <string name="connections_field_local_custom_ps1">कस्टम प्रॉम्प्ट (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">mksh के लिए वैकल्पिक PS1। डिफ़ॉल्ट या रंगीन प्रॉम्प्ट के लिए खाली छोड़ें; ~/.mkshrc सबसे अंत में चलता है।</string>
+    <string name="connections_field_local_shell_command">शेल निष्पादन योग्य</string>
+    <string name="connections_helper_local_shell_command">वैकल्पिक शेल बाइनरी पथ या नाम (जैसे /data/local/tmp/bin/zsh)। न मिलने पर /system/bin/sh का उपयोग करता है।</string>
 </resources>

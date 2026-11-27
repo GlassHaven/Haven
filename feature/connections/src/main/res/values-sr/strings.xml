@@ -592,5 +592,11 @@
     <string name="connections_helper_ssh_keepalive">Повремено шаље SSH keepalive поруке како неактивне сесије не би биле прекинуте од стране рутера или заштитног зида.</string>
     <string name="connections_field_ssh_keepalive_interval">Keepalive интервал (секунде)</string>
     <string name="connections_helper_ssh_keepalive_interval">Оставите празно за подразумеваних 15 секунди или унесите интервал у секундама (нпр. 60 или 1).</string>
+    <string name="connections_toggle_local_color_prompt">Промпт у боји</string>
+    <string name="connections_helper_local_color_prompt">Приказује mksh промпт у боји са корисником, хостом, директоријумом и ненултим статусом излаза.</string>
+    <string name="connections_field_local_custom_ps1">Прилагођени промпт (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">Опциони PS1 за mksh. Оставите празно за подразумевани или обојени промпт; ~/.mkshrc се учитава последњи.</string>
+    <string name="connections_field_local_shell_command">Извршни фајл шкољке</string>
+    <string name="connections_helper_local_shell_command">Опциона путања или име бинарног фајла шкољке (нпр. /data/local/tmp/bin/zsh). Враћа се на /system/bin/sh ако није пронађен.</string>
 </resources>
 

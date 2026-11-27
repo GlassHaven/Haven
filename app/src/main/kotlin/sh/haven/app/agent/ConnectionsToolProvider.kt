@@ -152,6 +152,9 @@ internal class ConnectionsToolProvider(
                 string("localShellMode", "LOCAL only (#837): \"PROOT\" (default), \"ANDROID_SHELL\", or \"SHIZUKU\".")
                 boolean("localShellRoot", "LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`. Default false.")
                 string("localWorkingDir", "LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. \"/\"). Omit for the default app home directory.")
+                boolean("localColorPrompt", "LOCAL/ANDROID_SHELL only (#897): enable a colored mksh prompt showing user@host, working directory, and last non-zero exit code. Default false.")
+                string("localCustomPs1", "LOCAL/ANDROID_SHELL only (#897): custom PS1 string for mksh (overrides localColorPrompt unless ~/.mkshrc sets PS1).")
+                string("localShellCommand", "LOCAL/ANDROID_SHELL only (#897): custom shell executable path (e.g. \"/data/local/tmp/bin/zsh\"), falling back to /system/bin/sh -l if missing.")
                 string("prootDistroId", "LOCAL/PROOT only: installed distro id to pin to (omit for active distro).")
                 integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.")
                 string("username", "Username for SSH/SMB.")
@@ -273,6 +276,9 @@ internal class ConnectionsToolProvider(
                 string("localShellMode", "LOCAL only (#837): \"PROOT\", \"ANDROID_SHELL\", or \"SHIZUKU\".")
                 boolean("localShellRoot", "LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`.")
                 string("localWorkingDir", "LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. \"/\"; empty string clears back to default).")
+                boolean("localColorPrompt", "LOCAL/ANDROID_SHELL only (#897): enable colored mksh prompt.")
+                string("localCustomPs1", "LOCAL/ANDROID_SHELL only (#897): custom PS1 string (empty string clears).")
+                string("localShellCommand", "LOCAL/ANDROID_SHELL only (#897): custom shell executable path (empty string clears back to /system/bin/sh).")
                 string("prootDistroId", "LOCAL/PROOT only: distro id to pin to (empty string clears back to active distro).")
                 integer("serverAliveIntervalSeconds", "SSH only (#895): keepalive interval in seconds (`ServerAliveInterval`). 0 disables keepalives; -1 clears any override back to Haven's 15-second default.")
             },
@@ -520,6 +526,9 @@ internal class ConnectionsToolProvider(
             put("localShellMode", p.resolvedLocalShellMode.name)
             if (p.localShellRoot) put("localShellRoot", true)
             if (!p.localWorkingDir.isNullOrBlank()) put("localWorkingDir", p.localWorkingDir)
+            if (p.localColorPrompt) put("localColorPrompt", true)
+            if (!p.localCustomPs1.isNullOrBlank()) put("localCustomPs1", p.localCustomPs1)
+            if (!p.localShellCommand.isNullOrBlank()) put("localShellCommand", p.localShellCommand)
             if (!p.prootDistroId.isNullOrBlank()) {
                 put("prootDistroId", p.prootDistroId)
             }
@@ -1031,6 +1040,21 @@ internal class ConnectionsToolProvider(
             } else {
                 existing.localWorkingDir
             },
+            localColorPrompt = if (existing.connectionType == "LOCAL") {
+                bool("localColorPrompt", existing.localColorPrompt)
+            } else {
+                existing.localColorPrompt
+            },
+            localCustomPs1 = if (existing.connectionType == "LOCAL") {
+                if (args.has("localCustomPs1")) args.optString("localCustomPs1").ifBlank { null } else existing.localCustomPs1
+            } else {
+                existing.localCustomPs1
+            },
+            localShellCommand = if (existing.connectionType == "LOCAL") {
+                if (args.has("localShellCommand")) args.optString("localShellCommand").trim().ifBlank { null } else existing.localShellCommand
+            } else {
+                existing.localShellCommand
+            },
         ).let { draft ->
             if (existing.connectionType == "SSH" && args.has("serverAliveIntervalSeconds")) {
                 val sec = args.optInt("serverAliveIntervalSeconds", -1)
@@ -1165,6 +1189,18 @@ internal class ConnectionsToolProvider(
                         args.optBoolean("localShellRoot", false),
                     localWorkingDir = if (shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL) {
                         args.optString("localWorkingDir").trim().ifBlank { null }
+                    } else {
+                        null
+                    },
+                    localColorPrompt = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL &&
+                        args.optBoolean("localColorPrompt", false),
+                    localCustomPs1 = if (shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL) {
+                        args.optString("localCustomPs1").ifBlank { null }
+                    } else {
+                        null
+                    },
+                    localShellCommand = if (shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL) {
+                        args.optString("localShellCommand").trim().ifBlank { null }
                     } else {
                         null
                     },

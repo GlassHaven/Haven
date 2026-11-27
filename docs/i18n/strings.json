@@ -22579,6 +22579,126 @@
       "sr": "Оставите празно за подразумеваних 15 секунди или унесите интервал у секундама (нпр. 60 или 1).",
       "zh": "留空使用默认 15 秒，也可按秒设置自定义间隔（例如 60 或 1）。"
      }
+    },
+    {
+     "name": "connections_toggle_local_color_prompt",
+     "en": "Color prompt",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "موجه أوامر ملون",
+      "bn": "রঙিন প্রম্পট",
+      "de": "Farbiger Prompt",
+      "es": "Prompt en color",
+      "fr": "Invite colorée",
+      "hi": "रंगीन प्रॉम्प्ट",
+      "ja": "カラープロンプト",
+      "ko": "컬러 프롬프트",
+      "pt": "Prompt colorido",
+      "ru": "Цветное приглашение",
+      "sr": "Промпт у боји",
+      "zh": "彩色提示符"
+     }
+    },
+    {
+     "name": "connections_helper_local_color_prompt",
+     "en": "Show a colored mksh prompt with user, host, directory, and non-zero exit status.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "عرض موجه mksh ملون يتضمن المستخدم والمضيف والمجلد وحالة الخروج غير الصفرية.",
+      "bn": "ব্যবহারকারী, হোস্ট, ডিরেক্টরি এবং অ-শূন্য প্রস্থান কোডসহ রঙিন mksh প্রম্পট দেখান।",
+      "de": "Zeigt einen farbigen mksh-Prompt mit Benutzer, Host, Verzeichnis und Exit-Status ungleich null.",
+      "es": "Muestra un prompt de mksh en color con usuario, host, directorio y código de salida distinto de cero.",
+      "fr": "Affiche une invite mksh colorée avec l\\'utilisateur, l\\'hôte, le répertoire et le code de sortie non nul.",
+      "hi": "उपयोगकर्ता, होस्ट, निर्देशिका और गैर-शून्य एग्ज़िट स्थिति के साथ रंगीन mksh प्रॉम्प्ट दिखाएँ।",
+      "ja": "ユーザー名、ホスト名、ディレクトリ、非ゼロの終了コードを含むカラー mksh プロンプトを表示します。",
+      "ko": "사용자, 호스트, 디렉터리, 0이 아닌 종료 상태를 포함한 컬러 mksh 프롬프트를 표시합니다.",
+      "pt": "Exibe um prompt colorido do mksh com usuário, host, diretório e código de saída diferente de zero.",
+      "ru": "Показывать цветное приглашение mksh с пользователем, хостом, каталогом и ненулевым кодом возврата.",
+      "sr": "Приказује mksh промпт у боји са корисником, хостом, директоријумом и ненултим статусом излаза.",
+      "zh": "显示包含用户、主机、目录和非零退出码的彩色 mksh 提示符。"
+     }
+    },
+    {
+     "name": "connections_field_local_custom_ps1",
+     "en": "Custom prompt (PS1)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "موجه أوامر مخصص (PS1)",
+      "bn": "কাস্টম প্রম্পট (PS1)",
+      "de": "Eigener Prompt (PS1)",
+      "es": "Prompt personalizado (PS1)",
+      "fr": "Invite personnalisée (PS1)",
+      "hi": "कस्टम प्रॉम्प्ट (PS1)",
+      "ja": "カスタムプロンプト (PS1)",
+      "ko": "사용자 지정 프롬프트 (PS1)",
+      "pt": "Prompt personalizado (PS1)",
+      "ru": "Своё приглашение (PS1)",
+      "sr": "Прилагођени промпт (PS1)",
+      "zh": "自定义提示符 (PS1)"
+     }
+    },
+    {
+     "name": "connections_helper_local_custom_ps1",
+     "en": "Optional PS1 override for mksh. Leave blank for the default or colored prompt; ~/.mkshrc runs last.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تجاوز اختياري لمتغير PS1 في mksh. اتركه فارغًا لاستخدام الموجه الافتراضي أو الملون؛ يتم تنفيذ ~/.mkshrc أخيرًا.",
+      "bn": "mksh-এর জন্য ঐচ্ছিক PS1 মান। ডিফল্ট বা রঙিন প্রম্পটের জন্য খালি রাখুন; ~/.mkshrc শেষে লোড হয়।",
+      "de": "Optionales PS1 für mksh. Leer lassen für Standard- oder Farb-Prompt; ~/.mkshrc wird zuletzt geladen.",
+      "es": "PS1 opcional para mksh. Déjalo en blanco para el prompt predeterminado o en color; ~/.mkshrc se carga al final.",
+      "fr": "PS1 facultatif pour mksh. Laisser vide pour l\\'invite par défaut ou colorée ; ~/.mkshrc est chargé en dernier.",
+      "hi": "mksh के लिए वैकल्पिक PS1। डिफ़ॉल्ट या रंगीन प्रॉम्प्ट के लिए खाली छोड़ें; ~/.mkshrc सबसे अंत में चलता है।",
+      "ja": "mksh 用の任意の PS1 設定です。空欄の場合はデフォルトまたはカラープロンプトを使用し、~/.mkshrc が最後に読み込まれます。",
+      "ko": "mksh용 선택적 PS1 값입니다. 비워 두면 기본 또는 컬러 프롬프트를 사용하며 ~/.mkshrc가 마지막에 실행됩니다.",
+      "pt": "PS1 opcional para mksh. Deixe em branco para o prompt padrão ou colorido; ~/.mkshrc é carregado por último.",
+      "ru": "Необязательный PS1 для mksh. Оставьте пустым для стандартного или цветного приглашения; ~/.mkshrc загружается последним.",
+      "sr": "Опциони PS1 за mksh. Оставите празно за подразумевани или обојени промпт; ~/.mkshrc се учитава последњи.",
+      "zh": "可选 mksh PS1 覆盖值。留空则使用默认或彩色提示符；~/.mkshrc 最后加载。"
+     }
+    },
+    {
+     "name": "connections_field_local_shell_command",
+     "en": "Shell executable",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "ملف الصدفة التنفيذي",
+      "bn": "শেল এক্সিকিউটেবল",
+      "de": "Shell-Programm",
+      "es": "Ejecutable del shell",
+      "fr": "Exécutable du shell",
+      "hi": "शेल निष्पादन योग्य",
+      "ja": "シェル実行ファイル",
+      "ko": "셸 실행 파일",
+      "pt": "Executável do shell",
+      "ru": "Исполняемый файл оболочки",
+      "sr": "Извршни фајл шкољке",
+      "zh": "Shell 可执行文件"
+     }
+    },
+    {
+     "name": "connections_helper_local_shell_command",
+     "en": "Optional shell binary path or name (such as /data/local/tmp/bin/zsh). Falls back to /system/bin/sh if not found.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مسار أو اسم صدفة اختياري (مثل /data/local/tmp/bin/zsh). يعود تلقائيًا إلى /system/bin/sh إذا لم يُعثر عليه.",
+      "bn": "ঐচ্ছিক শেল বাইনারি পাথ বা নাম (যেমন /data/local/tmp/bin/zsh)। না পাওয়া গেলে /system/bin/sh ব্যবহার করে।",
+      "de": "Optionaler Pfad oder Name einer Shell (z. B. /data/local/tmp/bin/zsh). Fällt auf /system/bin/sh zurück, falls nicht vorhanden.",
+      "es": "Ruta o nombre opcional del binario del shell (como /data/local/tmp/bin/zsh). Usa /system/bin/sh si no se encuentra.",
+      "fr": "Chemin ou nom facultatif du binaire shell (par ex. /data/local/tmp/bin/zsh). Revient à /system/bin/sh s\\'il est introuvable.",
+      "hi": "वैकल्पिक शेल बाइनरी पथ या नाम (जैसे /data/local/tmp/bin/zsh)। न मिलने पर /system/bin/sh का उपयोग करता है।",
+      "ja": "任意のシェルバイナリのパスまたは名前（例: /data/local/tmp/bin/zsh）。見つからない場合は /system/bin/sh にフォールバックします。",
+      "ko": "선택적 셸 바이너리 경로 또는 이름(예: /data/local/tmp/bin/zsh). 찾을 수 없으면 /system/bin/sh로 대체됩니다.",
+      "pt": "Caminho ou nome opcional do binário do shell (como /data/local/tmp/bin/zsh). Usa /system/bin/sh se não for encontrado.",
+      "ru": "Необязательный путь или имя оболочки (например, /data/local/tmp/bin/zsh). При отсутствии используется /system/bin/sh.",
+      "sr": "Опциона путања или име бинарног фајла шкољке (нпр. /data/local/tmp/bin/zsh). Враћа се на /system/bin/sh ако није пронађен.",
+      "zh": "可选 shell 二进制路径或名称（例如 /data/local/tmp/bin/zsh）。未找到时回退到 /system/bin/sh。"
+     }
     }
    ]
   },

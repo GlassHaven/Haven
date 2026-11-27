@@ -653,4 +653,10 @@
     <string name="connections_helper_ssh_keepalive">定期发送 SSH 保活消息，防止空闲连接被路由器或防火墙断开。</string>
     <string name="connections_field_ssh_keepalive_interval">保活间隔（秒）</string>
     <string name="connections_helper_ssh_keepalive_interval">留空使用默认 15 秒，也可按秒设置自定义间隔（例如 60 或 1）。</string>
+    <string name="connections_toggle_local_color_prompt">彩色提示符</string>
+    <string name="connections_helper_local_color_prompt">显示包含用户、主机、目录和非零退出码的彩色 mksh 提示符。</string>
+    <string name="connections_field_local_custom_ps1">自定义提示符 (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">可选 mksh PS1 覆盖值。留空则使用默认或彩色提示符；~/.mkshrc 最后加载。</string>
+    <string name="connections_field_local_shell_command">Shell 可执行文件</string>
+    <string name="connections_helper_local_shell_command">可选 shell 二进制路径或名称（例如 /data/local/tmp/bin/zsh）。未找到时回退到 /system/bin/sh。</string>
 </resources>

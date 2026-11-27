@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">Envía mensajes keepalive periódicos de SSH para evitar cierres por inactividad en routers NAT o cortafuegos.</string>
     <string name="connections_field_ssh_keepalive_interval">Intervalo de keepalive (segundos)</string>
     <string name="connections_helper_ssh_keepalive_interval">Déjalo en blanco para usar los 15 segundos predeterminados o indica un intervalo en segundos (como 60 o 1).</string>
+    <string name="connections_toggle_local_color_prompt">Prompt en color</string>
+    <string name="connections_helper_local_color_prompt">Muestra un prompt de mksh en color con usuario, host, directorio y código de salida distinto de cero.</string>
+    <string name="connections_field_local_custom_ps1">Prompt personalizado (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">PS1 opcional para mksh. Déjalo en blanco para el prompt predeterminado o en color; ~/.mkshrc se carga al final.</string>
+    <string name="connections_field_local_shell_command">Ejecutable del shell</string>
+    <string name="connections_helper_local_shell_command">Ruta o nombre opcional del binario del shell (como /data/local/tmp/bin/zsh). Usa /system/bin/sh si no se encuentra.</string>
 </resources>

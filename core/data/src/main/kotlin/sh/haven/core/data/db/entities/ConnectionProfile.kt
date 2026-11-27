@@ -290,6 +290,24 @@ data class ConnectionProfile @Ignore constructor(
      */
     val localWorkingDir: String? = null,
     /**
+     * Opt-in colorized `mksh` prompt for `ANDROID_SHELL` `LOCAL` profiles (#897).
+     * Off by default so existing profiles retain Android's `/system/etc/mkshrc` prompt.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val localColorPrompt: Boolean = false,
+    /**
+     * Optional custom `PS1` prompt override for `ANDROID_SHELL` `LOCAL` profiles (#897).
+     * Null/blank uses either the colorized prompt (when [localColorPrompt] is true) or
+     * `/system/etc/mkshrc`.
+     */
+    val localCustomPs1: String? = null,
+    /**
+     * Optional custom shell executable path or name for `ANDROID_SHELL` `LOCAL` profiles
+     * (#897), e.g. `"/data/adb/ksu/bin/zsh"` or `"/data/local/tmp/zsh"`. Null/blank keeps
+     * `"/system/bin/sh"`.
+     */
+    val localShellCommand: String? = null,
+    /**
      * For LOCAL profiles: open the proot shell directly in this distro
      * (e.g. `debian-bookworm`, `alpine-3.21`) instead of the global active
      * distro. Null = follow the active distro (the original behaviour, so
@@ -588,6 +606,9 @@ data class ConnectionProfile @Ignore constructor(
         localShellMode: String?,
         localShellRoot: Boolean,
         localWorkingDir: String?,
+        localColorPrompt: Boolean,
+        localCustomPs1: String?,
+        localShellCommand: String?,
         prootDistroId: String?,
         moshServerCommand: String?,
         forwardAgent: Boolean,
@@ -713,6 +734,9 @@ data class ConnectionProfile @Ignore constructor(
         localShellMode = localShellMode,
         localShellRoot = localShellRoot,
         localWorkingDir = localWorkingDir,
+        localColorPrompt = localColorPrompt,
+        localCustomPs1 = localCustomPs1,
+        localShellCommand = localShellCommand,
         prootDistroId = prootDistroId,
         moshServerCommand = moshServerCommand,
         forwardAgent = forwardAgent,

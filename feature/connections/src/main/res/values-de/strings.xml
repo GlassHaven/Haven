@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">Sendet regelmäßig SSH-Keepalive-Nachrichten, damit inaktive Sitzungen nicht durch NAT-Router oder Firewalls getrennt werden.</string>
     <string name="connections_field_ssh_keepalive_interval">Keepalive-Intervall (Sekunden)</string>
     <string name="connections_helper_ssh_keepalive_interval">Leer lassen für den 15-Sekunden-Standard oder ein eigenes Intervall in Sekunden angeben (z. B. 60 oder 1).</string>
+    <string name="connections_toggle_local_color_prompt">Farbiger Prompt</string>
+    <string name="connections_helper_local_color_prompt">Zeigt einen farbigen mksh-Prompt mit Benutzer, Host, Verzeichnis und Exit-Status ungleich null.</string>
+    <string name="connections_field_local_custom_ps1">Eigener Prompt (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">Optionales PS1 für mksh. Leer lassen für Standard- oder Farb-Prompt; ~/.mkshrc wird zuletzt geladen.</string>
+    <string name="connections_field_local_shell_command">Shell-Programm</string>
+    <string name="connections_helper_local_shell_command">Optionaler Pfad oder Name einer Shell (z. B. /data/local/tmp/bin/zsh). Fällt auf /system/bin/sh zurück, falls nicht vorhanden.</string>
 </resources>

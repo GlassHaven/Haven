@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">নিষ্ক্রিয় সেশন যাতে রাউটার বা ফায়ারওয়াল বিচ্ছিন্ন না করে সেজন্য নিয়মিত SSH কিপঅ্যালাইভ পাঠান।</string>
     <string name="connections_field_ssh_keepalive_interval">কিপঅ্যালাইভ বিরতি (সেকেন্ড)</string>
     <string name="connections_helper_ssh_keepalive_interval">১৫-সেকেন্ডের ডিফল্ট রাখতে খালি রাখুন, অথবা সেকেন্ডে কাস্টম বিরতি দিন (যেমন 60 বা 1)।</string>
+    <string name="connections_toggle_local_color_prompt">রঙিন প্রম্পট</string>
+    <string name="connections_helper_local_color_prompt">ব্যবহারকারী, হোস্ট, ডিরেক্টরি এবং অ-শূন্য প্রস্থান কোডসহ রঙিন mksh প্রম্পট দেখান।</string>
+    <string name="connections_field_local_custom_ps1">কাস্টম প্রম্পট (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">mksh-এর জন্য ঐচ্ছিক PS1 মান। ডিফল্ট বা রঙিন প্রম্পটের জন্য খালি রাখুন; ~/.mkshrc শেষে লোড হয়।</string>
+    <string name="connections_field_local_shell_command">শেল এক্সিকিউটেবল</string>
+    <string name="connections_helper_local_shell_command">ঐচ্ছিক শেল বাইনারি পাথ বা নাম (যেমন /data/local/tmp/bin/zsh)। না পাওয়া গেলে /system/bin/sh ব্যবহার করে।</string>
 </resources>

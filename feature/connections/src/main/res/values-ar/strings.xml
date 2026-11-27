@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">إرسال رسائل إبقاء اتصال SSH دوريًا لمنع قطع الجلسات الخاملة بواسطة الموجهات أو جدران الحماية.</string>
     <string name="connections_field_ssh_keepalive_interval">فاصل إبقاء الاتصال (ثوانٍ)</string>
     <string name="connections_helper_ssh_keepalive_interval">اتركه فارغًا لاستخدام القيمة الافتراضية (15 ثانية)، أو حدد فاصلًا مخصصًا بالثواني (مثل 60 أو 1).</string>
+    <string name="connections_toggle_local_color_prompt">موجه أوامر ملون</string>
+    <string name="connections_helper_local_color_prompt">عرض موجه mksh ملون يتضمن المستخدم والمضيف والمجلد وحالة الخروج غير الصفرية.</string>
+    <string name="connections_field_local_custom_ps1">موجه أوامر مخصص (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">تجاوز اختياري لمتغير PS1 في mksh. اتركه فارغًا لاستخدام الموجه الافتراضي أو الملون؛ يتم تنفيذ ~/.mkshrc أخيرًا.</string>
+    <string name="connections_field_local_shell_command">ملف الصدفة التنفيذي</string>
+    <string name="connections_helper_local_shell_command">مسار أو اسم صدفة اختياري (مثل /data/local/tmp/bin/zsh). يعود تلقائيًا إلى /system/bin/sh إذا لم يُعثر عليه.</string>
 </resources>

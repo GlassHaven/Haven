@@ -238,6 +238,9 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `ignoreSavedKeys` (boolean) — SSH-family only: when true, authenticate with password (and keyboard-interactive) only — saved keystore keys are never offered to the server. Lets a profile target a password-only server without the auto-key-offer suppressing the password prompt (#121). Default false.
 - `keyId` (string) — SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.
 - `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag matching the guest OS layout (e.g. "en-US", "en-GB", "de-DE", "de-CH", "fr-FR", "fr-BE", "fr-CH", "es-ES", "es-419", "it-IT", "pt-PT", "pt-BR", "sv-SE", "pl-PL"). Omit for device locale.
+- `localColorPrompt` (boolean) — LOCAL/ANDROID_SHELL only (#897): enable a colored mksh prompt showing user@host, working directory, and last non-zero exit code. Default false.
+- `localCustomPs1` (string) — LOCAL/ANDROID_SHELL only (#897): custom PS1 string for mksh (overrides localColorPrompt unless ~/.mkshrc sets PS1).
+- `localShellCommand` (string) — LOCAL/ANDROID_SHELL only (#897): custom shell executable path (e.g. "/data/local/tmp/bin/zsh"), falling back to /system/bin/sh -l if missing.
 - `localShellMode` (string) — LOCAL only (#837): "PROOT" (default), "ANDROID_SHELL", or "SHIZUKU".
 - `localShellRoot` (boolean) — LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`. Default false.
 - `localWorkingDir` (string) — LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. "/"). Omit for the default app home directory.
@@ -383,6 +386,9 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `keyId` (string) — SSH only: id of a saved key (list_ssh_keys). Empty string clears.
 - `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag (e.g. "es-ES", "en-US", "de-DE", "fr-FR"). Empty string clears (reverts to device locale).
 - `label` (string) — New user-facing label.
+- `localColorPrompt` (boolean) — LOCAL/ANDROID_SHELL only (#897): enable colored mksh prompt.
+- `localCustomPs1` (string) — LOCAL/ANDROID_SHELL only (#897): custom PS1 string (empty string clears).
+- `localShellCommand` (string) — LOCAL/ANDROID_SHELL only (#897): custom shell executable path (empty string clears back to /system/bin/sh).
 - `localShellMode` (string) — LOCAL only (#837): "PROOT", "ANDROID_SHELL", or "SHIZUKU".
 - `localShellRoot` (boolean) — LOCAL/ANDROID_SHELL only (#894): opt-in root shell via `su`.
 - `localWorkingDir` (string) — LOCAL/ANDROID_SHELL only (#894): initial working directory (e.g. "/"; empty string clears back to default).

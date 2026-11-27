@@ -5242,16 +5242,12 @@ class McpTools private constructor(
                 .firstOrNull { it.status == LocalSessionManager.SessionState.Status.CONNECTED }
         } else null
         val sessionId = alive?.sessionId ?: run {
-            // Leave status as CONNECTING until terminalSessionRegistry has its
-            // headless handles installed and startHeadlessShell transitions to
-            // CONNECTED + attaches the LocalSession atomically under
-            // sessionAttachLock (#555). Calling connectSession before the
-            // preference reads below exposed isReadyForTerminal == true while
-            // suspended, letting TerminalViewModel.syncSessions race ahead and
-            // fork a second PTY.
+            // Keep CONNECTING until headless handles are installed and
+            // startHeadlessShell attaches atomically under sessionAttachLock (#555).
             localSessionManager.registerSession(
                 profile.id, profile.label, shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL, profile.prootDistroId,
                 desktopEnv = desktopEnv, localShellMode = shellMode, localShellRoot = profile.localShellRoot, localWorkingDir = profile.localWorkingDir,
+                localColorPrompt = profile.localColorPrompt, localCustomPs1 = profile.localCustomPs1, localShellCommand = profile.localShellCommand,
             )
         }
         // Spin up the PTY without a UI tab on top so the agent can

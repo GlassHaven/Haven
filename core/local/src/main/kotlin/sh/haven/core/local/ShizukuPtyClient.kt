@@ -20,6 +20,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "ShizukuPtyClient"
+private const val SHIZUKU_MKSHRC_PATH = "/data/local/tmp/.haven-shizuku-mkshrc"
+
+internal fun buildShizukuShellStartupScript(): String {
+    val mkshrcPayload = "'" + buildAndroidMkshrcContent(colorPrompt = false).replace("'", "'\\''") + "'"
+    return "if [ -d /data/local/tmp ]; then " +
+        "printf '%s' $mkshrcPayload > $SHIZUKU_MKSHRC_PATH 2>/dev/null && export ENV=$SHIZUKU_MKSHRC_PATH; " +
+        "fi; cd /data/local/tmp 2>/dev/null || cd /; exec /system/bin/sh -l"
+}
 
 class ShizukuUnavailableException(message: String) : IllegalStateException(message)
 class ShizukuPermissionDeniedException(message: String) : IllegalStateException(message)
@@ -126,7 +134,7 @@ class ShizukuPtyClient @Inject constructor(
             sh to arrayOf(
                 sh,
                 "-c",
-                "cd /data/local/tmp 2>/dev/null || cd /; exec /system/bin/sh -l",
+                buildShizukuShellStartupScript(),
             )
         } else {
             sh to (listOf(sh) + extraArgs).toTypedArray()

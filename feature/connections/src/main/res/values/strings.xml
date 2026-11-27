@@ -691,4 +691,10 @@
     <string name="connections_helper_ssh_keepalive">Send periodic SSH keepalive messages so idle sessions are not dropped by NAT routers or firewalls.</string>
     <string name="connections_field_ssh_keepalive_interval">Keepalive interval (seconds)</string>
     <string name="connections_helper_ssh_keepalive_interval">Leave blank for the 15-second default, or set a custom interval in seconds (such as 60 or 1).</string>
+    <string name="connections_toggle_local_color_prompt">Color prompt</string>
+    <string name="connections_helper_local_color_prompt">Show a colored mksh prompt with user, host, directory, and non-zero exit status.</string>
+    <string name="connections_field_local_custom_ps1">Custom prompt (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">Optional PS1 override for mksh. Leave blank for the default or colored prompt; ~/.mkshrc runs last.</string>
+    <string name="connections_field_local_shell_command">Shell executable</string>
+    <string name="connections_helper_local_shell_command">Optional shell binary path or name (such as /data/local/tmp/bin/zsh). Falls back to /system/bin/sh if not found.</string>
 </resources>

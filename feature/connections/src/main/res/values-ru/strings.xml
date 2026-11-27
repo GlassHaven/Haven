@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">Периодически отправлять пакеты SSH keepalive, чтобы неактивные сессии не разрывались маршрутизаторами или межсетевыми экранами.</string>
     <string name="connections_field_ssh_keepalive_interval">Интервал keepalive (сек)</string>
     <string name="connections_helper_ssh_keepalive_interval">Оставьте пустым для стандартных 15 секунд или укажите интервал в секундах (например, 60 или 1).</string>
+    <string name="connections_toggle_local_color_prompt">Цветное приглашение</string>
+    <string name="connections_helper_local_color_prompt">Показывать цветное приглашение mksh с пользователем, хостом, каталогом и ненулевым кодом возврата.</string>
+    <string name="connections_field_local_custom_ps1">Своё приглашение (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">Необязательный PS1 для mksh. Оставьте пустым для стандартного или цветного приглашения; ~/.mkshrc загружается последним.</string>
+    <string name="connections_field_local_shell_command">Исполняемый файл оболочки</string>
+    <string name="connections_helper_local_shell_command">Необязательный путь или имя оболочки (например, /data/local/tmp/bin/zsh). При отсутствии используется /system/bin/sh.</string>
 </resources>

@@ -47,19 +47,21 @@ class McpToolCompatibilityTest {
 
     private fun newTools(
         context: Context = mockk(relaxed = true),
+        connectionRepository: ConnectionRepository? = null,
         sshSessionManager: SshSessionManager = mockk(relaxed = true),
         transportSelector: TransportSelector = mockk(relaxed = true),
         terminalInputQueue: TerminalInputQueue = mockk(relaxed = true),
     ): McpTools {
-        val connectionRepository = mockk<ConnectionRepository>(relaxed = true)
-        coEvery { connectionRepository.getById(any()) } returns
-            ConnectionProfile(id = "p1", label = "test-host", host = "10.0.0.1", username = "u")
-        // Relaxed mockk returns false, which reads as "user disabled MCP for
-        // this connection" and blocks every profile-targeting call.
-        coEvery { connectionRepository.isMcpEnabled(any()) } returns true
+        val repo = connectionRepository ?: mockk<ConnectionRepository>(relaxed = true).also {
+            coEvery { it.getById(any()) } returns
+                ConnectionProfile(id = "p1", label = "test-host", host = "10.0.0.1", username = "u")
+            // Relaxed mockk returns false, which reads as "user disabled MCP for
+            // this connection" and blocks every profile-targeting call.
+            coEvery { it.isMcpEnabled(any()) } returns true
+        }
         return McpTools(
             context = context,
-            connectionRepository = connectionRepository,
+            connectionRepository = repo,
             portForwardRepository = mockk<PortForwardRepository>(relaxed = true),
             sshSessionManager = sshSessionManager,
             sessionManagerRegistry = mockk<SessionManagerRegistry>(relaxed = true),
@@ -271,5 +273,51 @@ class McpToolCompatibilityTest {
 
         tools.call("upload_file", args)
         coVerify { backend.writeBytes("/dst", match { it.decodeToString() == "hello" }) }
+    }
+
+    @Test
+    fun `create_connection and update_connection round-trip Android Shell prompt and custom shell fields (#897)`() = runBlocking {
+        val store = LinkedHashMap<String, ConnectionProfile>()
+        val repo = mockk<ConnectionRepository>(relaxed = true)
+        coEvery { repo.save(any()) } answers {
+            val p = firstArg<ConnectionProfile>()
+            store[p.id] = p
+            p.id
+        }
+        coEvery { repo.getById(any()) } answers { store[firstArg<String>()] }
+        coEvery { repo.getAll() } answers { store.values.toList() }
+        coEvery { repo.isMcpEnabled(any()) } returns true
+
+        val tools = newTools(connectionRepository = repo)
+        val created = tools.call(
+            "create_connection",
+            JSONObject()
+                .put("label", "Android Zsh")
+                .put("connectionType", "LOCAL")
+                .put("localShellMode", "ANDROID_SHELL")
+                .put("localShellRoot", true)
+                .put("localWorkingDir", "/")
+                .put("localColorPrompt", true)
+                .put("localCustomPs1", "android# ")
+                .put("localShellCommand", " /data/local/tmp/bin/zsh "),
+        )
+        val id = created.getString("id")
+        val listed = tools.call("list_connections", JSONObject())
+            .getJSONArray("connections")
+            .getJSONObject(0)
+        assertTrue(listed.optBoolean("localColorPrompt"))
+        assertEquals("android# ", listed.getString("localCustomPs1"))
+        assertEquals("/data/local/tmp/bin/zsh", listed.getString("localShellCommand"))
+
+        val updated = tools.call(
+            "update_connection",
+            JSONObject()
+                .put("profileId", id)
+                .put("localCustomPs1", "")
+                .put("localShellCommand", "/system/xbin/bash"),
+        )
+        assertTrue(updated.optBoolean("localColorPrompt"))
+        assertFalse(updated.has("localCustomPs1"))
+        assertEquals("/system/xbin/bash", updated.getString("localShellCommand"))
     }
 }

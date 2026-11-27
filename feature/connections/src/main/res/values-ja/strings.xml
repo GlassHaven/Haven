@@ -655,4 +655,10 @@
     <string name="connections_helper_ssh_keepalive">定期的に SSH キープアライブを送信し、アイドル状態の接続がルーターやファイアウォールに切断されるのを防ぎます。</string>
     <string name="connections_field_ssh_keepalive_interval">キープアライブ間隔（秒）</string>
     <string name="connections_helper_ssh_keepalive_interval">空欄の場合はデフォルトの 15 秒になります。秒単位で任意の間隔（60 や 1 など）も指定できます。</string>
+    <string name="connections_toggle_local_color_prompt">カラープロンプト</string>
+    <string name="connections_helper_local_color_prompt">ユーザー名、ホスト名、ディレクトリ、非ゼロの終了コードを含むカラー mksh プロンプトを表示します。</string>
+    <string name="connections_field_local_custom_ps1">カスタムプロンプト (PS1)</string>
+    <string name="connections_helper_local_custom_ps1">mksh 用の任意の PS1 設定です。空欄の場合はデフォルトまたはカラープロンプトを使用し、~/.mkshrc が最後に読み込まれます。</string>
+    <string name="connections_field_local_shell_command">シェル実行ファイル</string>
+    <string name="connections_helper_local_shell_command">任意のシェルバイナリのパスまたは名前（例: /data/local/tmp/bin/zsh）。見つからない場合は /system/bin/sh にフォールバックします。</string>
 </resources>

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.92
+
+- Sync status and navigation bar icon contrast with the active theme (`Light`, `Dark`, and `System Default`) inside `HavenTheme`, track opaque terminal background luminance across color schemes in `HavenNavHost`, unwrap `ContextWrapper` chains when looking up the host `Window` in `TerminalScreen`, `RdpScreen`, and `VncScreen`, and enable edge-to-edge system bar contrast in `TaskerEditActivity` (#898, thanks iptsh).
+
 ## v5.94.91
 
 - Bind `Ctrl+L` (`^L`) to `clear-screen` automatically in `Android Shell` (both unprivileged and `Start as root (su)`) and `Shizuku` sessions via an `mksh` `ENV` startup file that still sources `/system/etc/mkshrc` first and `$HOME/.mkshrc` last (#896, thanks iptsh).

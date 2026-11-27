@@ -1,0 +1,1 @@
+- Sync status and navigation bar icon contrast with Light, Dark, and System Default themes in HavenTheme, track terminal background luminance across color schemes, and unwrap ContextWrapper window lookups in Terminal, RDP, VNC, and Tasker screens (#898, thanks iptsh)

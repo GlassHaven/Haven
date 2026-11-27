@@ -1,0 +1,1 @@
+• WireGuard & Cisco AnyConnect / ocserv: optional Underlay network selector (Wi-Fi, Cellular, Ethernet) binds tunnel underlay sockets and endpoint DNS resolution directly to a chosen Android network via NDK multinetwork APIs when the phone's default route points elsewhere (#876)

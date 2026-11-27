@@ -1,0 +1,1 @@
+• Route Yggdrasil TCP and TLS peers through another saved tunnel's SOCKS5 listener ("Route underlay through" in the tunnel editor and MCP tools) so LAN-only mesh peers remain reachable when your phone is remote, with automatic one-hop carrier refcounting and TLS SNI preservation (#876).

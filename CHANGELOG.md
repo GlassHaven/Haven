@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.84
+
+- Route Yggdrasil `tcp://` and `tls://` peers through another saved tunnel's loopback SOCKS5 listener (`Route underlay through` in the tunnel editor and `yggdrasilUnderlayTunnelId` on MCP tunnel tools) so LAN-only mesh peers remain reachable when your phone is remote, with automatic one-hop carrier acquisition/refcounting and TLS SNI preservation (#876).
+
 ## v5.94.83
 
 - Fix physical keyboard dead keys in the VNC viewer by sharing `PhysicalDeadKeyComposer` across terminal and VNC sessions so `COMBINING_ACCENT` and standalone dead accents compose accented characters instead of falling back to US QWERTY ASCII keys, while preserving `AltGr` when resolving printable characters (#759, #774).

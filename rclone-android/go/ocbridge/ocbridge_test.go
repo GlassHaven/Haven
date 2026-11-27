@@ -25,6 +25,7 @@ import (
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/tun/netstack"
 
+	"sh.haven/rcbridge/netbind"
 	"sh.haven/rcbridge/socks5"
 )
 
@@ -1227,5 +1228,59 @@ func TestTunnelOverCarrierSocks5(t *testing.T) {
 	}
 	if got := socksConnects.Load(); got < 3 {
 		t.Errorf("socksConnects = %d, want >= 3 (auth + CSTP + logout)", got)
+	}
+}
+
+func TestTunnelBindsUnderlaySocketsToAndroidNetworkHandle(t *testing.T) {
+	g := newFakeGateway(t)
+	_, portStr, _ := net.SplitHostPort(strings.TrimPrefix(g.srv.URL, "https://"))
+
+	var boundCount atomic.Int32
+	var resolvedNet atomic.Uint64
+	const wantNet = uint64(0x200500900)
+	restoreBind := netbind.SetBindHookForTest(func(networkHandle uint64, fd uintptr) error {
+		if networkHandle != wantNet {
+			t.Errorf("unexpected networkHandle %#x", networkHandle)
+		}
+		boundCount.Add(1)
+		return nil
+	})
+	defer restoreBind()
+	restoreLookup := netbind.SetLookupHookForTest(func(host string, networkHandle uint64) ([]string, error) {
+		if host == "ocserv.lan.internal" {
+			resolvedNet.Store(networkHandle)
+			return []string{"127.0.0.1"}, nil
+		}
+		return nil, fmt.Errorf("unexpected host %q", host)
+	})
+	defer restoreLookup()
+
+	cfgBytes, _ := json.Marshal(Config{
+		Server:        "ocserv.lan.internal:" + portStr + "/eng",
+		Username:      "alice",
+		Password:      "s3cret",
+		AuthGroup:     "Eng",
+		OTPSecret:     otpSecret,
+		ServerCert:    g.pin(),
+		NetworkHandle: wantNet,
+	})
+	h, err := StartTunnel(string(cfgBytes))
+	if err != nil {
+		t.Fatalf("StartTunnel with NetworkHandle failed: %v", err)
+	}
+	c, err := h.Dial(gwAddr, 7, 10_000)
+	if err != nil {
+		h.Close()
+		t.Fatalf("Dial failed: %v", err)
+	}
+	echo(t, c, "anyconnect bound to wifi network")
+	c.Close()
+	h.Logout()
+
+	if got := resolvedNet.Load(); got != wantNet {
+		t.Errorf("DNS resolved on network %#x, want %#x", got, wantNet)
+	}
+	if got := boundCount.Load(); got < 2 {
+		t.Errorf("boundCount = %d, want >= 2 (auth + CSTP)", got)
 	}
 }

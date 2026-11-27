@@ -315,16 +315,27 @@ class TunnelViewModel @Inject constructor(
      * message. Doing deep validation here would duplicate parser logic
      * and risk drifting out of sync.
      */
-    fun addWireguardConfig(label: String, configText: String) {
+    fun addWireguardConfig(label: String, configText: String, underlayNetwork: String? = null) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
         }
-        if (configText.isBlank()) {
+        val stripped = sh.haven.core.tunnel.WireguardUnderlayConfig.stripDirective(configText)
+        if (stripped.isBlank()) {
             _error.value = "Config text is required"
             return
         }
-        save(label, TunnelConfigType.WIREGUARD, configText.toByteArray())
+        val encoded = if (underlayNetwork != null) {
+            val pref = sh.haven.core.tunnel.UnderlayNetworkPreference.parseStrict(underlayNetwork)
+            if (pref == null) {
+                _error.value = "Underlay network must be DEFAULT, WIFI, CELLULAR, or ETHERNET"
+                return
+            }
+            sh.haven.core.tunnel.WireguardUnderlayConfig.withPreference(stripped, pref)
+        } else {
+            configText
+        }
+        save(label, TunnelConfigType.WIREGUARD, encoded.toByteArray(Charsets.UTF_8))
     }
 
     /**
@@ -524,7 +535,12 @@ class TunnelViewModel @Inject constructor(
             val old = repository.getById(id)
                 ?.takeIf { it.typeEnum == TunnelConfigType.ANYCONNECT }
                 ?.let { AnyConnectConfigBlob.parse(it.configText) }
-            if (old != null && (old.toNativeConfig() != blob.toNativeConfig() || old.underlayTunnelId != blob.underlayTunnelId)) {
+            if (old != null && (
+                    old.toNativeConfig() != blob.toNativeConfig() ||
+                        old.underlayTunnelId != blob.underlayTunnelId ||
+                        old.underlayNetwork != blob.underlayNetwork
+                )
+            ) {
                 val accountChanged = old.server != blob.server ||
                     !old.username.equals(blob.username, ignoreCase = true) ||
                     !old.authGroup.equals(blob.authGroup, ignoreCase = true)
@@ -566,6 +582,11 @@ class TunnelViewModel @Inject constructor(
             _error.value = "A tunnel cannot route its underlay through itself"
             return null
         }
+        val underlayPref = sh.haven.core.tunnel.UnderlayNetworkPreference.parseStrict(form.underlayNetwork)
+        if (underlayPref == null) {
+            _error.value = "Underlay network must be DEFAULT, WIFI, CELLULAR, or ETHERNET"
+            return null
+        }
         return sh.haven.core.tunnel.AnyConnectConfigBlob(
             server = server,
             username = form.username.trim(),
@@ -577,6 +598,7 @@ class TunnelViewModel @Inject constructor(
             serverCert = cert,
             stayConnected = form.stayConnected,
             underlayTunnelId = trimmedUnderlay,
+            underlayNetwork = underlayPref.storageValue,
         )
     }
 
@@ -608,16 +630,32 @@ class TunnelViewModel @Inject constructor(
      * row's id, type, createdAt and owner so the encrypted-at-rest row stays
      * addressable and the list keeps its created ordering.
      */
-    fun updateWireguardConfig(id: String, label: String, configText: String) {
+    fun updateWireguardConfig(
+        id: String,
+        label: String,
+        configText: String,
+        underlayNetwork: String? = null,
+    ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
         }
-        if (configText.isBlank()) {
+        val stripped = sh.haven.core.tunnel.WireguardUnderlayConfig.stripDirective(configText)
+        if (stripped.isBlank()) {
             _error.value = "Config text is required"
             return
         }
-        update(id, label, configText.toByteArray())
+        val encoded = if (underlayNetwork != null) {
+            val pref = sh.haven.core.tunnel.UnderlayNetworkPreference.parseStrict(underlayNetwork)
+            if (pref == null) {
+                _error.value = "Underlay network must be DEFAULT, WIFI, CELLULAR, or ETHERNET"
+                return
+            }
+            sh.haven.core.tunnel.WireguardUnderlayConfig.withPreference(stripped, pref)
+        } else {
+            configText
+        }
+        update(id, label, encoded.toByteArray(Charsets.UTF_8))
     }
 
     /** Edit an existing Tailscale tunnel's label / authkey / control plane (#666). */
@@ -822,6 +860,7 @@ data class AnyConnectForm(
     val serverCert: String = "",
     val stayConnected: Boolean = true,
     val underlayTunnelId: String = "",
+    val underlayNetwork: String = "",
 ) {
     companion object {
         fun from(blob: sh.haven.core.tunnel.AnyConnectConfigBlob?) = AnyConnectForm(
@@ -834,6 +873,7 @@ data class AnyConnectForm(
             serverCert = blob?.serverCert.orEmpty(),
             stayConnected = blob?.stayConnected ?: true,
             underlayTunnelId = blob?.underlayTunnelId.orEmpty(),
+            underlayNetwork = blob?.underlayNetwork.orEmpty(),
         )
     }
 }

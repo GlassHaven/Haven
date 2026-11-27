@@ -41,6 +41,7 @@ internal class TunnelToolProvider(
                 string("label", "User-facing label (also used to derive the tunnel hostname).", required = true)
                 string("type", "WIREGUARD, TAILSCALE, NETBIRD, YGGDRASIL, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS.", required = true)
                 string("configText", "WireGuard wg-quick INI body. Required when type=WIREGUARD.")
+                string("wireguardUnderlayNetwork", "Optional physical Android network to bind WireGuard underlay UDP sockets and endpoint DNS resolution to when the phone's default route points elsewhere (#876): WIFI, CELLULAR, or ETHERNET (omit or DEFAULT for system default route).")
                 string("tailscaleAuthKey", "Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.")
                 string("tailscaleControlUrl", "Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.")
                 string("netbirdSetupKey", "NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.")
@@ -63,6 +64,7 @@ internal class TunnelToolProvider(
                 string("anyconnectSecondaryPassword", "Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.")
                 string("anyconnectServerCert", "Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.")
                 string("anyconnectUnderlayTunnelId", "Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries AnyConnect/ocserv HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).")
+                string("anyconnectUnderlayNetwork", "Optional physical Android network to bind direct AnyConnect/ocserv HTTPS and CSTP sockets and DNS lookups to when the phone's default route points elsewhere (#876): WIFI, CELLULAR, or ETHERNET (omit or DEFAULT for system default route; ignored when anyconnectUnderlayTunnelId is set).")
                 string("accessHostname", "Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.")
                 string("accessJwt", "Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.")
                 string("accessTeamDomain", "Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.")
@@ -140,10 +142,21 @@ internal class TunnelToolProvider(
         val configBytes: ByteArray = when (type) {
             TunnelConfigType.WIREGUARD -> {
                 val wgQuick = args.optString("configText")
-                if (wgQuick.isBlank()) {
+                val stripped = sh.haven.core.tunnel.WireguardUnderlayConfig.stripDirective(wgQuick)
+                if (stripped.isBlank()) {
                     throw IllegalArgumentException("configText required for WIREGUARD type")
                 }
-                wgQuick.toByteArray()
+                val rawNet = args.optString("wireguardUnderlayNetwork")
+                val encoded = if (rawNet.isNotBlank()) {
+                    val pref = sh.haven.core.tunnel.UnderlayNetworkPreference.parseStrict(rawNet)
+                        ?: throw IllegalArgumentException(
+                            "wireguardUnderlayNetwork must be DEFAULT, WIFI, CELLULAR, or ETHERNET"
+                        )
+                    sh.haven.core.tunnel.WireguardUnderlayConfig.withPreference(stripped, pref)
+                } else {
+                    wgQuick
+                }
+                encoded.toByteArray(Charsets.UTF_8)
             }
             TunnelConfigType.CLOUDFLARE_ACCESS -> {
                 // MCP path supports unprotected Cloudflare Tunnel routes
@@ -229,6 +242,11 @@ internal class TunnelToolProvider(
                 if (username.isEmpty()) {
                     throw IllegalArgumentException("anyconnectUsername required for ANYCONNECT type")
                 }
+                val rawNet = args.optString("anyconnectUnderlayNetwork")
+                val underlayPref = sh.haven.core.tunnel.UnderlayNetworkPreference.parseStrict(rawNet)
+                    ?: throw IllegalArgumentException(
+                        "anyconnectUnderlayNetwork must be DEFAULT, WIFI, CELLULAR, or ETHERNET"
+                    )
                 sh.haven.core.tunnel.AnyConnectConfigBlob(
                     server = server,
                     username = username,
@@ -238,6 +256,7 @@ internal class TunnelToolProvider(
                     secondaryPassword = args.optString("anyconnectSecondaryPassword"),
                     serverCert = args.optString("anyconnectServerCert").trim(),
                     underlayTunnelId = args.optString("anyconnectUnderlayTunnelId").trim(),
+                    underlayNetwork = underlayPref.storageValue,
                 ).encode()
             }
         }

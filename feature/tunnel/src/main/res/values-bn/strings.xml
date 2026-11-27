@@ -97,4 +97,11 @@
     <string name="tunnel_underlay_carrier_help">LAN পিয়ারে সরাসরি পৌঁছানো না গেলে অন্য টানেলের SOCKS5 প্রক্সির মাধ্যমে TCP/TLS পিয়ারে সংযোগ করুন।</string>
     <string name="tunnel_underlay_carrier_direct">সরাসরি (ফোন নেটওয়ার্ক)</string>
     <string name="tunnel_underlay_via">%1$s এর মাধ্যমে</string>
+    <string name="tunnel_underlay_network_label">আন্ডারলে নেটওয়ার্ক (ঐচ্ছিক)</string>
+    <string name="tunnel_underlay_network_help">ফোনের ডিফল্ট রুট অন্য দিকে থাকলে টানেল সকেট সরাসরি Wi-Fi, সেলুলার বা ইথারনেটে আবদ্ধ করুন।</string>
+    <string name="tunnel_underlay_network_default">ডিফল্ট (সিস্টেম রুট)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">সেলুলার</string>
+    <string name="tunnel_underlay_network_ethernet">ইথারনেট</string>
+    <string name="tunnel_underlay_on_network">%1$s এ</string>
 </resources>

@@ -97,4 +97,11 @@
     <string name="tunnel_underlay_carrier_help">Joint les pairs TCP/TLS via le proxy SOCKS5 d\'un autre tunnel lorsque les pairs du réseau local sont injoignables directement.</string>
     <string name="tunnel_underlay_carrier_direct">Direct (réseau du téléphone)</string>
     <string name="tunnel_underlay_via">via %1$s</string>
+    <string name="tunnel_underlay_network_label">Réseau sous-jacent (facultatif)</string>
+    <string name="tunnel_underlay_network_help">Lie directement les sockets du tunnel au Wi-Fi, au réseau mobile ou à Ethernet lorsque la route par défaut du téléphone pointe ailleurs.</string>
+    <string name="tunnel_underlay_network_default">Par défaut (route système)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Données mobiles</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">sur %1$s</string>
 </resources>

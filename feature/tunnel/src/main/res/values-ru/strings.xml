@@ -106,4 +106,11 @@
     <string name="tunnel_underlay_carrier_help">Подключаться к TCP/TLS-узлам через SOCKS5-прокси другого туннеля, когда узлы локальной сети недоступны напрямую.</string>
     <string name="tunnel_underlay_carrier_direct">Напрямую (сеть телефона)</string>
     <string name="tunnel_underlay_via">через %1$s</string>
+    <string name="tunnel_underlay_network_label">Транспортная сеть (необязательно)</string>
+    <string name="tunnel_underlay_network_help">Привязывать сокеты туннеля напрямую к Wi-Fi, мобильной сети или Ethernet, когда маршрут по умолчанию ведёт иначе.</string>
+    <string name="tunnel_underlay_network_default">По умолчанию (системный маршрут)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Мобильная сеть</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">через %1$s</string>
 </resources>

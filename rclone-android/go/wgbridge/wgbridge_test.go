@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"golang.zx2c4.com/wireguard/conn"
+
+	"sh.haven/rcbridge/netbind"
 )
 
 const validConfig = `
@@ -300,4 +302,54 @@ func TestStartTunnelStripsInjectedControlFns(t *testing.T) {
 		t.Fatalf("expected tunnel up despite injected control fn, got %v", err)
 	}
 	defer h.Close()
+}
+
+func TestStartTunnelOnNetworkBindsUnderlaySocketsAndResolvesOnNetwork(t *testing.T) {
+	var boundHandles []uint64
+	var resolvedNetwork uint64
+	restoreBind := netbind.SetBindHookForTest(func(networkHandle uint64, fd uintptr) error {
+		boundHandles = append(boundHandles, networkHandle)
+		return nil
+	})
+	defer restoreBind()
+	restoreLookup := netbind.SetLookupHookForTest(func(host string, networkHandle uint64) ([]string, error) {
+		if host == "wg.lan.internal" {
+			resolvedNetwork = networkHandle
+			return []string{"192.168.88.1"}, nil
+		}
+		return nil, fmt.Errorf("unexpected host %q", host)
+	})
+	defer restoreLookup()
+
+	cfg := `
+[Interface]
+PrivateKey = cEJxGEJjYIL8XHiCnVAhYQGzNuSrt7ZbQXGj4Bgn7nY=
+Address = 10.9.0.2/32
+
+[Peer]
+PublicKey = aV0TdsXGYmZBh2RM0V+g3xNkZwFxVzS3a0VqL2EXfDc=
+Endpoint = wg.lan.internal:51820
+AllowedIPs = 0.0.0.0/0
+`
+	const wantHandle = int64(0x100400800)
+	h, err := StartTunnelOnNetwork(cfg, wantHandle)
+	if err != nil {
+		t.Fatalf("StartTunnelOnNetwork failed: %v", err)
+	}
+	defer h.Close()
+
+	if resolvedNetwork != uint64(wantHandle) {
+		t.Fatalf("endpoint resolved on network %#x, want %#x", resolvedNetwork, uint64(wantHandle))
+	}
+	if len(boundHandles) == 0 {
+		t.Fatal("expected at least one WireGuard UDP socket bound to networkHandle")
+	}
+	for _, got := range boundHandles {
+		if got != uint64(wantHandle) {
+			t.Fatalf("bound socket handle = %#x, want %#x", got, uint64(wantHandle))
+		}
+	}
+	if len(*conn.ControlFns) != 0 {
+		t.Fatalf("ControlFns leaked %d entries after StartTunnelOnNetwork", len(*conn.ControlFns))
+	}
 }

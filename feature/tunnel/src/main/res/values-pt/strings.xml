@@ -99,4 +99,11 @@
     <string name="tunnel_underlay_carrier_help">Liga a pares TCP/TLS através do proxy SOCKS5 de outro túnel quando os pares da LAN não estão acessíveis diretamente.</string>
     <string name="tunnel_underlay_carrier_direct">Direto (rede do telemóvel)</string>
     <string name="tunnel_underlay_via">via %1$s</string>
+    <string name="tunnel_underlay_network_label">Rede subjacente (opcional)</string>
+    <string name="tunnel_underlay_network_help">Associa os sockets do túnel diretamente a Wi-Fi, dados móveis ou Ethernet quando a rota predefinida do telemóvel aponta para outro destino.</string>
+    <string name="tunnel_underlay_network_default">Predefinida (rota do sistema)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Dados móveis</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">em %1$s</string>
 </resources>

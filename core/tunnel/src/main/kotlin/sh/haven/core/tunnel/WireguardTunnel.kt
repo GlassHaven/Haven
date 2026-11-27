@@ -61,7 +61,12 @@ internal interface WgNativeListener : AutoCloseable {
  * touched.
  */
 internal object GomobileWgNative {
-    fun start(preparedConfig: String): WgNativeDevice = impl(Wgbridge.startTunnel(preparedConfig))
+    fun start(preparedConfig: String, networkHandle: Long = 0L): WgNativeDevice =
+        if (networkHandle != 0L) {
+            impl(Wgbridge.startTunnelOnNetwork(preparedConfig, networkHandle))
+        } else {
+            impl(Wgbridge.startTunnel(preparedConfig))
+        }
 
     fun impl(handle: GomobileHandle): WgNativeDevice = object : WgNativeDevice {
         override fun dial(host: String, port: Long, timeoutMs: Long): WgNativeConn =
@@ -149,6 +154,8 @@ class WireguardTunnel internal constructor(
      * transition bounces the handle immediately.
      */
     private val networkKeyProvider: () -> Long = { 0L },
+    private val nativeStarterWithNetwork: ((String, Long) -> WgNativeDevice)? = null,
+    private val underlayNetworkHandleProvider: () -> Long = { 0L },
 ) : Tunnel {
 
     private val nativeLock = Any()
@@ -351,13 +358,12 @@ class WireguardTunnel internal constructor(
     }
 
     private fun launchNative(prepared: String): WgNativeDevice {
-        val starter = nativeStarter
-            ?: run {
-                val summary = summarizeConfigForLog(prepared)
-                Log.i(TAG, "Starting native WireGuard tunnel ($summary)")
-                return GomobileWgNative.start(prepared)
-            }
-        return starter(prepared)
+        val networkHandle = underlayNetworkHandleProvider()
+        nativeStarterWithNetwork?.let { return it(prepared, networkHandle) }
+        nativeStarter?.let { return it(prepared) }
+        val summary = summarizeConfigForLog(prepared)
+        Log.i(TAG, "Starting native WireGuard tunnel ($summary networkHandle=$networkHandle)")
+        return GomobileWgNative.start(prepared, networkHandle)
     }
 
     companion object {

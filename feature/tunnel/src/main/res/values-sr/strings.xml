@@ -97,5 +97,12 @@
     <string name="tunnel_underlay_carrier_help">Повезује се са TCP/TLS чворовима преко SOCKS5 проксија другог тунела када LAN чворови нису директно доступни.</string>
     <string name="tunnel_underlay_carrier_direct">Директно (мрежа телефона)</string>
     <string name="tunnel_underlay_via">преко %1$s</string>
+    <string name="tunnel_underlay_network_label">Подмрежа (опционо)</string>
+    <string name="tunnel_underlay_network_help">Везује сокете тунела директно за Wi-Fi, мобилну мрежу или Ethernet када подразумевана рута телефона води другде.</string>
+    <string name="tunnel_underlay_network_default">Подразумевано (системска рута)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Мобилна мрежа</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">на %1$s</string>
 </resources>
 

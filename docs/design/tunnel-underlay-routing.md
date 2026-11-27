@@ -7,10 +7,13 @@ title: "Design: Routing a tunnel's underlay through a reachable path"
 
 > **Status:** partially built. The legible-error and documentation half of
 > [#876](https://github.com/GlassHaven/Haven/issues/876) shipped in
-> v5.94.69/v5.94.70, and **Yggdrasil TCP/TLS and Cisco AnyConnect / ocserv
+> v5.94.69/v5.94.70, **Yggdrasil TCP/TLS and Cisco AnyConnect / ocserv
 > carrier SOCKS5 underlay routing** (`Route underlay through` + `TunnelManager`
-> one-hop carrier refcounting) are implemented. NetBird `nbbridge` SOCKS5
-> dialing and Android network binding remain open.
+> one-hop carrier refcounting) shipped in v5.94.84/v5.94.85, and **per-tunnel
+> Android `Network` underlay socket + DNS binding** (`Underlay network`:
+> `Wi-Fi` / `Cellular` / `Ethernet` via `android_setsocknetwork` and
+> `android_getaddrinfofornetwork` for WireGuard and AnyConnect) is implemented.
+> NetBird `nbbridge` SOCKS5 dialing remains open.
 
 ## 1. The problem
 

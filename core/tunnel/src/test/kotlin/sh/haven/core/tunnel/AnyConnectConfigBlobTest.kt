@@ -100,4 +100,31 @@ class AnyConnectConfigBlobTest {
         assertEquals(false, proxiedNative.has("underlayTunnelId"))
         assertEquals("127.0.0.1:41080", proxiedNative.getString("socksProxy"))
     }
+
+    @Test
+    fun `underlayNetwork round-trips in storage JSON and injects networkHandle only when direct`() {
+        val blob = AnyConnectConfigBlob(
+            server = "vpn.lan.local",
+            username = "alice",
+            password = "pw",
+            underlayNetwork = "WIFI",
+        )
+        val parsed = AnyConnectConfigBlob.parse(blob.encode())!!
+        assertEquals("WIFI", parsed.underlayNetwork)
+
+        val unboundNative = JSONObject(parsed.toNativeConfig())
+        assertEquals(false, unboundNative.has("underlayNetwork"))
+        assertEquals(false, unboundNative.has("networkHandle"))
+
+        val boundNative = JSONObject(parsed.toNativeConfig(networkHandle = 439_804_651_110L))
+        assertEquals(false, boundNative.has("underlayNetwork"))
+        assertEquals(439_804_651_110L, boundNative.getLong("networkHandle"))
+
+        // Carrier SOCKS5 takes precedence over direct network binding.
+        val carrierNative = JSONObject(
+            parsed.toNativeConfig(socksProxy = "127.0.0.1:41080", networkHandle = 439_804_651_110L),
+        )
+        assertEquals("127.0.0.1:41080", carrierNative.getString("socksProxy"))
+        assertEquals(false, carrierNative.has("networkHandle"))
+    }
 }

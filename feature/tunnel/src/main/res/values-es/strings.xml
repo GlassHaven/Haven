@@ -97,4 +97,11 @@
     <string name="tunnel_underlay_carrier_help">Conecta con pares TCP/TLS a través del proxy SOCKS5 de otro túnel cuando los pares de la LAN no sean accesibles directamente.</string>
     <string name="tunnel_underlay_carrier_direct">Directo (red del teléfono)</string>
     <string name="tunnel_underlay_via">vía %1$s</string>
+    <string name="tunnel_underlay_network_label">Red subyacente (opcional)</string>
+    <string name="tunnel_underlay_network_help">Vincula los sockets del túnel directamente a Wi-Fi, datos móviles o Ethernet cuando la ruta predeterminada del teléfono apunta a otro lado.</string>
+    <string name="tunnel_underlay_network_default">Predeterminada (ruta del sistema)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Datos móviles</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">en %1$s</string>
 </resources>

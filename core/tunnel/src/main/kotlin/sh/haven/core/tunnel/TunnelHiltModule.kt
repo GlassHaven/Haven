@@ -15,6 +15,10 @@ abstract class TunnelHiltModule {
     @Singleton
     abstract fun bindTunnelFactory(impl: DefaultTunnelFactory): TunnelFactory
 
+    @Binds
+    @Singleton
+    abstract fun bindUnderlayNetworkResolver(impl: AndroidUnderlayNetworkResolver): UnderlayNetworkResolver
+
     companion object {
         /**
          * Shared OkHttp instance for the Cloudflare Access SSH backend.

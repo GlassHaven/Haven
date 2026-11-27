@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"golang.org/x/net/proxy"
+
+	"sh.haven/rcbridge/netbind"
 )
 
 // Config is the JSON envelope Haven stores (encrypted at rest) for an
@@ -66,6 +68,11 @@ type Config struct {
 	// TCP sockets through a carrier tunnel's loopback SOCKS5 listener
 	// ("127.0.0.1:<port>", #876) so LAN-only gateways are reachable off-LAN.
 	SocksProxy string `json:"socksProxy,omitempty"`
+
+	// NetworkHandle optionally binds direct TCP underlay sockets and DNS
+	// lookups to a specific Android Network (android.net.Network.getNetworkHandle,
+	// #876) when the phone is on a LAN Wi-Fi that is not the default route.
+	NetworkHandle uint64 `json:"networkHandle,omitempty"`
 }
 
 // defaultUserAgent is what Haven sends unless the tunnel overrides it.
@@ -118,10 +125,19 @@ func parseConfig(text string) (*Config, error) {
 	return &c, nil
 }
 
-// dialTCP opens a TCP connection to addr either directly or via cfg.SocksProxy (#876).
+// dialTCP opens a TCP connection to addr either directly (optionally bound to
+// cfg.NetworkHandle) or via cfg.SocksProxy (#876).
 func dialTCP(ctx context.Context, cfg *Config, addr string) (net.Conn, error) {
 	base := &net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}
 	if cfg == nil || cfg.SocksProxy == "" {
+		if cfg != nil && cfg.NetworkHandle != 0 {
+			base.Control = netbind.Control(cfg.NetworkHandle)
+			resolved, err := netbind.ResolveHostPort(ctx, cfg.NetworkHandle, addr)
+			if err != nil {
+				return nil, err
+			}
+			addr = resolved
+		}
 		return base.DialContext(ctx, "tcp", addr)
 	}
 	d, err := proxy.SOCKS5("tcp", cfg.SocksProxy, nil, base)

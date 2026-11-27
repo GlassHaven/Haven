@@ -44,20 +44,32 @@ data class AnyConnectConfigBlob(
      * AnyConnect HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).
      */
     val underlayTunnelId: String = "",
+    /**
+     * Optional physical Android network (`WIFI`, `CELLULAR`, `ETHERNET`) to bind
+     * direct AnyConnect HTTPS auth and CSTP TLS sockets and DNS lookups to when
+     * the phone's default route points elsewhere (#876).
+     */
+    val underlayNetwork: String = "",
 ) {
     fun encode(): ByteArray =
         toJson().apply {
             if (!stayConnected) put("stayConnected", false)
             if (underlayTunnelId.isNotBlank()) put("underlayTunnelId", underlayTunnelId)
+            if (underlayNetwork.isNotBlank()) put("underlayNetwork", underlayNetwork)
         }.toString().toByteArray(Charsets.UTF_8)
 
     /**
      * The JSON string `Ocbridge.startTunnel` takes (Haven-only keys left out;
-     * runtime [socksProxy] `"127.0.0.1:<port>"` injected when routed via a carrier).
+     * runtime [socksProxy] `"127.0.0.1:<port>"` or [networkHandle] injected when
+     * routed via a carrier or bound to a specific Android `Network`).
      */
-    fun toNativeConfig(socksProxy: String? = null): String =
+    fun toNativeConfig(socksProxy: String? = null, networkHandle: Long = 0L): String =
         toJson().apply {
-            if (!socksProxy.isNullOrBlank()) put("socksProxy", socksProxy)
+            if (!socksProxy.isNullOrBlank()) {
+                put("socksProxy", socksProxy)
+            } else if (networkHandle > 0L) {
+                put("networkHandle", networkHandle)
+            }
         }.toString()
 
     private fun toJson() = JSONObject().apply {
@@ -97,6 +109,9 @@ data class AnyConnectConfigBlob(
                     userAgent = json.optString("userAgent", "").trim(),
                     stayConnected = json.optBoolean("stayConnected", true),
                     underlayTunnelId = json.optString("underlayTunnelId", "").trim(),
+                    underlayNetwork = UnderlayNetworkPreference.fromStorage(
+                        json.optString("underlayNetwork", ""),
+                    ).storageValue,
                 )
             } catch (_: Throwable) {
                 null

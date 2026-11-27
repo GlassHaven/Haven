@@ -432,7 +432,21 @@ class DefaultTunnelFactory @Inject constructor(
     private val httpClient: OkHttpClient,
     private val authBroker: TunnelAuthBroker,
     private val systemVpnAddressProbe: SystemVpnAddressProbe,
+    private val underlayNetworkResolver: UnderlayNetworkResolver,
 ) : TunnelFactory {
+
+    constructor(
+        context: Context,
+        httpClient: OkHttpClient,
+        authBroker: TunnelAuthBroker,
+        systemVpnAddressProbe: SystemVpnAddressProbe,
+    ) : this(
+        context = context,
+        httpClient = httpClient,
+        authBroker = authBroker,
+        systemVpnAddressProbe = systemVpnAddressProbe,
+        underlayNetworkResolver = AndroidUnderlayNetworkResolver(context),
+    )
 
     override fun checkConflict(tunnel: Tunnel): WireGuardSystemVpnConflict? =
         (tunnel as? WireguardTunnel)?.let {
@@ -446,7 +460,7 @@ class DefaultTunnelFactory @Inject constructor(
         carrierSocksAddr: java.net.InetSocketAddress?,
     ): Tunnel = when (config.typeEnum) {
         TunnelConfigType.WIREGUARD -> {
-            val text = String(config.configText)
+            val text = String(config.configText, Charsets.UTF_8)
             // Refuse to run a second WG device on a key the phone's system
             // VPN already holds (the "same config loaded in both apps" case):
             // two devices on one peer key fight over the single server-side
@@ -454,7 +468,21 @@ class DefaultTunnelFactory @Inject constructor(
             // lives here, before the native device exists, so acquire() fails
             // fast and the resolver falls through to direct dialling.
             SystemVpnAddressProbe.collides(text, systemVpnAddressProbe)?.let { throw it }
-            WireguardTunnel(text, networkKeyProvider = ::activeNetworkKey)
+            val underlayPref = WireguardUnderlayConfig.extract(text)
+            if (underlayPref != UnderlayNetworkPreference.DEFAULT) {
+                underlayNetworkResolver.resolveRequiredHandle(underlayPref, config.label)
+            }
+            WireguardTunnel(
+                text,
+                networkKeyProvider = { underlayNetworkResolver.currentNetworkKey(underlayPref) },
+                underlayNetworkHandleProvider = {
+                    if (underlayPref == UnderlayNetworkPreference.DEFAULT) {
+                        0L
+                    } else {
+                        underlayNetworkResolver.resolveRequiredHandle(underlayPref, config.label)
+                    }
+                },
+            )
         }
         TunnelConfigType.TAILSCALE -> {
             val parsed = TailscaleConfigBlob.parse(config.configText)
@@ -504,11 +532,18 @@ class DefaultTunnelFactory @Inject constructor(
                     "AnyConnect tunnel '${config.label}' is missing its server or username — edit the tunnel",
                 )
             val socksProxy = carrierSocksAddr?.let { "${it.hostString}:${it.port}" }
+            val underlayPref = UnderlayNetworkPreference.fromStorage(parsed.underlayNetwork)
+            val networkHandle = if (socksProxy == null && underlayPref != UnderlayNetworkPreference.DEFAULT) {
+                underlayNetworkResolver.resolveRequiredHandle(underlayPref, config.label)
+            } else {
+                0L
+            }
             AnyConnectTunnel(
                 parsed,
                 label = config.label,
                 authBroker = authBroker,
                 carrierSocksProxy = socksProxy,
+                underlayNetworkHandle = networkHandle,
             )
         }
         TunnelConfigType.YGGDRASIL -> {
@@ -532,11 +567,6 @@ class DefaultTunnelFactory @Inject constructor(
      * because Tailscale enforces that and it is a sensible default
      * everywhere else.
      */
-    private fun activeNetworkKey(): Long = runCatching {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
-        cm?.activeNetwork?.networkHandle ?: 0L
-    }.getOrDefault(0L)
-
     private fun deriveHostname(label: String): String {
         val safe = label.lowercase()
             .map { if (it.isLetterOrDigit()) it else '-' }

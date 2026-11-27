@@ -99,4 +99,11 @@
     <string name="tunnel_underlay_carrier_help">当无法直接访问局域网节点时，通过另一条隧道的 SOCKS5 代理连接 TCP/TLS 节点。</string>
     <string name="tunnel_underlay_carrier_direct">直连（手机网络）</string>
     <string name="tunnel_underlay_via">经由 %1$s</string>
+    <string name="tunnel_underlay_network_label">底层网络（可选）</string>
+    <string name="tunnel_underlay_network_help">当手机默认路由指向其他网络时，将隧道套接字直接绑定到 Wi-Fi、移动数据或以太网。</string>
+    <string name="tunnel_underlay_network_default">默认（系统路由）</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">移动数据</string>
+    <string name="tunnel_underlay_network_ethernet">以太网</string>
+    <string name="tunnel_underlay_on_network">绑定 %1$s</string>
 </resources>

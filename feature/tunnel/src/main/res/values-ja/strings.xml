@@ -106,4 +106,11 @@
     <string name="tunnel_underlay_carrier_help">LAN 内のピアに直接到達できない場合、別のトンネルの SOCKS5 プロキシ経由で TCP/TLS ピアに接続します。</string>
     <string name="tunnel_underlay_carrier_direct">直接（端末のネットワーク）</string>
     <string name="tunnel_underlay_via">%1$s 経由</string>
+    <string name="tunnel_underlay_network_label">アンダーレイネットワーク（任意）</string>
+    <string name="tunnel_underlay_network_help">端末のデフォルトルートが別の経路を向いている場合に、トンネルソケットを Wi-Fi、モバイル通信、または Ethernet に直接バインドします。</string>
+    <string name="tunnel_underlay_network_default">デフォルト（システムルート）</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">モバイル通信</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">%1$s 上</string>
 </resources>

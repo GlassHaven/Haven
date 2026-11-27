@@ -412,4 +412,54 @@ class TunnelViewModelTest {
         assertEquals("carrier-wg-1", parsed.underlayTunnelId)
         coVerify(exactly = 1) { sessions.disconnect("t1", signOut = false) }
     }
+
+    @Test
+    fun wireguardAndAnyConnect_roundTripUnderlayNetworkAndValidateStrictValues() = runTest {
+        viewModel.addWireguardConfig("Lab WG", "[Interface]\nAddress = 10.0.0.2/32", underlayNetwork = "BLUETOOTH")
+        advanceUntilIdle()
+        assertEquals("Underlay network must be DEFAULT, WIFI, CELLULAR, or ETHERNET", viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+
+        viewModel.dismissError()
+        val savedWg = slot<TunnelConfig>()
+        coEvery { repository.save(capture(savedWg)) } just runs
+        viewModel.addWireguardConfig("Lab WG", "[Interface]\nAddress = 10.0.0.2/32", underlayNetwork = "WIFI")
+        advanceUntilIdle()
+        val wgStored = String(savedWg.captured.configText, Charsets.UTF_8)
+        assertEquals(
+            sh.haven.core.tunnel.UnderlayNetworkPreference.WIFI,
+            sh.haven.core.tunnel.WireguardUnderlayConfig.extract(wgStored),
+        )
+
+        // Resetting WireGuard underlay network back to "" (DEFAULT) strips the comment directive.
+        coEvery { repository.getById("wg-1") } returns savedWg.captured.copy(id = "wg-1")
+        val updatedWg = slot<TunnelConfig>()
+        coEvery { repository.save(capture(updatedWg)) } just runs
+        viewModel.updateWireguardConfig(
+            id = "wg-1",
+            label = "Lab WG",
+            configText = sh.haven.core.tunnel.WireguardUnderlayConfig.stripDirective(wgStored),
+            underlayNetwork = "",
+        )
+        advanceUntilIdle()
+        assertEquals(
+            "[Interface]\nAddress = 10.0.0.2/32",
+            String(updatedWg.captured.configText, Charsets.UTF_8),
+        )
+
+        // Changing AnyConnect underlayNetwork disconnects the live tunnel (keeping session resumable).
+        coEvery { repository.getById("t1") } returns anyConnectRow(
+            AnyConnectConfigBlob("vpn.example", "alice", "pw"),
+        )
+        val savedAc = slot<TunnelConfig>()
+        coEvery { repository.save(capture(savedAc)) } just runs
+        viewModel.updateAnyConnectConfig(
+            "t1",
+            "Corp",
+            AnyConnectForm("vpn.example", "alice", "pw", underlayNetwork = "WIFI"),
+        )
+        advanceUntilIdle()
+        assertEquals("WIFI", AnyConnectConfigBlob.parse(savedAc.captured.configText)!!.underlayNetwork)
+        coVerify(exactly = 1) { sessions.disconnect("t1", signOut = false) }
+    }
 }

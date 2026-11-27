@@ -107,4 +107,11 @@
     <string name="tunnel_underlay_carrier_help">Dial TCP/TLS peers through another tunnel\'s SOCKS5 proxy when LAN peers are unreachable directly.</string>
     <string name="tunnel_underlay_carrier_direct">Direct (phone network)</string>
     <string name="tunnel_underlay_via">via %1$s</string>
+    <string name="tunnel_underlay_network_label">Underlay network (optional)</string>
+    <string name="tunnel_underlay_network_help">Bind tunnel sockets directly to Wi-Fi, Cellular, or Ethernet when the phone\'s default route points elsewhere.</string>
+    <string name="tunnel_underlay_network_default">Default (system route)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">Cellular</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">on %1$s</string>
 </resources>

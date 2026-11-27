@@ -106,4 +106,11 @@
     <string name="tunnel_underlay_carrier_help">TCP/TLS-Peers über den SOCKS5-Proxy eines anderen Tunnels anwählen, wenn LAN-Peers direkt nicht erreichbar sind.</string>
     <string name="tunnel_underlay_carrier_direct">Direkt (Telefonnetz)</string>
     <string name="tunnel_underlay_via">über %1$s</string>
+    <string name="tunnel_underlay_network_label">Underlay-Netzwerk (optional)</string>
+    <string name="tunnel_underlay_network_help">Tunnelsockets direkt an WLAN, Mobilfunk oder Ethernet binden, wenn die Standardroute des Geräts woanders hinzeigt.</string>
+    <string name="tunnel_underlay_network_default">Standard (Systemroute)</string>
+    <string name="tunnel_underlay_network_wifi">WLAN</string>
+    <string name="tunnel_underlay_network_cellular">Mobilfunk</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">auf %1$s</string>
 </resources>

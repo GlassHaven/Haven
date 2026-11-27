@@ -77,6 +77,8 @@ import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.OpenVpnConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
+import sh.haven.core.tunnel.UnderlayNetworkPreference
+import sh.haven.core.tunnel.WireguardUnderlayConfig
 import sh.haven.core.tunnel.YggdrasilConfigBlob
 import sh.haven.core.tunnel.TunnelForwardProtocol
 import sh.haven.core.tunnel.TunnelPortForwardRule
@@ -216,6 +218,21 @@ fun TunnelsScreen(
                                 tunnels.firstOrNull { it.id == cid }?.label ?: cid.take(8)
                             }
                         }
+                        val underlayNetworkPref = remember(tunnel.id, tunnel.configText) {
+                            when (tunnel.typeEnum) {
+                                TunnelConfigType.WIREGUARD ->
+                                    WireguardUnderlayConfig.extract(String(tunnel.configText, Charsets.UTF_8))
+                                TunnelConfigType.ANYCONNECT -> {
+                                    val blob = AnyConnectConfigBlob.parse(tunnel.configText)
+                                    if (blob != null && blob.underlayTunnelId.isBlank()) {
+                                        UnderlayNetworkPreference.fromStorage(blob.underlayNetwork)
+                                    } else {
+                                        UnderlayNetworkPreference.DEFAULT
+                                    }
+                                }
+                                else -> UnderlayNetworkPreference.DEFAULT
+                            }
+                        }
                         TunnelRow(
                             tunnel = tunnel,
                             connected = connected,
@@ -223,6 +240,7 @@ fun TunnelsScreen(
                             socksPort = socksPort,
                             forwardCount = forwardCount,
                             underlayCarrierLabel = underlayCarrierLabel,
+                            underlayNetworkPref = underlayNetworkPref,
                             onConnect = if (!connected && isStandaloneCapable) {
                                 { viewModel.connect(tunnel.id) }
                             } else {
@@ -275,8 +293,8 @@ fun TunnelsScreen(
             initialType = effectiveInitialType,
             carrierTunnels = tunnels.filter { it.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS },
             onDismiss = { showAddDialog = false },
-            onSubmitWireguard = { label, configText ->
-                viewModel.addWireguardConfig(label, configText)
+            onSubmitWireguard = { label, configText, underlayNetwork ->
+                viewModel.addWireguardConfig(label, configText, underlayNetwork)
                 showAddDialog = false
             },
             onSubmitTailscale = { label, authKey, controlUrl ->
@@ -309,8 +327,8 @@ fun TunnelsScreen(
                     it.id != existing.id && it.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS
                 },
                 onDismiss = { editTarget = null; pendingEditId = null },
-                onSubmitWireguard = { label, configText ->
-                    viewModel.updateWireguardConfig(existing.id, label, configText)
+                onSubmitWireguard = { label, configText, underlayNetwork ->
+                    viewModel.updateWireguardConfig(existing.id, label, configText, underlayNetwork)
                     editTarget = null; pendingEditId = null
                 },
                 onSubmitTailscale = { label, authKey, controlUrl ->
@@ -411,6 +429,7 @@ private fun TunnelRow(
     socksPort: Int? = null,
     forwardCount: Int = 0,
     underlayCarrierLabel: String? = null,
+    underlayNetworkPref: UnderlayNetworkPreference = UnderlayNetworkPreference.DEFAULT,
     onConnect: (() -> Unit)? = null,
     onDisconnect: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
@@ -491,9 +510,20 @@ private fun TunnelRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val viaText = underlayCarrierLabel?.let { stringResource(R.string.tunnel_underlay_via, it) }
+                val onNetText = when (underlayNetworkPref) {
+                    UnderlayNetworkPreference.DEFAULT -> null
+                    UnderlayNetworkPreference.WIFI ->
+                        stringResource(R.string.tunnel_underlay_on_network, stringResource(R.string.tunnel_underlay_network_wifi))
+                    UnderlayNetworkPreference.CELLULAR ->
+                        stringResource(R.string.tunnel_underlay_on_network, stringResource(R.string.tunnel_underlay_network_cellular))
+                    UnderlayNetworkPreference.ETHERNET ->
+                        stringResource(R.string.tunnel_underlay_on_network, stringResource(R.string.tunnel_underlay_network_ethernet))
+                }
                 val extras = buildList {
                     if (viaText != null) {
                         add(viaText)
+                    } else if (onNetText != null) {
+                        add(onNetText)
                     }
                     if (socksPort != null) {
                         add("SOCKS5 127.0.0.1:$socksPort · QEMU 10.0.2.2:$socksPort")
@@ -721,7 +751,7 @@ private fun AddTunnelDialog(
     existing: TunnelConfig? = null,
     carrierTunnels: List<TunnelConfig> = emptyList(),
     onDismiss: () -> Unit,
-    onSubmitWireguard: (label: String, configText: String) -> Unit,
+    onSubmitWireguard: (label: String, configText: String, underlayNetwork: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String, rosenpass: Boolean) -> Unit,
     onSubmitYggdrasil: (label: String, peers: String, privateKey: String, listen: String, ifMTU: Int, groupPassword: String, underlayTunnelId: String) -> Unit,
@@ -734,10 +764,16 @@ private fun AddTunnelDialog(
     // Prefill decodes the saved blob per type. A blob that no longer parses
     // (hand-edited, format drift) leaves the field blank rather than
     // crashing the dialog — the user retypes it.
-    var configText by remember {
+    val existingWireguardRaw = remember(existing?.id, existing?.configText) {
+        existing?.takeIf { it.typeEnum == TunnelConfigType.WIREGUARD }
+            ?.let { String(it.configText, Charsets.UTF_8) }
+    }
+    var configText by remember(existing?.id) {
+        mutableStateOf(existingWireguardRaw?.let(WireguardUnderlayConfig::stripDirective).orEmpty())
+    }
+    var wgUnderlayNetwork by remember(existing?.id) {
         mutableStateOf(
-            existing?.takeIf { it.typeEnum == TunnelConfigType.WIREGUARD }
-                ?.let { String(it.configText, Charsets.UTF_8) } ?: "",
+            existingWireguardRaw?.let(WireguardUnderlayConfig::extract)?.storageValue.orEmpty(),
         )
     }
     var authKey by remember {
@@ -929,6 +965,10 @@ private fun AddTunnelDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    UnderlayNetworkDropdown(
+                        selectedNetwork = wgUnderlayNetwork,
+                        onSelect = { wgUnderlayNetwork = it },
+                    )
                     OutlinedButton(
                         onClick = { fileLauncher.launch(arrayOf("*/*")) },
                         modifier = Modifier.fillMaxWidth(),
@@ -953,7 +993,7 @@ private fun AddTunnelDialog(
                                 )
                             },
                             singleLine = false,
-                            minLines = 10,
+                            minLines = 6,
                             keyboardOptions = KeyboardOptions(
                                 capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
                                 autoCorrectEnabled = false,
@@ -1249,7 +1289,7 @@ private fun AddTunnelDialog(
                     onClick = {
                         when (type) {
                             TunnelConfigType.WIREGUARD ->
-                                onSubmitWireguard(label, configText)
+                                onSubmitWireguard(label, configText, wgUnderlayNetwork)
                             TunnelConfigType.TAILSCALE ->
                                 onSubmitTailscale(label, authKey, controlUrl)
                             TunnelConfigType.NETBIRD ->
@@ -1281,6 +1321,70 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
         TunnelConfigType.ANYCONNECT -> "AnyConnect"
         TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
     }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnderlayNetworkDropdown(
+    selectedNetwork: String,
+    onSelect: (String) -> Unit,
+    enabled: Boolean = true,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedPref = UnderlayNetworkPreference.fromStorage(selectedNetwork)
+    val defaultLabel = stringResource(R.string.tunnel_underlay_network_default)
+    val wifiLabel = stringResource(R.string.tunnel_underlay_network_wifi)
+    val cellularLabel = stringResource(R.string.tunnel_underlay_network_cellular)
+    val ethernetLabel = stringResource(R.string.tunnel_underlay_network_ethernet)
+    val currentLabel = when (selectedPref) {
+        UnderlayNetworkPreference.DEFAULT -> defaultLabel
+        UnderlayNetworkPreference.WIFI -> wifiLabel
+        UnderlayNetworkPreference.CELLULAR -> cellularLabel
+        UnderlayNetworkPreference.ETHERNET -> ethernetLabel
+    }
+    ExposedDropdownMenuBox(
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = currentLabel,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.tunnel_underlay_network_label)) },
+            supportingText = {
+                Text(
+                    stringResource(R.string.tunnel_underlay_network_help),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded && enabled) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded && enabled,
+            onDismissRequest = { expanded = false },
+        ) {
+            listOf(
+                UnderlayNetworkPreference.DEFAULT to defaultLabel,
+                UnderlayNetworkPreference.WIFI to wifiLabel,
+                UnderlayNetworkPreference.CELLULAR to cellularLabel,
+                UnderlayNetworkPreference.ETHERNET to ethernetLabel,
+            ).forEach { (pref, text) ->
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    onClick = {
+                        onSelect(pref.storageValue)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1379,6 +1483,11 @@ private fun AnyConnectFields(
             selectedTunnelId = form.underlayTunnelId,
             carrierTunnels = carrierTunnels,
             onSelect = { onChange(form.copy(underlayTunnelId = it)) },
+        )
+        UnderlayNetworkDropdown(
+            selectedNetwork = form.underlayNetwork,
+            onSelect = { onChange(form.copy(underlayNetwork = it)) },
+            enabled = form.underlayTunnelId.isBlank(),
         )
         OutlinedTextField(
             value = form.username,

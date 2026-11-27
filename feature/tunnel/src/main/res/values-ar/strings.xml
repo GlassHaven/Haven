@@ -99,4 +99,11 @@
     <string name="tunnel_underlay_carrier_help">الاتصال بأقران TCP/TLS عبر وكيل SOCKS5 لنفق آخر عندما يتعذر الوصول إلى أقران الشبكة المحلية مباشرةً.</string>
     <string name="tunnel_underlay_carrier_direct">مباشر (شبكة الهاتف)</string>
     <string name="tunnel_underlay_via">عبر %1$s</string>
+    <string name="tunnel_underlay_network_label">الشبكة التحتية (اختياري)</string>
+    <string name="tunnel_underlay_network_help">ربط مآخذ النفق مباشرةً بـ Wi-Fi أو الشبكة الخلوية أو Ethernet عندما يشير المسار الافتراضي للهاتف إلى وجهة أخرى.</string>
+    <string name="tunnel_underlay_network_default">الافتراضي (مسار النظام)</string>
+    <string name="tunnel_underlay_network_wifi">Wi-Fi</string>
+    <string name="tunnel_underlay_network_cellular">شبكة خلوية</string>
+    <string name="tunnel_underlay_network_ethernet">Ethernet</string>
+    <string name="tunnel_underlay_on_network">على %1$s</string>
 </resources>

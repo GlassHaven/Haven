@@ -365,6 +365,83 @@ class WireGuardConflictTest {
         assertEquals(2, startTunnelCalls)
     }
 
+    @Test
+    fun `underlayNetworkHandleProvider passes resolved handle on start and re-binds on Wi-Fi reconnect`() {
+        var nowMs = 10_000L
+        var currentWifiHandle = 430_000_000_101L
+        val startedHandles = mutableListOf<Long>()
+        val cfgWithWifi = WireguardUnderlayConfig.withPreference(sampleConfig, UnderlayNetworkPreference.WIFI)
+        val tunnel = WireguardTunnel(
+            cfgWithWifi,
+            clockMs = { nowMs },
+            networkKeyProvider = { currentWifiHandle },
+            nativeStarterWithNetwork = { prepared, handle ->
+                assertTrue(prepared.contains("PersistentKeepalive = 25"))
+                startedHandles.add(handle)
+                FakeNative()
+            },
+            underlayNetworkHandleProvider = { currentWifiHandle },
+        )
+        assertEquals(listOf(430_000_000_101L), startedHandles)
+
+        // Wi-Fi reconnects with a fresh Android Network handle -> bounce re-binds to the new handle.
+        currentWifiHandle = 430_000_000_202L
+        nowMs += 5_000L
+        assertTrue(tunnel.reviveIfNetworkChanged("wifi reconnect"))
+        assertEquals(listOf(430_000_000_101L, 430_000_000_202L), startedHandles)
+    }
+
+    @Test
+    fun `defaultFactory fails fast before native start when WireGuard or AnyConnect underlay Wi-Fi is disconnected`() {
+        val probe = mockk<SystemVpnAddressProbe> {
+            every { collidingVpnInterface(any()) } returns null
+        }
+        val disconnectedResolver = AndroidUnderlayNetworkResolver(
+            context = null,
+            snapshotProvider = { 100L to emptyList() },
+        )
+        val factory = DefaultTunnelFactory(
+            mockk(),
+            OkHttpClient(),
+            TunnelAuthBroker(mockk()),
+            probe,
+            disconnectedResolver,
+        )
+
+        val wgEx = assertThrows(IOException::class.java) {
+            factory.create(
+                TunnelConfig(
+                    id = "wg-wifi",
+                    label = "Lab WG",
+                    type = TunnelConfigType.WIREGUARD.name,
+                    configText = WireguardUnderlayConfig
+                        .withPreference(sampleConfig, UnderlayNetworkPreference.WIFI)
+                        .toByteArray(Charsets.UTF_8),
+                ),
+            )
+        }
+        assertTrue(wgEx.message!!.contains("Lab WG"))
+        assertTrue(wgEx.message!!.contains("Wi-Fi is not connected"))
+
+        val acEx = assertThrows(IOException::class.java) {
+            factory.create(
+                TunnelConfig(
+                    id = "ac-wifi",
+                    label = "Lab AC",
+                    type = TunnelConfigType.ANYCONNECT.name,
+                    configText = AnyConnectConfigBlob(
+                        server = "192.168.10.1",
+                        username = "alice",
+                        password = "pw",
+                        underlayNetwork = "WIFI",
+                    ).encode(),
+                ),
+            )
+        }
+        assertTrue(acEx.message!!.contains("Lab AC"))
+        assertTrue(acEx.message!!.contains("Wi-Fi is not connected"))
+    }
+
     private class FakeNative(
         private val onDial: () -> WgNativeConn? = { null },
         private val onClose: () -> Unit = {},

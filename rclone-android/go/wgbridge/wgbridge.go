@@ -34,8 +34,13 @@ import (
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun/netstack"
 
+	"sh.haven/rcbridge/netbind"
 	"sh.haven/rcbridge/socks5"
 )
+
+// startMu serialises writes to wireguard-go's global conn.ControlFns during
+// device.Up() so concurrent WireGuard startups cannot cross-bind sockets (#876).
+var startMu sync.Mutex
 
 // TunnelHandle is a live WireGuard tunnel backed by a userspace TUN + the
 // gVisor netstack. Not safe for concurrent Close, but Dial is safe to call
@@ -93,7 +98,15 @@ type UDPRead struct {
 // returned handle must be closed via [TunnelHandle.Close]. Callers get a
 // clear error message on parse / handshake failure.
 func StartTunnel(configText string) (*TunnelHandle, error) {
-	parsed, err := parseConfig(configText)
+	return StartTunnelOnNetwork(configText, 0)
+}
+
+// StartTunnelOnNetwork parses a wg-quick config and brings a tunnel up with
+// its UDP underlay sockets and endpoint DNS resolution bound to Android
+// networkHandle (android.net.Network.getNetworkHandle, or 0 for default route, #876).
+func StartTunnelOnNetwork(configText string, networkHandle int64) (*TunnelHandle, error) {
+	netHandle := uint64(networkHandle)
+	parsed, err := parseConfigOnNetwork(configText, netHandle)
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
@@ -110,25 +123,32 @@ func StartTunnel(configText string) (*TunnelHandle, error) {
 	// Android ControlProtectSocket. That control demands a VpnService-style
 	// protect function, which we never register — so with netbird linked
 	// into libgojni, every UDP bind here fails with "listen udp4 :0:
-	// socket protection function not set" (#637). Our sockets are pure
-	// netstack and need no fd protection, so start each tunnel from a
-	// clean control list. Package inits have all run by the time this is
-	// called, and netbird's own binds apply their control via its wrapped
-	// conn, not this list.
+	// socket protection function not set" (#637). Replace ControlFns under
+	// startMu for the duration of dev.Up(): empty for default-route tunnels,
+	// or netbind.Control(netHandle) when pinned to a specific Android Network (#876).
+	startMu.Lock()
 	*conn.ControlFns = nil
-
+	if ctrl := netbind.Control(netHandle); ctrl != nil {
+		*conn.ControlFns = append(*conn.ControlFns, ctrl)
+	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(
 		device.LogLevelError,
 		"haven-wg: ",
 	))
 	if err := dev.IpcSet(parsed.uapi); err != nil {
+		*conn.ControlFns = nil
+		startMu.Unlock()
 		dev.Close()
 		return nil, fmt.Errorf("wireguard IpcSet: %w", err)
 	}
 	if err := dev.Up(); err != nil {
+		*conn.ControlFns = nil
+		startMu.Unlock()
 		dev.Close()
 		return nil, fmt.Errorf("wireguard Up: %w", err)
 	}
+	*conn.ControlFns = nil
+	startMu.Unlock()
 
 	// Prefer the first IPv4 [Interface] Address for UDP binds — most
 	// wg-quick configs put IPv4 first, and IPv4 is the common case for
@@ -440,6 +460,10 @@ type parsedConfig struct {
 // fields we actually use; unknown keys are ignored rather than rejected
 // so users can paste a full wg-quick config verbatim.
 func parseConfig(text string) (*parsedConfig, error) {
+	return parseConfigOnNetwork(text, 0)
+}
+
+func parseConfigOnNetwork(text string, networkHandle uint64) (*parsedConfig, error) {
 	lines := strings.Split(text, "\n")
 	var (
 		section       string
@@ -553,7 +577,7 @@ func parseConfig(text string) (*parsedConfig, error) {
 		if endpoint == "" {
 			return nil, fmt.Errorf("peer %d: missing Endpoint", i)
 		}
-		resolvedEndpoint, err := resolveEndpoint(endpoint)
+		resolvedEndpoint, err := resolveEndpointOnNetwork(endpoint, networkHandle)
 		if err != nil {
 			return nil, fmt.Errorf("peer %d Endpoint %q: %w", i, endpoint, err)
 		}
@@ -639,6 +663,10 @@ var endpointResolver = func(host string) ([]string, error) {
 // Prefers IPv4 over IPv6 because many home networks have flaky IPv6
 // reachability to the WireGuard peer even when AAAA records exist.
 func resolveEndpoint(endpoint string) (string, error) {
+	return resolveEndpointOnNetwork(endpoint, 0)
+}
+
+func resolveEndpointOnNetwork(endpoint string, networkHandle uint64) (string, error) {
 	host, port, err := net.SplitHostPort(endpoint)
 	if err != nil {
 		return "", fmt.Errorf("invalid host:port: %w", err)
@@ -647,7 +675,14 @@ func resolveEndpoint(endpoint string) (string, error) {
 	if addr, err := netip.ParseAddr(host); err == nil {
 		return netip.AddrPortFrom(addr, parsePort(port)).String(), nil
 	}
-	addrs, err := endpointResolver(host)
+	var addrs []string
+	if networkHandle != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		addrs, err = netbind.LookupHost(ctx, networkHandle, host)
+	} else {
+		addrs, err = endpointResolver(host)
+	}
 	if err != nil {
 		return "", fmt.Errorf("resolve %q: %w", host, err)
 	}

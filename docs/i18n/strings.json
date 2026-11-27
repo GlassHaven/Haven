@@ -53376,6 +53376,148 @@
       "sr": "преко %1$s",
       "zh": "经由 %1$s"
      }
+    },
+    {
+     "name": "tunnel_underlay_network_label",
+     "en": "Underlay network (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الشبكة التحتية (اختياري)",
+      "bn": "আন্ডারলে নেটওয়ার্ক (ঐচ্ছিক)",
+      "de": "Underlay-Netzwerk (optional)",
+      "es": "Red subyacente (opcional)",
+      "fr": "Réseau sous-jacent (facultatif)",
+      "hi": "अंडरले नेटवर्क (वैकल्पिक)",
+      "ja": "アンダーレイネットワーク（任意）",
+      "ko": "언더레이 네트워크 (선택 사항)",
+      "pt": "Rede subjacente (opcional)",
+      "ru": "Транспортная сеть (необязательно)",
+      "sr": "Подмрежа (опционо)",
+      "zh": "底层网络（可选）"
+     }
+    },
+    {
+     "name": "tunnel_underlay_network_help",
+     "en": "Bind tunnel sockets directly to Wi-Fi, Cellular, or Ethernet when the phone\\'s default route points elsewhere.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "ربط مآخذ النفق مباشرةً بـ Wi-Fi أو الشبكة الخلوية أو Ethernet عندما يشير المسار الافتراضي للهاتف إلى وجهة أخرى.",
+      "bn": "ফোনের ডিফল্ট রুট অন্য দিকে থাকলে টানেল সকেট সরাসরি Wi-Fi, সেলুলার বা ইথারনেটে আবদ্ধ করুন।",
+      "de": "Tunnelsockets direkt an WLAN, Mobilfunk oder Ethernet binden, wenn die Standardroute des Geräts woanders hinzeigt.",
+      "es": "Vincula los sockets del túnel directamente a Wi-Fi, datos móviles o Ethernet cuando la ruta predeterminada del teléfono apunta a otro lado.",
+      "fr": "Lie directement les sockets du tunnel au Wi-Fi, au réseau mobile ou à Ethernet lorsque la route par défaut du téléphone pointe ailleurs.",
+      "hi": "जब फ़ोन का डिफ़ॉल्ट रूट कहीं और इंगित करता हो, तो टनल सॉकेट को सीधे Wi-Fi, सेलुलर या ईथरनेट से बाँधें।",
+      "ja": "端末のデフォルトルートが別の経路を向いている場合に、トンネルソケットを Wi-Fi、モバイル通信、または Ethernet に直接バインドします。",
+      "ko": "휴대폰의 기본 경로가 다른 곳을 가리킬 때 터널 소켓을 Wi-Fi, 모바일 데이터 또는 이더넷에 직접 바인딩합니다.",
+      "pt": "Associa os sockets do túnel diretamente a Wi-Fi, dados móveis ou Ethernet quando a rota predefinida do telemóvel aponta para outro destino.",
+      "ru": "Привязывать сокеты туннеля напрямую к Wi-Fi, мобильной сети или Ethernet, когда маршрут по умолчанию ведёт иначе.",
+      "sr": "Везује сокете тунела директно за Wi-Fi, мобилну мрежу или Ethernet када подразумевана рута телефона води другде.",
+      "zh": "当手机默认路由指向其他网络时，将隧道套接字直接绑定到 Wi-Fi、移动数据或以太网。"
+     }
+    },
+    {
+     "name": "tunnel_underlay_network_default",
+     "en": "Default (system route)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الافتراضي (مسار النظام)",
+      "bn": "ডিফল্ট (সিস্টেম রুট)",
+      "de": "Standard (Systemroute)",
+      "es": "Predeterminada (ruta del sistema)",
+      "fr": "Par défaut (route système)",
+      "hi": "डिफ़ॉल्ट (सिस्टम रूट)",
+      "ja": "デフォルト（システムルート）",
+      "ko": "기본값 (시스템 경로)",
+      "pt": "Predefinida (rota do sistema)",
+      "ru": "По умолчанию (системный маршрут)",
+      "sr": "Подразумевано (системска рута)",
+      "zh": "默认（系统路由）"
+     }
+    },
+    {
+     "name": "tunnel_underlay_network_wifi",
+     "en": "Wi-Fi",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "Wi-Fi",
+      "bn": "Wi-Fi",
+      "de": "WLAN",
+      "es": "Wi-Fi",
+      "fr": "Wi-Fi",
+      "hi": "Wi-Fi",
+      "ja": "Wi-Fi",
+      "ko": "Wi-Fi",
+      "pt": "Wi-Fi",
+      "ru": "Wi-Fi",
+      "sr": "Wi-Fi",
+      "zh": "Wi-Fi"
+     }
+    },
+    {
+     "name": "tunnel_underlay_network_cellular",
+     "en": "Cellular",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "شبكة خلوية",
+      "bn": "সেলুলার",
+      "de": "Mobilfunk",
+      "es": "Datos móviles",
+      "fr": "Données mobiles",
+      "hi": "सेलुलर",
+      "ja": "モバイル通信",
+      "ko": "모바일 데이터",
+      "pt": "Dados móveis",
+      "ru": "Мобильная сеть",
+      "sr": "Мобилна мрежа",
+      "zh": "移动数据"
+     }
+    },
+    {
+     "name": "tunnel_underlay_network_ethernet",
+     "en": "Ethernet",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "Ethernet",
+      "bn": "ইথারনেট",
+      "de": "Ethernet",
+      "es": "Ethernet",
+      "fr": "Ethernet",
+      "hi": "ईथरनेट",
+      "ja": "Ethernet",
+      "ko": "이더넷",
+      "pt": "Ethernet",
+      "ru": "Ethernet",
+      "sr": "Ethernet",
+      "zh": "以太网"
+     }
+    },
+    {
+     "name": "tunnel_underlay_on_network",
+     "en": "on %1$s",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "على %1$s",
+      "bn": "%1$s এ",
+      "de": "auf %1$s",
+      "es": "en %1$s",
+      "fr": "sur %1$s",
+      "hi": "%1$s पर",
+      "ja": "%1$s 上",
+      "ko": "%1$s 사용",
+      "pt": "em %1$s",
+      "ru": "через %1$s",
+      "sr": "на %1$s",
+      "zh": "绑定 %1$s"
+     }
     }
    ]
   },

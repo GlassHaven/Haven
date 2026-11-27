@@ -1995,6 +1995,7 @@ Add a new WireGuard, Tailscale, NetBird, Yggdrasil, OpenVPN, AnyConnect, or Clou
 - `anyconnectSecondaryPassword` (string) — Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.
 - `anyconnectServer` (string) — AnyConnect/ocserv gateway, e.g. vpn.example.com or vpn.example.com:8443/group. Required when type=ANYCONNECT.
 - `anyconnectServerCert` (string) — Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.
+- `anyconnectUnderlayNetwork` (string) — Optional physical Android network to bind direct AnyConnect/ocserv HTTPS and CSTP sockets and DNS lookups to when the phone's default route points elsewhere (#876): WIFI, CELLULAR, or ETHERNET (omit or DEFAULT for system default route; ignored when anyconnectUnderlayTunnelId is set).
 - `anyconnectUnderlayTunnelId` (string) — Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries AnyConnect/ocserv HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).
 - `anyconnectUsername` (string) — AnyConnect username. Required when type=ANYCONNECT.
 - `configText` (string) — WireGuard wg-quick INI body. Required when type=WIREGUARD.
@@ -2006,6 +2007,7 @@ Add a new WireGuard, Tailscale, NetBird, Yggdrasil, OpenVPN, AnyConnect, or Clou
 - `ovpnUsername` (string) — auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.
 - `tailscaleAuthKey` (string) — Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.
 - `tailscaleControlUrl` (string) — Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.
+- `wireguardUnderlayNetwork` (string) — Optional physical Android network to bind WireGuard underlay UDP sockets and endpoint DNS resolution to when the phone's default route points elsewhere (#876): WIFI, CELLULAR, or ETHERNET (omit or DEFAULT for system default route).
 - `yggdrasilGroupPassword` (string) — Yggdrasil group password for a private sub-network. Optional — empty permits public connectivity; set the same password on all group members.
 - `yggdrasilIfMTU` (integer) — Yggdrasil mesh MTU. Optional — 0 uses the yggdrasil default (65535); minimum 1280.
 - `yggdrasilListen` (string) — Whitespace-separated inbound peering listen URIs (e.g. "tls://0.0.0.0:0"). Optional — needed only to accept incoming peerings from non-local nodes.

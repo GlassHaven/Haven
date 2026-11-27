@@ -354,7 +354,7 @@ internal object SshlibSftpConnector {
     /** The password a KI round can be auto-answered with, when the profile has one. */
     private fun fallbackPassword(methods: List<ConnectionConfig.AuthMethod>): String? =
         methods.filterIsInstance<ConnectionConfig.AuthMethod.Password>()
-            .firstOrNull()
+            .firstOrNull { it.password.isNotEmpty() }
             ?.let { String(it.password) }
 
     private fun AuthResult.requireSuccess() {

@@ -127,16 +127,36 @@ class SshIdentityRepository @Inject constructor(
                 null
             }
         }
+        val existingSpecs = ConnectionProfile.AuthMethodSpec.parseList(profile.authMethods)
+        val hasMultiFactorChain = existingSpecs.any {
+            it is ConnectionProfile.AuthMethodSpec.Totp ||
+                it is ConnectionProfile.AuthMethodSpec.KeyboardInteractive
+        }
+        val mergedAuthMethods = if (hasMultiFactorChain) {
+            val mapped = existingSpecs.map { spec ->
+                if (spec is ConnectionProfile.AuthMethodSpec.Key && identity.keyId != null) {
+                    ConnectionProfile.AuthMethodSpec.Key(identity.keyId)
+                } else {
+                    spec
+                }
+            }.toMutableList()
+            if (identity.keyId != null && mapped.none { it is ConnectionProfile.AuthMethodSpec.Key }) {
+                mapped.add(0, ConnectionProfile.AuthMethodSpec.Key(identity.keyId))
+            }
+            ConnectionProfile.AuthMethodSpec.serializeList(mapped)
+        } else {
+            ""
+        }
         return profile.copy(
             username = identity.username,
-            sshPassword = password,
+            sshPassword = password ?: profile.sshPassword,
             keyId = identity.keyId,
             authType = if (identity.keyId != null) {
                 ConnectionProfile.AuthType.KEY
             } else {
                 ConnectionProfile.AuthType.PASSWORD
             },
-            authMethods = "",
+            authMethods = mergedAuthMethods,
         )
     }
 }

@@ -104,4 +104,31 @@ class SshIdentityResolutionTest {
         assertEquals(ConnectionProfile.AuthType.PASSWORD, applied.authType)
         assertNull(applied.keyId)
     }
+
+    @Test
+    fun `key-only identity preserves inline sshPassword and multi-factor TOTP chain`() = runTest {
+        val ident = SshIdentity(id = "i-key", name = "ops-key", username = "ops", password = null, keyId = "k-ops")
+        val r = repo(
+            identities = mapOf("i-key" to ident),
+            groups = mapOf("g1" to ConnectionGroup(id = "g1", label = "Prod", identityId = "i-key")),
+        )
+        val profile = base.copy(
+            groupId = "g1",
+            sshPassword = "inline-pam-password",
+            authType = ConnectionProfile.AuthType.KEY,
+            authMethods = "KEY\nTOTP:totp-1\nPASSWORD",
+        )
+        val applied = r.applyTo(profile)
+        assertEquals("ops", applied.username)
+        assertEquals("k-ops", applied.keyId)
+        assertEquals("inline-pam-password", applied.sshPassword)
+        assertEquals(
+            listOf(
+                ConnectionProfile.AuthMethodSpec.Key("k-ops"),
+                ConnectionProfile.AuthMethodSpec.Totp("totp-1"),
+                ConnectionProfile.AuthMethodSpec.Password,
+            ),
+            applied.authMethodSpecs,
+        )
+    }
 }

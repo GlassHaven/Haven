@@ -33,6 +33,8 @@ internal class KeyboardInteractiveAnswerer(
     private val autoSubmit: Boolean = true,
 ) {
 
+    private val usableFallbackPassword: CharArray? = fallbackPassword?.takeIf { it.isNotEmpty() }
+
     /**
      * Responses for this round in prompt order, or null to abort
      * keyboard-interactive (the user declined).
@@ -51,17 +53,21 @@ internal class KeyboardInteractiveAnswerer(
         )
 
         // Generated at this instant so an OTP code is current for the window
-        // the server will validate it against.
+        // the server will validate it against. Check OTP keywords BEFORE
+        // generic "password" matching (#892): PAM modules like pam_oath prompt
+        // "One-time password:", which contains "password" yet expects the TOTP
+        // code, not the static login password.
         val autoAnswers: List<String?> = prompts.map { p ->
             when {
-                fallbackPassword != null && !p.echo && p.text.contains("password", ignoreCase = true) ->
-                    String(fallbackPassword)
-                totpCodeProvider != null && looksLikeOtpPrompt(p) -> totpCodeProvider.invoke()
+                totpCodeProvider != null && p.looksLikeOtpPrompt() -> totpCodeProvider.invoke()
+                usableFallbackPassword != null && p.isSavablePasswordPrompt() ->
+                    String(usableFallbackPassword)
                 else -> null
             }
         }
 
-        if (autoSubmit && prompts.isNotEmpty() && autoAnswers.all { it != null }) {
+        val holdForOtpConfirmation = !autoSubmit && prompts.any { it.looksLikeOtpPrompt() }
+        if (!holdForOtpConfirmation && prompts.isNotEmpty() && autoAnswers.all { it != null }) {
             Log.d(KI_TAG, "  auto-answering ${prompts.size} prompt(s) from stored secrets")
             return autoAnswers.map { it!! }
         }
@@ -81,26 +87,5 @@ internal class KeyboardInteractiveAnswerer(
                 "lengths=${responses.map { it.length }}"}",
         )
         return responses
-    }
-
-    /**
-     * Heuristic for "this prompt wants a TOTP / one-time code". PAM OTP
-     * modules (google-authenticator, oath-toolkit, Duo, etc.) phrase the
-     * prompt in varied ways but it's always a masked field. We require
-     * echo=false AND an OTP-ish keyword so a plain "Password:" prompt
-     * isn't answered with a TOTP code by mistake.
-     */
-    private fun looksLikeOtpPrompt(p: KeyboardInteractiveChallenge.Prompt): Boolean {
-        if (p.echo) return false
-        val t = p.text.lowercase()
-        return OTP_KEYWORDS.any { it in t }
-    }
-
-    private companion object {
-        val OTP_KEYWORDS = listOf(
-            "verification code", "one-time", "one time", "otp", "totp",
-            "token", "authenticator", "2fa", "two-factor", "two factor",
-            "code:", "code ", "passcode",
-        )
     }
 }

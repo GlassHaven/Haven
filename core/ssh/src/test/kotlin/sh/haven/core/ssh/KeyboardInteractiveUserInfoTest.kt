@@ -235,6 +235,119 @@ class KeyboardInteractiveUserInfoTest {
     }
 
     @Test
+    fun otpKeywordTakesPrecedenceOverPasswordKeywordOnOneTimePasswordPrompt() {
+        var prompterCalled = false
+        val ui = KeyboardInteractiveUserInfo(
+            destination = "alice@example.com:22",
+            prompter = { prompterCalled = true; null },
+            fallbackPassword = "saved-password".toCharArray(),
+            totpCodeProvider = { "424242" },
+            autoSubmit = true,
+        )
+
+        val result = callOnBackgroundThread {
+            ui.promptKeyboardInteractive(
+                "alice@example.com:22",
+                "PAM OATH",
+                null,
+                arrayOf("One-time password (OATH) for `alice': "),
+                booleanArrayOf(false),
+            )
+        }
+
+        assertArrayEquals(arrayOf("424242"), result)
+        assertTrue("OTP prompt containing 'password' must still receive TOTP code", !prompterCalled)
+    }
+
+    @Test
+    fun emptyFallbackPasswordDoesNotSilentlyAutoSubmitBlankResponse() {
+        var prompterCalled = false
+        val ui = KeyboardInteractiveUserInfo(
+            destination = "alice@example.com:22",
+            prompter = {
+                prompterCalled = true
+                listOf("typed-password")
+            },
+            fallbackPassword = charArrayOf(),
+            totpCodeProvider = { "424242" },
+            autoSubmit = true,
+        )
+
+        val result = callOnBackgroundThread {
+            ui.promptKeyboardInteractive(
+                "alice@example.com:22",
+                null,
+                null,
+                arrayOf("Password: "),
+                booleanArrayOf(false),
+            )
+        }
+
+        assertTrue("empty fallback password must prompt the user instead of sending ''", prompterCalled)
+        assertArrayEquals(arrayOf("typed-password"), result)
+    }
+
+    @Test
+    fun localizedPamPasswordPromptsAreSatisfiedBySavedFallbackPassword() {
+        var prompterCalled = false
+        val ui = KeyboardInteractiveUserInfo(
+            destination = "alice@example.com:22",
+            prompter = { prompterCalled = true; null },
+            fallbackPassword = "saved-password".toCharArray(),
+            totpCodeProvider = { "424242" },
+            autoSubmit = true,
+        )
+
+        for (localizedPrompt in listOf("密码：", "Passwort: ", "Mot de passe : ", "パスワード: ")) {
+            val result = callOnBackgroundThread {
+                ui.promptKeyboardInteractive(
+                    "alice@example.com:22",
+                    "PAM",
+                    null,
+                    arrayOf(localizedPrompt),
+                    booleanArrayOf(false),
+                )
+            }
+            assertArrayEquals("localized prompt '$localizedPrompt' must receive saved password", arrayOf("saved-password"), result)
+        }
+        val localizedOtp = callOnBackgroundThread {
+            ui.promptKeyboardInteractive(
+                "alice@example.com:22",
+                "PAM",
+                null,
+                arrayOf("一次性密码："),
+                booleanArrayOf(false),
+            )
+        }
+        assertArrayEquals(arrayOf("424242"), localizedOtp)
+        assertTrue("localized password and OTP rounds must auto-answer without prompting", !prompterCalled)
+    }
+
+    @Test
+    fun confirmOtpOnlyHoldsOtpRoundsNotSeparatePamPasswordRound() {
+        var prompterCalled = false
+        val ui = KeyboardInteractiveUserInfo(
+            destination = "alice@example.com:22",
+            prompter = { prompterCalled = true; listOf("typed") },
+            fallbackPassword = "saved-password".toCharArray(),
+            totpCodeProvider = { "424242" },
+            autoSubmit = false, // totpConfirmBeforeSend = true
+        )
+
+        val pwResult = callOnBackgroundThread {
+            ui.promptKeyboardInteractive(
+                "alice@example.com:22",
+                null,
+                null,
+                arrayOf("Password: "),
+                booleanArrayOf(false),
+            )
+        }
+        assertArrayEquals(arrayOf("saved-password"), pwResult)
+        assertTrue("confirmOtp=true must still auto-submit a pure PAM Password: round", !prompterCalled)
+    }
+
+    @Test
     fun confirmOtpPrefillsTheDialogInsteadOfAutoSubmitting() {
         var seen: KeyboardInteractiveChallenge? = null
         val ui = KeyboardInteractiveUserInfo(

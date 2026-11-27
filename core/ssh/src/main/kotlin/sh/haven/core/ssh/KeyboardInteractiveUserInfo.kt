@@ -28,22 +28,49 @@ internal class KeyboardInteractiveUserInfo(
     fallbackPassword: CharArray? = null,
     totpCodeProvider: (() -> String)? = null,
     autoSubmit: Boolean = true,
+    private val allowPasswordPrompt: Boolean = totpCodeProvider != null,
     private val onBanner: ((String) -> Unit)? = null,
 ) : UserInfo, UIKeyboardInteractive {
+
+    private val usableFallbackPassword: CharArray? = fallbackPassword?.takeIf { it.isNotEmpty() }
+    private var fallbackPasswordConsumed: Boolean = false
+    private var interactivePasswordPrompted: Boolean = false
+    private var resolvedPasswordAuthSecret: String? = null
 
     private val answerer = KeyboardInteractiveAnswerer(
         destination = destination,
         prompter = prompter,
-        fallbackPassword = fallbackPassword,
+        fallbackPassword = usableFallbackPassword,
         totpCodeProvider = totpCodeProvider,
         autoSubmit = autoSubmit,
     )
 
     override fun getPassphrase(): String? = null
 
-    override fun getPassword(): String? = null
+    override fun getPassword(): String? = resolvedPasswordAuthSecret
 
-    override fun promptPassword(message: String?): Boolean = false
+    override fun promptPassword(message: String?): Boolean {
+        if (!fallbackPasswordConsumed && usableFallbackPassword != null) {
+            fallbackPasswordConsumed = true
+            resolvedPasswordAuthSecret = String(usableFallbackPassword)
+            return true
+        }
+        if (!allowPasswordPrompt || interactivePasswordPrompted) {
+            resolvedPasswordAuthSecret = null
+            return false
+        }
+        interactivePasswordPrompted = true
+        val challenge = KeyboardInteractiveChallenge(
+            destination = destination,
+            name = "",
+            instruction = "",
+            prompts = listOf(KeyboardInteractiveChallenge.Prompt(text = "Password: ", echo = false)),
+        )
+        val responses = runBlocking { prompter.prompt(challenge) }
+        val typed = responses?.firstOrNull()?.takeIf { it.isNotEmpty() }
+        resolvedPasswordAuthSecret = typed
+        return typed != null
+    }
 
     override fun promptPassphrase(message: String?): Boolean = false
 

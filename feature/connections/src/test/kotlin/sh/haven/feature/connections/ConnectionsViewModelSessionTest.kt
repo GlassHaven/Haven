@@ -10,6 +10,7 @@ import io.mockk.slot
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertSame
@@ -17,6 +18,7 @@ import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.SshKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -1892,5 +1894,123 @@ class ConnectionsViewModelSessionTest {
     fun `connect safety net gives rclone five minutes and everything else twenty seconds`() {
         assertEquals(300_000L, connectSafetyNetDelayMs(isRclone = true))
         assertEquals(20_000L, connectSafetyNetDelayMs(isRclone = false))
+    }
+
+    /** #892: multi-factor [Key, Totp] saves password from KeyboardInteractiveDialog and reuses it on next connect. */
+    @Test
+    fun `keyboard-interactive password prompt offers Remember password and saves sshPassword onto profile`() = runTest {
+        val profile = ConnectionProfile(
+            id = "p-3fa", label = "bastion", host = "10.0.0.5", username = "alice",
+            connectionType = "SSH",
+            authType = ConnectionProfile.AuthType.KEY,
+            authMethods = "KEY\nTOTP",
+            remoteCommand = "true",
+        )
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = listOf(
+                SshKey(
+                    id = "k-haven", label = "haven", keyType = "ssh-ed25519",
+                    privateKeyBytes = ByteArray(64), publicKeyOpenSsh = "ssh-ed25519 A",
+                    fingerprintSha256 = "SHA256:haven",
+                ),
+            ),
+            declined = emptyList(),
+        )
+        val savedProfiles = mutableListOf<ConnectionProfile>()
+        coEvery { repository.save(capture(savedProfiles)) } returns Unit
+        every { sshSessionManager.registerSession("p-3fa", any(), any()) } returns "3fa-sess"
+        every { sshSessionManager.isClientShared(any()) } returns true
+        every { sshSessionManager.getSession(any()) } returns null
+        every { sshSessionManager.getConnectionConfigForProfile(any()) } returns null
+        coEvery { sshSessionManager.openShellAndAwaitReady(any(), any(), any()) } returns
+            sh.haven.core.ssh.ShellOutcome.Ready("3fa-sess")
+
+        var seenOtpCanRemember: Boolean? = null
+        var seenPwCanRemember: Boolean? = null
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also { conn ->
+                coEvery { conn.connect(any(), any(), any(), any(), any(), any(), any(), any(), any()) } coAnswers {
+                    val prompter = arg<sh.haven.core.ssh.KeyboardInteractivePrompter?>(3)!!
+                    kotlinx.coroutines.coroutineScope {
+                        // 1. OTP prompt ("One-time password:") MUST NOT offer Remember password.
+                        val otpDeferred = async {
+                            prompter.prompt(
+                                sh.haven.core.ssh.KeyboardInteractiveChallenge(
+                                    destination = "alice@10.0.0.5:22",
+                                    name = "PAM OATH",
+                                    instruction = "",
+                                    prompts = listOf(
+                                        sh.haven.core.ssh.KeyboardInteractiveChallenge.Prompt("One-time password: ", echo = false),
+                                    ),
+                                ),
+                            )
+                        }
+                        val deadline1 = System.currentTimeMillis() + 5_000
+                        while (viewModel.keyboardInteractiveAuth.value == null && System.currentTimeMillis() < deadline1) {
+                            Thread.sleep(10)
+                        }
+                        seenOtpCanRemember = viewModel.keyboardInteractiveAuth.value?.canRememberPassword
+                        viewModel.submitKeyboardInteractiveResponses(listOf("424242"), rememberPassword = true)
+                        otpDeferred.await()
+
+                        // 2. Login password prompt ("Password:") MUST offer Remember password and persist it.
+                        val pwDeferred = async {
+                            prompter.prompt(
+                                sh.haven.core.ssh.KeyboardInteractiveChallenge(
+                                    destination = "alice@10.0.0.5:22",
+                                    name = "",
+                                    instruction = "",
+                                    prompts = listOf(
+                                        sh.haven.core.ssh.KeyboardInteractiveChallenge.Prompt("Password: ", echo = false),
+                                    ),
+                                ),
+                            )
+                        }
+                        val deadline2 = System.currentTimeMillis() + 5_000
+                        while (viewModel.keyboardInteractiveAuth.value == null && System.currentTimeMillis() < deadline2) {
+                            Thread.sleep(10)
+                        }
+                        seenPwCanRemember = viewModel.keyboardInteractiveAuth.value?.canRememberPassword
+                        viewModel.submitKeyboardInteractiveResponses(listOf("server-login-pw"), rememberPassword = true)
+                        pwDeferred.await()
+                    }
+                    null
+                }
+            }
+        }
+
+        viewModel.connectWithKey(profile)
+        val deadline = System.currentTimeMillis() + 10_000
+        while (savedProfiles.isEmpty() && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("OTP prompt must not offer Remember password", false, seenOtpCanRemember)
+        assertEquals("Password prompt must offer Remember password", true, seenPwCanRemember)
+        assertTrue("profile must be saved with remembered sshPassword", savedProfiles.any { it.sshPassword == "server-login-pw" })
+
+        // 3. Subsequent connect on [KEY, TOTP] with saved sshPassword automatically includes Password("server-login-pw").
+        val savedProfile = savedProfiles.last { it.sshPassword == "server-login-pw" }
+        val secondConfigSlot = slot<ConnectionConfig>()
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery { it.connect(capture(secondConfigSlot), any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+            }
+        }
+        viewModel.connectWithKey(savedProfile)
+        val deadline3 = System.currentTimeMillis() + 10_000
+        while (!secondConfigSlot.isCaptured && System.currentTimeMillis() < deadline3) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+        assertTrue("second connect must call client.connect", secondConfigSlot.isCaptured)
+        val auth = secondConfigSlot.captured.authMethod
+        assertTrue("expected Multi(PrivateKeys, Password) for KEY,TOTP with saved sshPassword, got $auth", auth is ConnectionConfig.AuthMethod.Multi)
+        val multi = auth as ConnectionConfig.AuthMethod.Multi
+        val pwLeaf = multi.methods.filterIsInstance<ConnectionConfig.AuthMethod.Password>().singleOrNull()
+        assertNotNull("saved sshPassword must be included in Multi auth chain", pwLeaf)
+        assertEquals("server-login-pw", String(pwLeaf!!.password))
     }
 }

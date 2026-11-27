@@ -50,6 +50,7 @@ import sh.haven.core.ssh.LegacyHostKeyFallback
 import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.KeyboardInteractiveChallenge
 import sh.haven.core.ssh.KeyboardInteractivePrompter
+import sh.haven.core.ssh.isSavablePasswordPrompt
 import sh.haven.core.ssh.KnownHostEntry
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.SshConnection
@@ -961,8 +962,12 @@ class ConnectionsViewModel @Inject constructor(
     class PendingKeyboardInteractiveAuth(
         val challenge: KeyboardInteractiveChallenge,
         private val deferred: CompletableDeferred<List<String>?>,
+        val canRememberPassword: Boolean = false,
+        val initialRememberPassword: Boolean = false,
+        private val onRememberDecision: ((responses: List<String>, rememberPassword: Boolean) -> Unit)? = null,
     ) {
-        fun submit(responses: List<String>) {
+        fun submit(responses: List<String>, rememberPassword: Boolean = initialRememberPassword) {
+            onRememberDecision?.invoke(responses, rememberPassword)
             deferred.complete(responses)
         }
         fun cancel() {
@@ -1058,10 +1063,57 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    fun submitKeyboardInteractiveResponses(responses: List<String>) {
+    fun submitKeyboardInteractiveResponses(
+        responses: List<String>,
+        rememberPassword: Boolean? = null,
+    ) {
         val pending = _keyboardInteractiveAuth.value
-        android.util.Log.d("HavenKI", "VM submit called: responses=${responses.size} lens=${responses.map{it.length}} pending=${pending != null}")
-        pending?.submit(responses)
+        android.util.Log.d(
+            "HavenKI",
+            "VM submit called: responses=${responses.size} lens=${responses.map{it.length}} pending=${pending != null} remember=$rememberPassword",
+        )
+        if (rememberPassword != null) {
+            pending?.submit(responses, rememberPassword)
+        } else {
+            pending?.submit(responses)
+        }
+    }
+
+    private fun buildProfileKeyboardInteractivePrompter(
+        profile: ConnectionProfile,
+        multiUserProfile: Boolean = false,
+        onPrompted: (() -> Unit)? = null,
+        onRememberedPassword: (Boolean, String) -> Unit,
+    ): KeyboardInteractivePrompter = object : KeyboardInteractivePrompter {
+        override suspend fun prompt(challenge: KeyboardInteractiveChallenge): List<String>? {
+            onPrompted?.invoke()
+            val savableIdx = challenge.prompts.indexOfFirst { it.isSavablePasswordPrompt() }
+            val canRemember = !multiUserProfile && !profile.ephemeral && savableIdx >= 0
+            val initialRemember = canRemember && !profile.sshPassword.isNullOrEmpty()
+            val deferred = CompletableDeferred<List<String>?>()
+            _keyboardInteractiveAuth.value = PendingKeyboardInteractiveAuth(
+                challenge = challenge,
+                deferred = deferred,
+                canRememberPassword = canRemember,
+                initialRememberPassword = initialRemember,
+                onRememberDecision = if (canRemember) {
+                    { responses, remember ->
+                        onRememberedPassword(remember, responses.getOrNull(savableIdx).orEmpty())
+                    }
+                } else {
+                    null
+                },
+            )
+            return try {
+                deferred.await()
+            } finally {
+                _keyboardInteractiveAuth.value = null
+            }
+        }
+
+        override fun onBanner(destination: String, message: String) {
+            keyboardInteractivePrompter.onBanner(destination, message)
+        }
     }
 
     fun cancelKeyboardInteractive() {
@@ -1189,12 +1241,30 @@ class ConnectionsViewModel @Inject constructor(
         rejectedOnNewHostMessage: String = "Host key rejected by user",
         rejectedOnChangeMessage: String = "Host key change rejected by user",
         autoAccept: Boolean = false,
+        rememberPasswordProfile: ConnectionProfile? = null,
+        multiUserProfile: Boolean = false,
+        onKiPrompted: (() -> Unit)? = null,
+        onKiPasswordPersisted: ((ConnectionProfile) -> Unit)? = null,
     ) {
+        var capturedKiPassword: Pair<Boolean, String>? = null
+        val effectivePrompter = if (
+            keyboardInteractivePrompter === this.keyboardInteractivePrompter &&
+            rememberPasswordProfile != null
+        ) {
+            buildProfileKeyboardInteractivePrompter(
+                profile = rememberPasswordProfile,
+                multiUserProfile = multiUserProfile,
+                onPrompted = onKiPrompted,
+                onRememberedPassword = { remember, pw -> capturedKiPassword = remember to pw },
+            )
+        } else {
+            keyboardInteractivePrompter
+        }
         var verifiedInKex = false
         val hostKeyEntry = client.connect(
             config = config,
             proxy = proxy,
-            keyboardInteractivePrompter = keyboardInteractivePrompter,
+            keyboardInteractivePrompter = effectivePrompter,
             totpCodeProvider = totpCodeProvider,
             confirmOtp = confirmOtp,
             preConnect = preConnect,
@@ -1218,6 +1288,26 @@ class ConnectionsViewModel @Inject constructor(
                 rejectedOnChangeMessage = rejectedOnChangeMessage,
                 autoAccept = autoAccept,
             )
+        }
+        val captured = capturedKiPassword
+        if (captured != null && rememberPasswordProfile != null &&
+            !rememberPasswordProfile.ephemeral && !multiUserProfile
+        ) {
+            val (remember, enteredPw) = captured
+            try {
+                if (remember && enteredPw.isNotEmpty()) {
+                    val updated = rememberPasswordProfile.copy(sshPassword = enteredPw)
+                    repository.save(updated)
+                    onKiPasswordPersisted?.invoke(updated)
+                } else if (!remember && rememberPasswordProfile.sshPassword != null) {
+                    val updated = rememberPasswordProfile.copy(sshPassword = null)
+                    repository.save(updated)
+                    onKiPasswordPersisted?.invoke(updated)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "could not persist keyboard-interactive password; keeping the session", e)
+                _error.value = appContext.getString(R.string.connections_error_credential_not_saved)
+            }
         }
     }
 
@@ -4455,10 +4545,15 @@ class ConnectionsViewModel @Inject constructor(
             } else if (rememberPassword == false) {
                 sshKeyRepository.setStoredPassphrase(encryptedKeyId, null)
             }
-            // Migrate away from the conflated slot: a passphrase saved here
-            // by an older build (or fed in as a "host password") would keep
-            // showing as an SSH password in the audit.
-            if (rememberPassword != null && profile.sshPassword != null) {
+            // Migrate away from the conflated slot on legacy single-factor
+            // encrypted-key profiles (#290), without wiping a deliberate host
+            // login password on multi-factor SSH profiles (#892).
+            val usesSeparateHostPassword = profile.authMethodSpecs.any {
+                it is ConnectionProfile.AuthMethodSpec.Password ||
+                    it is ConnectionProfile.AuthMethodSpec.Totp ||
+                    it is ConnectionProfile.AuthMethodSpec.KeyboardInteractive
+            }
+            if (rememberPassword != null && profile.sshPassword != null && !usesSeparateHostPassword) {
                 repository.save(profile.copy(sshPassword = null))
             }
             return
@@ -4513,6 +4608,8 @@ class ConnectionsViewModel @Inject constructor(
             // Track whether we auto-created the jump session (for cleanup on failure)
             var autoCreatedJumpSessionId: String? = null
             var isFidoAuth = false
+            var effectiveProfile = profile
+            var promptedViaKiInThisConnect = false
             try {
                 // If profile has a jump host, establish that connection first.
                 // Skipped when reusing — the live client already rode its jump.
@@ -4648,6 +4745,10 @@ class ConnectionsViewModel @Inject constructor(
                                 confirmOtp = profile.totpConfirmBeforeSend,
                                 preConnect = buildKnockHook(profile, verboseLogger),
                                 autoAccept = profile.usbDriveSerial != null,
+                                rememberPasswordProfile = profile,
+                                multiUserProfile = usernameOverride != null,
+                                onKiPrompted = { promptedViaKiInThisConnect = true },
+                                onKiPasswordPersisted = { effectiveProfile = it },
                             )
                             _sshAuthBanner.value = null
                             // A server that only offers the SHA-1 ssh-rsa host key
@@ -4726,7 +4827,7 @@ class ConnectionsViewModel @Inject constructor(
                         // return below exits before the post-finishConnect save block. If the
                         // user later cancels the picker, the saved passphrase is still valid
                         // and the "remember" intent was already given, so keeping it is fine.
-                        persistRememberedPassword(profile, password, rememberPassword, usernameOverride != null)
+                        persistRememberedPassword(effectiveProfile, password, rememberPassword, usernameOverride != null)
                         _sessionSelection.value = SessionSelection(
                             sessionId = sessionId,
                             profileId = profile.id,
@@ -4749,7 +4850,7 @@ class ConnectionsViewModel @Inject constructor(
                 )
 
                 // Save or clear remembered password after successful connect.
-                persistRememberedPassword(profile, password, rememberPassword, usernameOverride != null)
+                persistRememberedPassword(effectiveProfile, password, rememberPassword, usernameOverride != null)
 
                 // Auto-deploy SSH key for VM connections after first password connect
                 if (password.isNotBlank()) {
@@ -4792,7 +4893,7 @@ class ConnectionsViewModel @Inject constructor(
                 // dead-ends to an error toast instead of the passphrase prompt.
                 val isPassphraseError = !isNetworkError &&
                     msg.contains("passphrase", ignoreCase = true)
-                val isAuthError = keyOnly && isAuthMessage
+                val isAuthError = keyOnly && isAuthMessage && !promptedViaKiInThisConnect
                 if (isKeyRefusal(e)) {
                     // The user was asked for a key's biometric ack and said no
                     // (or could not be asked) — a software-key unlock decline,
@@ -4821,7 +4922,10 @@ class ConnectionsViewModel @Inject constructor(
                 } else if (isPassphraseError) {
                     Log.d(TAG, "Encrypted-key passphrase failed — prompting (#292)")
                     _passwordFallback.value = profile
-                } else if (!keyOnly && isAuthMessage) {
+                } else if (promptedViaKiInThisConnect && msg.contains("Auth cancel", ignoreCase = true)) {
+                    // User tapped Cancel in KeyboardInteractiveDialog (#892) — stop quietly.
+                    _error.value = null
+                } else if ((!keyOnly || promptedViaKiInThisConnect) && isAuthMessage) {
                     _error.value = "Authentication failed — check username and password"
                 } else {
                     // #376: a network error on a private address may just mean
@@ -4943,6 +5047,7 @@ class ConnectionsViewModel @Inject constructor(
                     totpCodeProvider = buildTotpCodeProvider(profile),
                     confirmOtp = profile.totpConfirmBeforeSend,
                     preConnect = buildKnockHook(profile, verboseLogger),
+                    rememberPasswordProfile = profile,
                 )
                 _sshAuthBanner.value = null
             } catch (e: HostKeyAuthFailure) {
@@ -5723,6 +5828,7 @@ class ConnectionsViewModel @Inject constructor(
                         confirmOtp = jumpProfile.totpConfirmBeforeSend,
                         rejectedOnNewHostMessage = "Jump host key rejected by user",
                         rejectedOnChangeMessage = "Jump host key change rejected by user",
+                        rememberPasswordProfile = jumpProfile,
                     )
                     _sshAuthBanner.value = null
                 } catch (e: HostKeyAuthFailure) {
@@ -6230,6 +6336,21 @@ class ConnectionsViewModel @Inject constructor(
                 // never part of a JSch/SSH auth chain.
                 ConnectionProfile.AuthMethodSpec.ProtonSrp -> null
             }
+        }.toMutableList()
+        // #892: when a multi-factor profile includes TOTP or KeyboardInteractive
+        // (e.g. [Key, TOTP]) and has a saved host login password, seed
+        // Password(fallbackPw) even without an explicit Password spec so PAM
+        // "Password:" rounds and 3-factor SSH password rounds auto-answer from
+        // the saved password without conflating it with any key passphrase.
+        val fallbackPw = password.ifEmpty { profile.sshPassword.orEmpty() }
+        if (fallbackPw.isNotEmpty() &&
+            specs.none { it is ConnectionProfile.AuthMethodSpec.Password } &&
+            specs.any {
+                it is ConnectionProfile.AuthMethodSpec.Totp ||
+                    it is ConnectionProfile.AuthMethodSpec.KeyboardInteractive
+            }
+        ) {
+            methods += ConnectionConfig.AuthMethod.Password(fallbackPw)
         }
         return when {
             methods.isEmpty() -> ConnectionConfig.AuthMethod.Password(password)

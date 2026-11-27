@@ -903,6 +903,11 @@ fun ConnectionsScreen(
             onSubmit = { viewModel.submitKeyboardInteractiveResponses(it) },
             onCancel = { viewModel.cancelKeyboardInteractive() },
             bannerMessage = sshAuthBanner?.message,
+            canRememberPassword = pending.canRememberPassword,
+            initialRememberPassword = pending.initialRememberPassword,
+            onSubmitWithRemember = { responses, remember ->
+                viewModel.submitKeyboardInteractiveResponses(responses, remember)
+            },
         )
     }
 

@@ -330,7 +330,7 @@ internal class SshlibConnection : SshConnection {
             else -> listOf(method)
         }
         return methods.filterIsInstance<ConnectionConfig.AuthMethod.Password>()
-            .firstOrNull()
+            .firstOrNull { it.password.isNotEmpty() }
             ?.password
     }
 

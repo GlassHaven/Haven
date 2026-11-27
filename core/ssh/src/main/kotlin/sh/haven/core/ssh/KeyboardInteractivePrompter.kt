@@ -57,6 +57,48 @@ fun interface KeyboardInteractivePrompter {
     fun onBanner(destination: String, message: String) {}
 }
 
+private val OTP_KEYWORDS = listOf(
+    "verification code", "one-time", "one time", "otp", "totp",
+    "token", "authenticator", "2fa", "two-factor", "two factor",
+    "code:", "code ", "passcode",
+    "一次性", "動態密碼", "动态密码", "验证码", "驗證碼",
+    "einmal", "vérification", "verificação", "verificación",
+    "ワンタイム", "確認コード", "일회용", "인증 코드", "однораз",
+    "jednoráz", "eenmalig", "tek kullanımlık",
+)
+
+private val PASSWORD_KEYWORDS = listOf(
+    "password", "passphrase", "passwort", "mot de passe",
+    "contraseña", "contrasena", "пароль",
+    "密码", "密碼", "口令", "パスワード", "암호", "비밀번호",
+    "senha", "wachtwoord", "hasło", "haslo", "parola", "şifre",
+    "heslo", "lösenord", "adgangskode", "passord", "salasana",
+    "jelszó", "parolă", "κωδικός", "סיסמה", "كلمة المرور",
+)
+
+/**
+ * Heuristic for "this prompt wants a TOTP / one-time code". PAM OTP modules
+ * (google-authenticator, oath-toolkit, Duo, etc.) phrase the prompt in varied
+ * ways (including "One-time password:") on a masked field (`echo == false`).
+ */
+fun KeyboardInteractiveChallenge.Prompt.looksLikeOtpPrompt(): Boolean {
+    if (echo) return false
+    val t = text.lowercase()
+    return OTP_KEYWORDS.any { it in t }
+}
+
+/**
+ * True when [this] is a masked login-password prompt (not echoed and not an
+ * OTP / one-time-password prompt) whose answer can be satisfied from or saved
+ * into a profile's stored SSH password (#892), including localized Linux-PAM
+ * (`pam_unix`) password prompts.
+ */
+fun KeyboardInteractiveChallenge.Prompt.isSavablePasswordPrompt(): Boolean {
+    if (echo || looksLikeOtpPrompt()) return false
+    val t = text.lowercase()
+    return PASSWORD_KEYWORDS.any { it in t }
+}
+
 private val AUTH_BANNER_URL_REGEX = Regex("""https?://[^\s<>"]+""")
 
 /**

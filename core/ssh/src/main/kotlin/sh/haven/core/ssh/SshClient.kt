@@ -167,28 +167,48 @@ class SshClient : SshConnection {
     private fun flattenAuth(m: ConnectionConfig.AuthMethod): List<ConnectionConfig.AuthMethod> =
         if (m is ConnectionConfig.AuthMethod.Multi) m.methods.flatMap(::flattenAuth) else listOf(m)
 
+    private class AppliedPasswordAuth(
+        val fallbackPassword: CharArray?,
+        val allowMidHandshakePasswordPrompt: Boolean,
+    )
+
     /**
      * Register every credential in [config]'s auth method(s) on [sess]/[jsch],
      * flattening a [ConnectionConfig.AuthMethod.Multi] so a multi-factor chain
      * (`publickey,password`, …) has all its credentials available at once and
-     * JSch can satisfy the server's partial-success sequence. Returns the
-     * password to seed the keyboard-interactive fallback (last Password wins),
-     * or null. Identity names are unique per call so re-adds across reconnects
-     * don't collide in JSch's identity repository. (#166)
+     * JSch can satisfy the server's partial-success sequence.
+     *
+     * When [setSessionPassword] is false (`keyboardInteractivePrompter != null`),
+     * we deliberately keep `sess.setPassword(...)` unset and route the saved
+     * password through [KeyboardInteractiveUserInfo] instead (#892): JSch's
+     * `UserAuthKeyboardInteractive` otherwise auto-stuffs `Session.password`
+     * into any single masked prompt containing `"password:"` (including
+     * `"One-time password:"` OTP prompts, or sending `""` when `Password("")`
+     * was empty). Identity names are unique per call so re-adds across
+     * reconnects don't collide in JSch's identity repository (#166).
      */
-    private fun applyAuthMethods(config: ConnectionConfig, sess: Session): CharArray? {
+    private fun applyAuthMethods(
+        config: ConnectionConfig,
+        sess: Session,
+        setSessionPassword: Boolean,
+    ): AppliedPasswordAuth {
         var fallbackKiPassword: CharArray? = null
+        var hasExplicitPasswordAuth = false
         val flat = flattenAuth(config.authMethod)
         for (auth in flat) {
             when (auth) {
                 is ConnectionConfig.AuthMethod.Multi -> { /* flattened above */ }
                 is ConnectionConfig.AuthMethod.Password -> {
-                    sess.setPassword(charsToUtf8Bytes(auth.password))
-                    // Silently satisfy single-prompt "Password:" KI rounds —
-                    // servers that route the password through the
-                    // keyboard-interactive channel shouldn't make the user
-                    // retype a saved password.
-                    fallbackKiPassword = auth.password
+                    hasExplicitPasswordAuth = true
+                    if (setSessionPassword) {
+                        sess.setPassword(charsToUtf8Bytes(auth.password))
+                    }
+                    // Silently satisfy single-prompt "Password:" KI rounds and
+                    // UserAuthPassword only when a non-empty password is stored
+                    // (#892: empty Password("") must prompt, not send "").
+                    if (auth.password.isNotEmpty()) {
+                        fallbackKiPassword = auth.password
+                    }
                 }
                 is ConnectionConfig.AuthMethod.PrivateKey -> {
                     // Pass the OpenSSH cert (when present) as the third
@@ -242,7 +262,11 @@ class SshClient : SshConnection {
             sess,
             deferAnyKeyDetection = anyHardwareKeyDetectionShouldDefer(flat),
         )
-        return fallbackKiPassword
+        return AppliedPasswordAuth(
+            fallbackPassword = fallbackKiPassword,
+            allowMidHandshakePasswordPrompt = hasExplicitPasswordAuth &&
+                (fallbackKiPassword == null || flat.size > 1),
+        )
     }
 
     /**
@@ -607,16 +631,21 @@ class SshClient : SshConnection {
         sess.serverAliveInterval = 15_000
         sess.serverAliveCountMax = 3
 
-        val fallbackKiPassword: CharArray? = applyAuthMethods(config, sess)
+        val passwordAuth = applyAuthMethods(
+            config = config,
+            sess = sess,
+            setSessionPassword = keyboardInteractivePrompter == null,
+        )
 
         var timeoutExtendedForBanner = false
         if (keyboardInteractivePrompter != null) {
             sess.userInfo = KeyboardInteractiveUserInfo(
                 destination = "${config.username}@${config.host}:${config.port}",
                 prompter = keyboardInteractivePrompter,
-                fallbackPassword = fallbackKiPassword,
+                fallbackPassword = passwordAuth.fallbackPassword,
                 totpCodeProvider = totpCodeProvider,
                 autoSubmit = !confirmOtp,
+                allowPasswordPrompt = totpCodeProvider != null || passwordAuth.allowMidHandshakePasswordPrompt,
                 onBanner = { banner ->
                     Log.i(TAG, "SSH auth banner (${LogRedact.host(config.host, config.port)}): $banner")
                     verboseLogger?.logInfo("[haven/auth-banner] $banner")
@@ -993,16 +1022,21 @@ class SshClient : SshConnection {
         sess.serverAliveInterval = 15_000
         sess.serverAliveCountMax = 3
 
-        val fallbackKiPassword: CharArray? = applyAuthMethods(config, sess)
+        val passwordAuth = applyAuthMethods(
+            config = config,
+            sess = sess,
+            setSessionPassword = keyboardInteractivePrompter == null,
+        )
 
         var timeoutExtendedForBanner = false
         if (keyboardInteractivePrompter != null) {
             sess.userInfo = KeyboardInteractiveUserInfo(
                 destination = "${config.username}@${config.host}:${config.port}",
                 prompter = keyboardInteractivePrompter,
-                fallbackPassword = fallbackKiPassword,
+                fallbackPassword = passwordAuth.fallbackPassword,
                 totpCodeProvider = totpCodeProvider,
                 autoSubmit = !confirmOtp,
+                allowPasswordPrompt = totpCodeProvider != null || passwordAuth.allowMidHandshakePasswordPrompt,
                 onBanner = { banner ->
                     Log.i(TAG, "SSH auth banner (${LogRedact.host(config.host, config.port)}): $banner")
                     verboseLogger?.logInfo("[haven/auth-banner] $banner")

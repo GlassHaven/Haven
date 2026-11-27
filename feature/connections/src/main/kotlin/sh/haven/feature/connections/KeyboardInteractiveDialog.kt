@@ -1,6 +1,7 @@
 package sh.haven.feature.connections
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -9,14 +10,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -51,6 +57,9 @@ fun KeyboardInteractiveDialog(
     onSubmit: (List<String>) -> Unit,
     onCancel: () -> Unit,
     bannerMessage: String? = null,
+    canRememberPassword: Boolean = false,
+    initialRememberPassword: Boolean = false,
+    onSubmitWithRemember: ((responses: List<String>, rememberPassword: Boolean) -> Unit)? = null,
 ) {
     val responses = remember(challenge) {
         android.util.Log.d(
@@ -63,6 +72,9 @@ fun KeyboardInteractiveDialog(
             addAll(List(challenge.prompts.size) { i -> challenge.prefilled.getOrNull(i) ?: "" })
         }
     }
+    var rememberPassword by remember(challenge, initialRememberPassword) {
+        mutableStateOf(initialRememberPassword)
+    }
 
     DisposableEffect(challenge) {
         android.util.Log.d("HavenKI", "Dialog: ENTER challenge prompts=${challenge.prompts.size} first='${challenge.prompts.firstOrNull()?.text}'")
@@ -74,9 +86,14 @@ fun KeyboardInteractiveDialog(
     val submit: () -> Unit = {
         android.util.Log.d(
             "HavenKI",
-            "Dialog: submit tapped, responses=${responses.toList().map { it.length }}",
+            "Dialog: submit tapped, responses=${responses.toList().map { it.length }} remember=$rememberPassword",
         )
-        onSubmit(responses.toList())
+        val answers = responses.toList()
+        if (onSubmitWithRemember != null) {
+            onSubmitWithRemember(answers, rememberPassword)
+        } else {
+            onSubmit(answers)
+        }
     }
 
     val titleAdditional = stringResource(R.string.connections_ki_title_additional)
@@ -141,6 +158,22 @@ fun KeyboardInteractiveDialog(
                             imeAction = imeAction,
                             onImeAction = if (isLast) submit else null,
                             modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                if (canRememberPassword) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Checkbox(
+                            checked = rememberPassword,
+                            onCheckedChange = { rememberPassword = it },
+                        )
+                        Text(
+                            stringResource(R.string.connections_password_remember_password),
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                 }

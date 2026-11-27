@@ -1995,6 +1995,7 @@ Add a new WireGuard, Tailscale, NetBird, Yggdrasil, OpenVPN, AnyConnect, or Clou
 - `anyconnectSecondaryPassword` (string) — Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.
 - `anyconnectServer` (string) — AnyConnect/ocserv gateway, e.g. vpn.example.com or vpn.example.com:8443/group. Required when type=ANYCONNECT.
 - `anyconnectServerCert` (string) — Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.
+- `anyconnectUnderlayTunnelId` (string) — Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries AnyConnect/ocserv HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).
 - `anyconnectUsername` (string) — AnyConnect username. Required when type=ANYCONNECT.
 - `configText` (string) — WireGuard wg-quick INI body. Required when type=WIREGUARD.
 - `netbirdManagementUrl` (string) — Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.

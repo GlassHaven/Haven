@@ -35,6 +35,7 @@ class AnyConnectTunnel internal constructor(
     /** The tunnel's user-facing name, for prompts and the notification. */
     val label: String = "",
     authBroker: TunnelAuthBroker? = null,
+    carrierSocksProxy: String? = null,
 ) : Tunnel {
 
     override val lingerAfterRelease: Boolean = config.stayConnected
@@ -57,7 +58,7 @@ class AnyConnectTunnel internal constructor(
     }
 
     private val native: NativeHandle = try {
-        Ocbridge.startTunnelWithPrompter(config.toNativeConfig(), prompter)
+        Ocbridge.startTunnelWithPrompter(config.toNativeConfig(carrierSocksProxy), prompter)
     } catch (e: Exception) {
         throw IOException("AnyConnect: ${e.message}", e)
     }

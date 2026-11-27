@@ -139,7 +139,9 @@ type authClient struct {
 func newAuthClient(cfg *Config, base *url.URL, tlsConf *tls.Config) *authClient {
 	jar, _ := cookiejar.New(nil)
 	tr := &http.Transport{
-		DialContext:         (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		DialContext: func(ctx context.Context, _, addr string) (net.Conn, error) {
+			return dialTCP(ctx, cfg, addr)
+		},
 		TLSClientConfig:     tlsConf,
 		TLSHandshakeTimeout: 15 * time.Second,
 		// Don't reuse a connection that sat idle for long: a gateway or a

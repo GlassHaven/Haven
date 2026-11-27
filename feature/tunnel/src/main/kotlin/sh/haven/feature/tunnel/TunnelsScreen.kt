@@ -205,15 +205,15 @@ fun TunnelsScreen(
                         val forwardCount = portForwardRules.count { it.tunnelConfigId == tunnel.id }
                         val isStandaloneCapable = tunnel.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS
                         val underlayCarrierLabel = remember(tunnel.id, tunnel.configText, tunnels) {
-                            if (tunnel.typeEnum == TunnelConfigType.YGGDRASIL) {
-                                val carrierId = YggdrasilConfigBlob.parse(tunnel.configText)
-                                    ?.underlayTunnelId
-                                    ?.takeIf { it.isNotBlank() }
-                                carrierId?.let { cid ->
-                                    tunnels.firstOrNull { it.id == cid }?.label ?: cid.take(8)
-                                }
-                            } else {
-                                null
+                            val carrierId = when (tunnel.typeEnum) {
+                                TunnelConfigType.YGGDRASIL ->
+                                    YggdrasilConfigBlob.parse(tunnel.configText)?.underlayTunnelId?.takeIf { it.isNotBlank() }
+                                TunnelConfigType.ANYCONNECT ->
+                                    AnyConnectConfigBlob.parse(tunnel.configText)?.underlayTunnelId?.takeIf { it.isNotBlank() }
+                                else -> null
+                            }
+                            carrierId?.let { cid ->
+                                tunnels.firstOrNull { it.id == cid }?.label ?: cid.take(8)
                             }
                         }
                         TunnelRow(
@@ -797,7 +797,6 @@ private fun AddTunnelDialog(
     var yggUnderlayTunnelId by remember(existing?.id) {
         mutableStateOf(existingYggdrasil?.underlayTunnelId.orEmpty())
     }
-    var yggCarrierExpanded by remember { mutableStateOf(false) }
     val existingOpenVpn = remember(existing?.id, existing?.configText) {
         existing?.takeIf { it.typeEnum == TunnelConfigType.OPENVPN }
             ?.let { OpenVpnConfigBlob.parse(it.configText) }
@@ -1099,55 +1098,11 @@ private fun AddTunnelDialog(
                                 fontFamily = FontFamily.Monospace,
                             ),
                         )
-                        val directLabel = stringResource(R.string.tunnel_underlay_carrier_direct)
-                        val selectedCarrierLabel = carrierTunnels
-                            .firstOrNull { it.id == yggUnderlayTunnelId }
-                            ?.label
-                            ?: if (yggUnderlayTunnelId.isBlank()) directLabel else yggUnderlayTunnelId.take(8)
-                        ExposedDropdownMenuBox(
-                            expanded = yggCarrierExpanded,
-                            onExpandedChange = { yggCarrierExpanded = it },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            OutlinedTextField(
-                                value = selectedCarrierLabel,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(R.string.tunnel_underlay_carrier_label)) },
-                                supportingText = {
-                                    Text(
-                                        stringResource(R.string.tunnel_underlay_carrier_help),
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(yggCarrierExpanded) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                            )
-                            ExposedDropdownMenu(
-                                expanded = yggCarrierExpanded,
-                                onDismissRequest = { yggCarrierExpanded = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(directLabel) },
-                                    onClick = {
-                                        yggUnderlayTunnelId = ""
-                                        yggCarrierExpanded = false
-                                    },
-                                )
-                                carrierTunnels.forEach { candidate ->
-                                    DropdownMenuItem(
-                                        text = { Text("${candidate.label} (${tunnelTypeLabel(candidate.typeEnum)})") },
-                                        onClick = {
-                                            yggUnderlayTunnelId = candidate.id
-                                            yggCarrierExpanded = false
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                        UnderlayCarrierDropdown(
+                            selectedTunnelId = yggUnderlayTunnelId,
+                            carrierTunnels = carrierTunnels,
+                            onSelect = { yggUnderlayTunnelId = it },
+                        )
                         sh.haven.core.ui.PasswordField(
                             value = yggPrivateKey,
                             onValueChange = { yggPrivateKey = it },
@@ -1258,6 +1213,7 @@ private fun AddTunnelDialog(
                 TunnelConfigType.ANYCONNECT -> {
                     AnyConnectFields(
                         form = anyConnect,
+                        carrierTunnels = carrierTunnels,
                         onChange = { anyConnect = it },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1326,6 +1282,65 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
         TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
     }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnderlayCarrierDropdown(
+    selectedTunnelId: String,
+    carrierTunnels: List<TunnelConfig>,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val directLabel = stringResource(R.string.tunnel_underlay_carrier_direct)
+    val selectedCarrierLabel = carrierTunnels
+        .firstOrNull { it.id == selectedTunnelId }
+        ?.label
+        ?: if (selectedTunnelId.isBlank()) directLabel else selectedTunnelId.take(8)
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = selectedCarrierLabel,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.tunnel_underlay_carrier_label)) },
+            supportingText = {
+                Text(
+                    stringResource(R.string.tunnel_underlay_carrier_help),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(directLabel) },
+                onClick = {
+                    onSelect("")
+                    expanded = false
+                },
+            )
+            carrierTunnels.forEach { candidate ->
+                DropdownMenuItem(
+                    text = { Text("${candidate.label} (${tunnelTypeLabel(candidate.typeEnum)})") },
+                    onClick = {
+                        onSelect(candidate.id)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
 /**
  * The AnyConnect form. Scrolls on its own because, unlike the other
  * backends' one or two fields, it has seven and the dialog column doesn't.
@@ -1335,6 +1350,7 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
 @Composable
 private fun AnyConnectFields(
     form: AnyConnectForm,
+    carrierTunnels: List<TunnelConfig> = emptyList(),
     onChange: (AnyConnectForm) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1358,6 +1374,11 @@ private fun AnyConnectFields(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             modifier = Modifier.fillMaxWidth(),
             textStyle = mono,
+        )
+        UnderlayCarrierDropdown(
+            selectedTunnelId = form.underlayTunnelId,
+            carrierTunnels = carrierTunnels,
+            onSelect = { onChange(form.copy(underlayTunnelId = it)) },
         )
         OutlinedTextField(
             value = form.username,

@@ -1,6 +1,7 @@
 package ocbridge
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -14,6 +15,9 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 // Config is the JSON envelope Haven stores (encrypted at rest) for an
@@ -57,6 +61,11 @@ type Config struct {
 	// Newer Cisco servers need it to start with "AnyConnect" (see
 	// defaultUserAgent).
 	UserAgent string `json:"userAgent,omitempty"`
+
+	// SocksProxy optionally routes auth, CSTP CONNECT, reconnect, and logout
+	// TCP sockets through a carrier tunnel's loopback SOCKS5 listener
+	// ("127.0.0.1:<port>", #876) so LAN-only gateways are reachable off-LAN.
+	SocksProxy string `json:"socksProxy,omitempty"`
 }
 
 // defaultUserAgent is what Haven sends unless the tunnel overrides it.
@@ -81,6 +90,7 @@ func parseConfig(text string) (*Config, error) {
 	c.OTPSecret = strings.TrimSpace(c.OTPSecret)
 	c.ServerCert = strings.TrimSpace(c.ServerCert)
 	c.UserAgent = strings.TrimSpace(c.UserAgent)
+	c.SocksProxy = strings.TrimSpace(c.SocksProxy)
 	if c.Server == "" {
 		return nil, errors.New("missing server")
 	}
@@ -100,7 +110,28 @@ func parseConfig(text string) (*Config, error) {
 			return nil, fmt.Errorf("serverCert: %w", err)
 		}
 	}
+	if c.SocksProxy != "" {
+		if _, _, err := net.SplitHostPort(c.SocksProxy); err != nil {
+			return nil, fmt.Errorf("socksProxy: %w", err)
+		}
+	}
 	return &c, nil
+}
+
+// dialTCP opens a TCP connection to addr either directly or via cfg.SocksProxy (#876).
+func dialTCP(ctx context.Context, cfg *Config, addr string) (net.Conn, error) {
+	base := &net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}
+	if cfg == nil || cfg.SocksProxy == "" {
+		return base.DialContext(ctx, "tcp", addr)
+	}
+	d, err := proxy.SOCKS5("tcp", cfg.SocksProxy, nil, base)
+	if err != nil {
+		return nil, fmt.Errorf("socks5 %s: %w", cfg.SocksProxy, err)
+	}
+	if cd, ok := d.(proxy.ContextDialer); ok {
+		return cd.DialContext(ctx, "tcp", addr)
+	}
+	return d.Dial("tcp", addr)
 }
 
 // normalizeServer turns what a user typed into the base URL every request

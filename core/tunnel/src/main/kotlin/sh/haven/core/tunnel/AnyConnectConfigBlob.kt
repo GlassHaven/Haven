@@ -39,13 +39,26 @@ data class AnyConnectConfigBlob(
      * session on next use). Shown in Haven's ongoing notification.
      */
     val stayConnected: Boolean = true,
+    /**
+     * Optional saved carrier tunnel id whose loopback SOCKS5 listener carries
+     * AnyConnect HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).
+     */
+    val underlayTunnelId: String = "",
 ) {
     fun encode(): ByteArray =
-        toJson().apply { if (!stayConnected) put("stayConnected", false) }
-            .toString().toByteArray(Charsets.UTF_8)
+        toJson().apply {
+            if (!stayConnected) put("stayConnected", false)
+            if (underlayTunnelId.isNotBlank()) put("underlayTunnelId", underlayTunnelId)
+        }.toString().toByteArray(Charsets.UTF_8)
 
-    /** The JSON string `Ocbridge.startTunnel` takes (Haven-only keys left out). */
-    fun toNativeConfig(): String = toJson().toString()
+    /**
+     * The JSON string `Ocbridge.startTunnel` takes (Haven-only keys left out;
+     * runtime [socksProxy] `"127.0.0.1:<port>"` injected when routed via a carrier).
+     */
+    fun toNativeConfig(socksProxy: String? = null): String =
+        toJson().apply {
+            if (!socksProxy.isNullOrBlank()) put("socksProxy", socksProxy)
+        }.toString()
 
     private fun toJson() = JSONObject().apply {
         put("server", server)
@@ -83,6 +96,7 @@ data class AnyConnectConfigBlob(
                     serverCert = json.optString("serverCert", "").trim(),
                     userAgent = json.optString("userAgent", "").trim(),
                     stayConnected = json.optBoolean("stayConnected", true),
+                    underlayTunnelId = json.optString("underlayTunnelId", "").trim(),
                 )
             } catch (_: Throwable) {
                 null

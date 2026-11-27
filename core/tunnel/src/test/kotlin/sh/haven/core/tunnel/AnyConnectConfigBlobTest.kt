@@ -80,4 +80,24 @@ class AnyConnectConfigBlobTest {
         val parsed = AnyConnectConfigBlob.parse(AnyConnectConfigBlob("s", "u", " pw ").encode())
         assertEquals(" pw ", parsed!!.password)
     }
+
+    @Test
+    fun `underlayTunnelId round-trips in storage JSON and injects socksProxy into native JSON only when supplied`() {
+        val blob = AnyConnectConfigBlob(
+            server = "vpn.internal.corp",
+            username = "alice",
+            password = "pw",
+            underlayTunnelId = "carrier-wg-1",
+        )
+        val parsed = AnyConnectConfigBlob.parse(blob.encode())!!
+        assertEquals("carrier-wg-1", parsed.underlayTunnelId)
+
+        val directNative = JSONObject(parsed.toNativeConfig())
+        assertEquals(false, directNative.has("underlayTunnelId"))
+        assertEquals(false, directNative.has("socksProxy"))
+
+        val proxiedNative = JSONObject(parsed.toNativeConfig(socksProxy = "127.0.0.1:41080"))
+        assertEquals(false, proxiedNative.has("underlayTunnelId"))
+        assertEquals("127.0.0.1:41080", proxiedNative.getString("socksProxy"))
+    }
 }

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/netip"
 	"net/textproto"
 	"net/url"
@@ -75,15 +74,15 @@ func (p *tunnelParams) sameAddresses(o *tunnelParams) bool {
 // CSTP frame (it may already hold buffered frame bytes, so it — not the
 // raw conn — must be used for all further reads).
 func connectCSTP(ctx context.Context, cfg *Config, base *url.URL, tlsConf *tls.Config, cookie string) (*tls.Conn, *bufio.Reader, *tunnelParams, error) {
-	d := &tls.Dialer{
-		NetDialer: &net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second},
-		Config:    tlsConf,
-	}
-	raw, err := d.DialContext(ctx, "tcp", hostPort(base))
+	rawConn, err := dialTCP(ctx, cfg, hostPort(base))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("connect %s: %w", hostPort(base), err)
 	}
-	conn := raw.(*tls.Conn)
+	conn := tls.Client(rawConn, tlsConf.Clone())
+	if err := conn.HandshakeContext(ctx); err != nil {
+		rawConn.Close()
+		return nil, nil, nil, fmt.Errorf("connect %s: %w", hostPort(base), err)
+	}
 	if dl, ok := ctx.Deadline(); ok {
 		conn.SetDeadline(dl)
 	} else {

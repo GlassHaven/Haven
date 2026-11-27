@@ -2,6 +2,7 @@ package ocbridge
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
@@ -23,6 +24,8 @@ import (
 
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/tun/netstack"
+
+	"sh.haven/rcbridge/socks5"
 )
 
 // --- pure helpers -----------------------------------------------------------
@@ -1119,4 +1122,110 @@ func TestLive(t *testing.T) {
 	defer c.Close()
 	echo(t, c, "hello from haven over a real gateway")
 	echo(t, c, strings.Repeat("x", 200_000))
+}
+
+func TestTunnelOverCarrierSocks5(t *testing.T) {
+	// Outer carrier netstack: 10.88.0.1:443 exists ONLY inside carrierNet,
+	// so host OS sockets cannot reach the AnyConnect gateway unless ocbridge
+	// dials auth, CSTP CONNECT, and logout through the carrier SOCKS5 proxy (#876).
+	carrierDev, carrierNet, err := netstack.CreateNetTUN([]netip.Addr{netip.MustParseAddr("10.88.0.1")}, nil, 1400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer carrierDev.Close()
+
+	g := &fakeGateway{t: t}
+	g.sdev, g.snet, err = netstack.CreateNetTUN([]netip.Addr{netip.MustParseAddr(gwAddr)}, nil, 1300)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.sdev.Close()
+	echoLn, err := g.snet.ListenTCPAddrPort(netip.MustParseAddrPort(gwAddr + ":7"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		for {
+			c, err := echoLn.Accept()
+			if err != nil {
+				return
+			}
+			go func() { io.Copy(c, c); c.Close() }()
+		}
+	}()
+	go g.pumpDown()
+
+	gwLn, err := carrierNet.ListenTCPAddrPort(netip.MustParseAddrPort("10.88.0.1:443"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.srv = httptest.NewUnstartedServer(http.HandlerFunc(g.handle))
+	g.lis = &blackholeListener{Listener: gwLn}
+	g.srv.Listener = g.lis
+	g.srv.StartTLS()
+	defer g.srv.Close()
+
+	socksLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer socksLn.Close()
+
+	var socksConnects atomic.Int32
+	go socks5.Serve(socksLn, func(host string, port int) (net.Conn, error) {
+		socksConnects.Add(1)
+		if host == "vpn.internal.corp" {
+			host = "10.88.0.1"
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return carrierNet.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	})
+
+	// Without SocksProxy, vpn.internal.corp does not resolve on host loopback.
+	directCfg, _ := json.Marshal(Config{
+		Server:     "vpn.internal.corp/eng",
+		Username:   "alice",
+		Password:   "s3cret",
+		AuthGroup:  "Eng",
+		OTPSecret:  otpSecret,
+		ServerCert: g.pin(),
+	})
+	if _, err := StartTunnel(string(directCfg)); err == nil {
+		t.Fatal("expected direct dial to internal gateway to fail without SocksProxy")
+	}
+
+	proxiedCfg, _ := json.Marshal(Config{
+		Server:     "vpn.internal.corp/eng",
+		Username:   "alice",
+		Password:   "s3cret",
+		AuthGroup:  "Eng",
+		OTPSecret:  otpSecret,
+		ServerCert: g.pin(),
+		SocksProxy: socksLn.Addr().String(),
+	})
+	h, err := StartTunnel(string(proxiedCfg))
+	if err != nil {
+		t.Fatalf("StartTunnel over carrier SOCKS5 failed: %v", err)
+	}
+	c, err := h.Dial(gwAddr, 7, 10_000)
+	if err != nil {
+		h.Close()
+		t.Fatalf("inner AnyConnect Dial failed: %v", err)
+	}
+	echo(t, c, "anyconnect over carrier socks5")
+	c.Close()
+	h.Logout()
+
+	// Wait briefly for best-effort async logout over SOCKS5.
+	deadline := time.Now().Add(2 * time.Second)
+	for g.logouts.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if g.logouts.Load() != 1 {
+		t.Errorf("logouts = %d, want 1 (logout should also ride SocksProxy)", g.logouts.Load())
+	}
+	if got := socksConnects.Load(); got < 3 {
+		t.Errorf("socksConnects = %d, want >= 3 (auth + CSTP + logout)", got)
+	}
 }

@@ -45,6 +45,8 @@ interface TunnelFactory {
 internal fun underlayTunnelIdOf(config: TunnelConfig): String? = when (config.typeEnum) {
     TunnelConfigType.YGGDRASIL ->
         YggdrasilConfigBlob.parse(config.configText)?.underlayTunnelId?.takeIf { it.isNotBlank() }
+    TunnelConfigType.ANYCONNECT ->
+        AnyConnectConfigBlob.parse(config.configText)?.underlayTunnelId?.takeIf { it.isNotBlank() }
     else -> null
 }
 
@@ -501,7 +503,13 @@ class DefaultTunnelFactory @Inject constructor(
                 ?: throw IOException(
                     "AnyConnect tunnel '${config.label}' is missing its server or username — edit the tunnel",
                 )
-            AnyConnectTunnel(parsed, label = config.label, authBroker = authBroker)
+            val socksProxy = carrierSocksAddr?.let { "${it.hostString}:${it.port}" }
+            AnyConnectTunnel(
+                parsed,
+                label = config.label,
+                authBroker = authBroker,
+                carrierSocksProxy = socksProxy,
+            )
         }
         TunnelConfigType.YGGDRASIL -> {
             val parsed = YggdrasilConfigBlob.parse(config.configText)

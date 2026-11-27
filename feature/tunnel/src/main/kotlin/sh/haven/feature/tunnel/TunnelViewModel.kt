@@ -514,16 +514,17 @@ class TunnelViewModel @Inject constructor(
      * edits). A live or resumable session made with the old settings is
      * ended first, so the next connect uses the new ones: signed out on the
      * gateway when the account changed (server / user / group), merely
-     * disconnected — still resumable — when only e.g. the password or pin
-     * did. Label and "Stay connected" edits leave a live tunnel alone.
+     * disconnected — still resumable — when only e.g. the password, pin, or
+     * underlay carrier did. Label and "Stay connected" edits leave a live
+     * tunnel alone.
      */
     fun updateAnyConnectConfig(id: String, label: String, form: AnyConnectForm) {
-        val blob = validateAnyConnect(label, form) ?: return
+        val blob = validateAnyConnect(label, form, editingId = id) ?: return
         viewModelScope.launch {
             val old = repository.getById(id)
                 ?.takeIf { it.typeEnum == TunnelConfigType.ANYCONNECT }
                 ?.let { AnyConnectConfigBlob.parse(it.configText) }
-            if (old != null && old.toNativeConfig() != blob.toNativeConfig()) {
+            if (old != null && (old.toNativeConfig() != blob.toNativeConfig() || old.underlayTunnelId != blob.underlayTunnelId)) {
                 val accountChanged = old.server != blob.server ||
                     !old.username.equals(blob.username, ignoreCase = true) ||
                     !old.authGroup.equals(blob.authGroup, ignoreCase = true)
@@ -533,7 +534,11 @@ class TunnelViewModel @Inject constructor(
         }
     }
 
-    private fun validateAnyConnect(label: String, form: AnyConnectForm): sh.haven.core.tunnel.AnyConnectConfigBlob? {
+    private fun validateAnyConnect(
+        label: String,
+        form: AnyConnectForm,
+        editingId: String? = null,
+    ): sh.haven.core.tunnel.AnyConnectConfigBlob? {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return null
@@ -556,6 +561,11 @@ class TunnelViewModel @Inject constructor(
             _error.value = "Server certificate must look like pin-sha256:<base64>, sha256:<hex> or sha1:<hex>"
             return null
         }
+        val trimmedUnderlay = form.underlayTunnelId.trim()
+        if (editingId != null && trimmedUnderlay.isNotEmpty() && trimmedUnderlay == editingId) {
+            _error.value = "A tunnel cannot route its underlay through itself"
+            return null
+        }
         return sh.haven.core.tunnel.AnyConnectConfigBlob(
             server = server,
             username = form.username.trim(),
@@ -566,6 +576,7 @@ class TunnelViewModel @Inject constructor(
             secondaryPassword = form.secondaryPassword,
             serverCert = cert,
             stayConnected = form.stayConnected,
+            underlayTunnelId = trimmedUnderlay,
         )
     }
 
@@ -810,6 +821,7 @@ data class AnyConnectForm(
     val secondaryPassword: String = "",
     val serverCert: String = "",
     val stayConnected: Boolean = true,
+    val underlayTunnelId: String = "",
 ) {
     companion object {
         fun from(blob: sh.haven.core.tunnel.AnyConnectConfigBlob?) = AnyConnectForm(
@@ -821,6 +833,7 @@ data class AnyConnectForm(
             secondaryPassword = blob?.secondaryPassword.orEmpty(),
             serverCert = blob?.serverCert.orEmpty(),
             stayConnected = blob?.stayConnected ?: true,
+            underlayTunnelId = blob?.underlayTunnelId.orEmpty(),
         )
     }
 }

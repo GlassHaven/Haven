@@ -384,4 +384,32 @@ class TunnelViewModelTest {
         val parsed = sh.haven.core.tunnel.YggdrasilConfigBlob.parse(saved.captured.configText)!!
         assertEquals("carrier-wg-1", parsed.underlayTunnelId)
     }
+
+    @Test
+    fun updateAnyConnect_roundTripsUnderlayTunnelIdRejectsSelfRoutingAndDisconnectsOnCarrierChange() = runTest {
+        coEvery { repository.getById("t1") } returns anyConnectRow(
+            AnyConnectConfigBlob("vpn.example", "alice", "pw"),
+        )
+        viewModel.updateAnyConnectConfig(
+            "t1",
+            "Corp",
+            AnyConnectForm("vpn.example", "alice", "pw", underlayTunnelId = "t1"),
+        )
+        advanceUntilIdle()
+        assertEquals("A tunnel cannot route its underlay through itself", viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+
+        viewModel.dismissError()
+        val saved = slot<TunnelConfig>()
+        coEvery { repository.save(capture(saved)) } just runs
+        viewModel.updateAnyConnectConfig(
+            "t1",
+            "Corp",
+            AnyConnectForm("vpn.example", "alice", "pw", underlayTunnelId = "carrier-wg-1"),
+        )
+        advanceUntilIdle()
+        val parsed = AnyConnectConfigBlob.parse(saved.captured.configText)!!
+        assertEquals("carrier-wg-1", parsed.underlayTunnelId)
+        coVerify(exactly = 1) { sessions.disconnect("t1", signOut = false) }
+    }
 }

@@ -376,6 +376,54 @@ class TunnelManagerTest {
     }
 
     @Test
+    fun anyConnectWithUnderlayCarrierAutoAcquiresCarrierPassesSocksAndReleasesOnDisconnect() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-wg") } returns wgConfig("cfg-wg")
+        coEvery { repo.getById("cfg-ac") } returns TunnelConfig(
+            id = "cfg-ac",
+            label = "corp ac",
+            type = TunnelConfigType.ANYCONNECT.name,
+            configText = AnyConnectConfigBlob(
+                server = "vpn.internal.corp",
+                username = "alice",
+                password = "pw",
+                underlayTunnelId = "cfg-wg",
+            ).encode(),
+        )
+        val carrierSocks = java.net.InetSocketAddress("127.0.0.1", 41081)
+        val createdOrder = mutableListOf<Pair<String, java.net.InetSocketAddress?>>()
+        val createdTunnels = mutableMapOf<String, FakeTunnel>()
+        val factory = object : TunnelFactory {
+            override fun create(config: TunnelConfig): Tunnel = create(config, null)
+            override fun create(config: TunnelConfig, carrierSocksAddr: java.net.InetSocketAddress?): Tunnel {
+                createdOrder.add(config.id to carrierSocksAddr)
+                val t = FakeTunnel(
+                    lingerAfterRelease = config.id == "cfg-ac",
+                    socksAddr = if (config.id == "cfg-wg") carrierSocks else null,
+                )
+                createdTunnels[config.id] = t
+                return t
+            }
+        }
+        val manager = TunnelManager(repo, factory)
+
+        assertNotNull(manager.acquire("cfg-ac", "p1"))
+        assertEquals(listOf("cfg-wg" to null, "cfg-ac" to carrierSocks), createdOrder)
+        assertEquals(1, manager.dependentCount("cfg-wg"))
+
+        // Lingering AnyConnect keeps its carrier alive on last profile release,
+        // then releases the carrier cleanly when explicitly disconnected.
+        manager.release("p1")
+        assertFalse(createdTunnels.getValue("cfg-ac").closed)
+        assertFalse(createdTunnels.getValue("cfg-wg").closed)
+
+        assertTrue(manager.disconnect("cfg-ac"))
+        assertTrue(createdTunnels.getValue("cfg-ac").closed)
+        assertTrue(createdTunnels.getValue("cfg-wg").closed)
+        assertEquals(0, manager.dependentCount("cfg-wg"))
+    }
+
+    @Test
     fun underlayRejectsSelfRoutingMultiHopMissingCarrierAndRollsBackOnStartFailure() = runTest {
         val repo = mockk<TunnelConfigRepository>()
         coEvery { repo.getById("cfg-self") } returns TunnelConfig(

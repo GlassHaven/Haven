@@ -62,6 +62,7 @@ internal class TunnelToolProvider(
                 string("anyconnectOtpSecret", "TOTP secret (base32 or otpauth:// URI) answering the gateway's second-factor prompt. Optional.")
                 string("anyconnectSecondaryPassword", "Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.")
                 string("anyconnectServerCert", "Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.")
+                string("anyconnectUnderlayTunnelId", "Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries AnyConnect/ocserv HTTPS auth and CSTP TLS connections when the phone is off-LAN (#876).")
                 string("accessHostname", "Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.")
                 string("accessJwt", "Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.")
                 string("accessTeamDomain", "Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.")
@@ -236,6 +237,7 @@ internal class TunnelToolProvider(
                     otpSecret = args.optString("anyconnectOtpSecret").trim(),
                     secondaryPassword = args.optString("anyconnectSecondaryPassword"),
                     serverCert = args.optString("anyconnectServerCert").trim(),
+                    underlayTunnelId = args.optString("anyconnectUnderlayTunnelId").trim(),
                 ).encode()
             }
         }

@@ -1,0 +1,2 @@
+- Bind Ctrl+L to clear-screen automatically in Android Shell (regular and su) and Shizuku sessions while sourcing /system/etc/mkshrc and ~/.mkshrc (#896, thanks iptsh)
+- Add Color prompt, Custom prompt (PS1), and Shell executable options to Android Shell profiles with native zsh/bash startup and /system/bin/sh fallback (#897, thanks iptsh)

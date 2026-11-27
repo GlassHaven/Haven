@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.91
+
+- Bind `Ctrl+L` (`^L`) to `clear-screen` automatically in `Android Shell` (both unprivileged and `Start as root (su)`) and `Shizuku` sessions via an `mksh` `ENV` startup file that still sources `/system/etc/mkshrc` first and `$HOME/.mkshrc` last (#896, thanks iptsh).
+- Add `Color prompt`, `Custom prompt (PS1)`, and `Shell executable` options to `Android Shell` profiles (and `localColorPrompt`, `localCustomPs1`, and `localShellCommand` on MCP `create_connection`, `update_connection`, and `list_connections`), formatting the colored `mksh` prompt with `\001\r` non-printing ANSI delimiters and non-zero exit-code display while letting custom shells such as `zsh` or `bash` load their native startup files cleanly (#897, thanks iptsh).
+
 ## v5.94.90
 
 - Confine long-press terminal text selection to drawn tmux, zellij, and herdr multiplexer panes (`detectPane` in `termlib`), preserving pane column bounds beside wide CJK sidebar glyphs, mapping `Mode: Word` and `Mode: Line` within the pane, joining multiplexer-wrapped lines, and adding a `Select Whole Screen` / `Select This Pane Only` overflow toggle across all 12 locales (`GlassHaven/termlib#8`, thanks boyce-ywr).

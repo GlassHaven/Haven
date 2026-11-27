@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.85
+
+- Route Cisco AnyConnect and `ocserv` gateways through another saved tunnel's loopback SOCKS5 listener (`Route underlay through` in the tunnel editor and `anyconnectUnderlayTunnelId` on MCP `create_tunnel`) so internal gateways remain reachable when your phone is remote, covering aggregate XML auth, CSTP TLS `CONNECT`, session reconnects, and sign-out (#876).
+
 ## v5.94.84
 
 - Route Yggdrasil `tcp://` and `tls://` peers through another saved tunnel's loopback SOCKS5 listener (`Route underlay through` in the tunnel editor and `yggdrasilUnderlayTunnelId` on MCP tunnel tools) so LAN-only mesh peers remain reachable when your phone is remote, with automatic one-hop carrier acquisition/refcounting and TLS SNI preservation (#876).

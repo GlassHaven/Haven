@@ -145,4 +145,32 @@ class GuestAppCatalogTest {
         assertTrue(vice.appCommand.contains("GDK_BACKEND=x11"))
         assertTrue(vice.configWrites.any { it.path == "/root/.config/vice/vicerc" && it.stanza.contains("SoundDeviceName=\"pulse\"") })
     }
+
+    @Test
+    fun `pack postInstallScript runs after sha256 asset verification and executes cleanly in sh`() {
+        val sha = "c".repeat(64)
+        val pack = GuestAppCatalog.AUDACIOUS.copy(
+            assets = listOf(
+                PackAsset(
+                    url = "https://download.jetbrains.com/idea/ideaIC-2026.1-aarch64.tar.gz",
+                    sha256 = sha,
+                    destDir = "/tmp/haven-idea",
+                ),
+            ),
+            postInstallScript = """
+                mkdir -p /opt/idea
+                tar -xzf /tmp/haven-idea/ideaIC-2026.1-aarch64.tar.gz -C /opt/idea --strip-components=1
+                ln -sf /opt/idea/bin/idea /usr/local/bin/idea
+            """.trimIndent(),
+        )
+        val script = buildPackInstallScript(pack, listOf("openjdk-21-jdk"), PackageFamily.APT, includeAssets = true)
+        assertTrue(script.contains("export PATH=\"/usr/local/sbin:/usr/local/bin:"))
+        val curlIdx = script.indexOf("curl -fsSL --retry 2 -o '/tmp/haven-idea/ideaIC-2026.1-aarch64.tar.gz'")
+        val shaIdx = script.indexOf("sha256sum -c -")
+        val postIdx = script.indexOf("tar -xzf /tmp/haven-idea/ideaIC-2026.1-aarch64.tar.gz -C /opt/idea")
+        assertTrue(
+            "pinned asset fetch and sha256 check must precede postInstallScript",
+            curlIdx in 0 until shaIdx && shaIdx < postIdx,
+        )
+    }
 }

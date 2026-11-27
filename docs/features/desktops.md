@@ -66,7 +66,7 @@ Under **Desktop → Manage**, each installed PRoot distro also supports single-a
 
 - Built-in catalog presets cover GUI apps (`qmmp`, `audacious`, `dosbox`, `fs-uae`, `vice`) and local daemons (`mariadb` on `127.0.0.1:3306`), applying PRoot audio/GL config stanzas and verifying SHA-256 checksums on any auxiliary assets.
 - Tap **Import recipe…** (or call `import_guest_recipes` / `export_guest_recipes` over MCP) to load additional `schemaVersion: 1` JSON recipe manifests from an `https://` URL (with optional 64-hex SHA-256 manifest pinning) or a local `.json` file.
-- Before adding any imported recipe, Haven previews the full generated guest install script and supervised daemon command. Recipes validate package-family keys (`APK`, `APT`, `PACMAN`, `XBPS`), package tokens, rootfs-relative `verifyBinary` / `verifyBinaries` paths, `https://` + 64-hex `sha256` asset pins, `supportedArches` (`uname -m`), and optional `/etc/os-release` `distroRules` (`osId`, `minVersion`, and per-distro `extraPackages`).
+- Before adding any imported recipe, Haven previews the full generated guest install script and supervised daemon command. Recipes validate package-family keys (`APK`, `APT`, `PACMAN`, `XBPS`), package tokens, rootfs-relative `verifyBinary` / `verifyBinaries` paths, `https://` + 64-hex `sha256` asset pins, optional `postInstallScript` blocks (for both app packs and service presets, running after `sha256sum -c` asset verification), `supportedArches` (`uname -m`), and optional `/etc/os-release` `distroRules` (`osId`, `minVersion`, and per-distro `extraPackages`).
 
 ---
 

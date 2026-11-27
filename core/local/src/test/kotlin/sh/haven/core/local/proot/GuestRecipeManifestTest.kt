@@ -349,6 +349,53 @@ class GuestRecipeManifestTest {
         }
     }
 
+    @Test
+    fun `pack postInstallScript round-trips through JSON appears in preview and rejects NUL`() {
+        val sha = "d".repeat(64)
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "packs": [
+                {
+                  "id": "idea-community",
+                  "label": "IntelliJ IDEA Community",
+                  "description": "Kotlin & Java IDE extracted from pinned tarball under Xwayland.",
+                  "supportedArches": ["aarch64"],
+                  "packages": {
+                    "APT": ["ca-certificates", "curl", "tar", "openjdk-21-jdk"]
+                  },
+                  "verifyBinary": "usr/local/bin/idea",
+                  "assets": [
+                    {
+                      "url": "https://download.jetbrains.com/idea/ideaIC-2026.1-aarch64.tar.gz",
+                      "sha256": "$sha",
+                      "destDir": "/tmp/haven-idea"
+                    }
+                  ],
+                  "postInstallScript": "mkdir -p /opt/idea && tar -xzf /tmp/haven-idea/ideaIC-2026.1-aarch64.tar.gz -C /opt/idea --strip-components=1 && ln -sf /opt/idea/bin/idea /usr/local/bin/idea",
+                  "appLabel": "IntelliJ IDEA",
+                  "appCommand": "env _JAVA_AWT_WM_NONREPARENTING=1 /usr/local/bin/idea"
+                }
+              ],
+              "services": []
+            }
+        """.trimIndent()
+
+        val manifest = GuestRecipeManifest.parse(raw)
+        val roundTripped = GuestRecipeManifest.parse(GuestRecipeManifest.toJson(manifest))
+        assertEquals(manifest, roundTripped)
+
+        val pack = manifest.packs.single()
+        assertTrue(pack.postInstallScript.contains("ln -sf /opt/idea/bin/idea /usr/local/bin/idea"))
+        val preview = GuestRecipeManifest.previewPackInstall(pack, PackageFamily.APT)
+        assertTrue(preview.contains("tar -xzf /tmp/haven-idea/ideaIC-2026.1-aarch64.tar.gz"))
+
+        val nulJson = raw.replace("mkdir -p /opt/idea", "mkdir -p\\u0000 /opt/idea")
+        assertThrows(RecipeValidationException::class.java) {
+            GuestRecipeManifest.parse(nulJson)
+        }
+    }
+
     private fun runWithOsRelease(script: String, osReleaseContent: String): Pair<Int, String> {
         val tmp = Files.createTempFile("haven-os-release-", ".conf")
         return try {

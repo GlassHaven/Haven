@@ -335,6 +335,10 @@ data class GuestRecipeManifest(
                 f
             }
             val assets = parseAssets(obj.optArray("assets", ctx), "$ctx.assets")
+            val postInstallScript = obj.optNullableString("postInstallScript", ctx)?.let { s ->
+                if (s.contains('\u0000')) throw RecipeValidationException("$ctx.postInstallScript contains NUL")
+                s
+            } ?: ""
             val verifiedFamilies = (obj.optArray("verifiedFamilies", ctx) ?: emptyList()).mapIndexed { i, v ->
                 val fam = parseFamily(v.asString("$ctx.verifiedFamilies[$i]"), "$ctx.verifiedFamilies[$i]")
                 if (fam !in packages.keys) {
@@ -361,6 +365,7 @@ data class GuestRecipeManifest(
                 resolution = resolution,
                 scale = scale,
                 assets = assets,
+                postInstallScript = postInstallScript,
                 verifiedFamilies = verifiedFamilies,
                 supportedArches = supportedArches,
                 distroRules = distroRules,
@@ -675,6 +680,9 @@ data class GuestRecipeManifest(
                         }
                     }
                 }
+            }
+            if (pack.postInstallScript.isNotEmpty()) {
+                field("postInstallScript", pack.postInstallScript)
             }
             if (pack.verifiedFamilies.isNotEmpty()) {
                 fieldArray("verifiedFamilies") {

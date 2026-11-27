@@ -258,7 +258,7 @@ internal class ProotAndGuestToolProvider(
         ) { _ -> listAppPacks() },
 
         "install_app_pack" to ToolHandler(
-            description = "Install a curated or imported guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: \"running\" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.",
+            description = "Install a curated or imported guest-app pack (from list_app_packs) into the ACTIVE distro: package install via the distro's package manager, idempotent config drops, optional pinned-asset downloads, optional postInstallScript execution, then — app-side — a verify-binary check, app-window def registration (so the app appears in Installed Apps / present_app-launchable), and audio-bridge start if the pack needs it. Long-running (a package install): returns { jobId, status: \"running\" } immediately; poll by calling again with that jobId — the response carries accumulated output and, once finished, the exitCode (0 = installed AND registered; non-zero = a phase failed, see output tail). Requires an installed active distro whose family the pack supports.",
             inputSchema = objectSchema {
                 string("id", "Pack id from list_app_packs (e.g. \"qmmp\"). Required unless polling via jobId.")
                 boolean("includeAssets", "Also fetch the pack's optional pinned assets (skins, sample content). Default true.")
@@ -579,6 +579,7 @@ internal class ProotAndGuestToolProvider(
                 put("appWindowRegistered", defs.any { it.command == p.appCommand })
                 put("needsAudioBridge", p.needsAudioBridge)
                 put("assetCount", p.assets.size)
+                put("hasPostInstallScript", p.postInstallScript.isNotBlank())
             })
         }
         return JSONObject().apply {

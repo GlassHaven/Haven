@@ -88,6 +88,8 @@ data class GuestAppPack(
      *  without pinning the output aspect. null = global default (1.0). */
     val scale: Float? = null,
     val assets: List<PackAsset> = emptyList(),
+    /** Optional idempotent shell block executed after packages, config drops, and pinned assets (#891). */
+    val postInstallScript: String = "",
     /**
      * Families where this pack has been verified end-to-end on a real
      * device (install → window up → audio out). Families listed in
@@ -104,9 +106,11 @@ private fun shq(s: String) = "'" + s.replace("'", "'\\''") + "'"
 /**
  * The guest-side half of a pack install as one `set -e` script: package
  * update+install, idempotent config drops (append guarded by an exact-match
- * grep of the stanza's first line), then sha256-pinned asset fetches.
- * App-side steps (verify-binary check, app-window def registration, audio
- * bridge) are the caller's completion block, not part of the script.
+ * grep of the stanza's first line), sha256-pinned asset fetches, and optional
+ * [GuestAppPack.postInstallScript] (e.g. extracting a pinned tarball into
+ * `/opt` or `/usr/local`). App-side steps (verify-binary check, app-window def
+ * registration, audio bridge) are the caller's completion block, not part of
+ * the script.
  */
 fun buildPackInstallScript(
     pack: GuestAppPack,
@@ -118,6 +122,7 @@ fun buildPackInstallScript(
     val sb = StringBuilder("set -e\n")
     appendGuestArchGuard(sb, pack.supportedArches)
     appendGuestDistroGuard(sb, pack.distroRules)
+    sb.append("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
     sb.append(ops.updateCmd()).append('\n')
     val extraSuffix = if (pack.distroRules.any { it.extraPackages.isNotEmpty() }) " \$HAVEN_EXTRA_PKGS" else ""
     sb.append(ops.installCmd(pkgs)).append(extraSuffix).append('\n')
@@ -136,6 +141,9 @@ fun buildPackInstallScript(
             sb.append("curl -fsSL --retry 2 -o ${shq(dest)} ${shq(a.url)}\n")
             sb.append("printf '%s  %s\\n' ${shq(a.sha256)} ${shq(dest)} | sha256sum -c -\n")
         }
+    }
+    if (pack.postInstallScript.isNotBlank()) {
+        sb.append(pack.postInstallScript.trim()).append('\n')
     }
     return sb.toString()
 }

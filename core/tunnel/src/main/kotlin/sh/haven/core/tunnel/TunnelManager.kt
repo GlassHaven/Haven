@@ -33,7 +33,19 @@ private const val TAG = "TunnelManager"
  */
 interface TunnelFactory {
     fun create(config: TunnelConfig): Tunnel
+    fun create(config: TunnelConfig, carrierSocksAddr: java.net.InetSocketAddress?): Tunnel =
+        create(config)
     fun checkConflict(tunnel: Tunnel): WireGuardSystemVpnConflict? = null
+}
+
+/**
+ * Extract the optional one-hop underlay carrier tunnel id configured on
+ * [config], or null when [config] dials its underlay directly (#876).
+ */
+internal fun underlayTunnelIdOf(config: TunnelConfig): String? = when (config.typeEnum) {
+    TunnelConfigType.YGGDRASIL ->
+        YggdrasilConfigBlob.parse(config.configText)?.underlayTunnelId?.takeIf { it.isNotBlank() }
+    else -> null
 }
 
 /**
@@ -125,21 +137,25 @@ class TunnelManager @Inject constructor(
      * other dependents). Profiles only ever hold one tunnel at a time.
      */
     suspend fun acquire(configId: String, profileId: String): Tunnel? {
-        var staleToClose: Tunnel? = null
-        var staleDead: Tunnel? = null
+        val staleToClose = mutableListOf<Tunnel>()
         var conflictToThrow: WireGuardSystemVpnConflict? = null
+        var startErrorToThrow: Throwable? = null
         val acquired = mutex.withLock {
             val previous = acquiredBy[profileId]
             if (previous != null && previous != configId) {
                 Log.w(TAG, "Profile $profileId switching tunnel $previous → $configId without explicit release; auto-releasing prior")
-                staleToClose = internalRelease(previous, profileId)
+                staleToClose.addAll(internalRelease(previous, profileId))
             }
             // A session that ended for good (sign-in refused, fatal OpenVPN
             // disconnect, or cancelled background re-login) is replaced rather
             // than handed out.
             liveTunnels[configId]?.takeIf { it.isDead }?.let { dead ->
                 liveTunnels.remove(configId)
-                staleDead = dead
+                staleToClose.add(dead)
+                val carrierHoldKey = "underlay:$configId"
+                acquiredBy[carrierHoldKey]?.let { heldCarrier ->
+                    staleToClose.addAll(internalRelease(heldCarrier, carrierHoldKey))
+                }
             }
             // A live userspace WireGuard tunnel whose address is now held by a
             // system VPN (started after the userspace tunnel came up) must be
@@ -150,28 +166,103 @@ class TunnelManager @Inject constructor(
                 if (conflict != null) {
                     liveTunnels.remove(configId)
                     dependents.remove(configId)?.forEach { acquiredBy.remove(it) }
+                    val carrierHoldKey = "underlay:$configId"
+                    acquiredBy[carrierHoldKey]?.let { heldCarrier ->
+                        staleToClose.addAll(internalRelease(heldCarrier, carrierHoldKey))
+                    }
                     publish()
-                    staleDead = existing
+                    staleToClose.add(existing)
                     conflictToThrow = conflict
                     return@withLock null
                 }
             }
             val tunnel = liveTunnels[configId] ?: run {
                 val config = tunnelConfigRepository.getById(configId) ?: return@withLock null
+                val carrierId = underlayTunnelIdOf(config)
+                var carrierSocks: java.net.InetSocketAddress? = null
+                val carrierHoldKey = "underlay:$configId"
+                if (carrierId != null) {
+                    if (carrierId == configId) {
+                        startErrorToThrow = IOException(
+                            "Tunnel '${config.label}' cannot route its underlay through itself",
+                        )
+                        return@withLock null
+                    }
+                    val carrierConfig = tunnelConfigRepository.getById(carrierId)
+                    if (carrierConfig == null) {
+                        startErrorToThrow = IOException(
+                            "Underlay carrier tunnel for '${config.label}' no longer exists — edit the tunnel to pick another carrier",
+                        )
+                        return@withLock null
+                    }
+                    if (underlayTunnelIdOf(carrierConfig) != null) {
+                        startErrorToThrow = IOException(
+                            "Underlay carrier '${carrierConfig.label}' itself routes through another tunnel; only one underlay hop is supported",
+                        )
+                        return@withLock null
+                    }
+                    liveTunnels[carrierId]?.takeIf { it.isDead }?.let { deadCarrier ->
+                        liveTunnels.remove(carrierId)
+                        staleToClose.add(deadCarrier)
+                    }
+                    val carrierTunnel = try {
+                        liveTunnels[carrierId] ?: withContext(Dispatchers.IO) {
+                            tunnelFactory.create(carrierConfig)
+                        }.also { liveTunnels[carrierId] = it }
+                    } catch (t: Throwable) {
+                        startErrorToThrow = t
+                        return@withLock null
+                    }
+                    dependents.getOrPut(carrierId) { mutableSetOf() }.add(carrierHoldKey)
+                    acquiredBy[carrierHoldKey] = carrierId
+                    val resolvedSocks = try {
+                        withContext(Dispatchers.IO) { carrierTunnel.socksAddress() }
+                    } catch (t: Throwable) {
+                        staleToClose.addAll(internalRelease(carrierId, carrierHoldKey))
+                        publish()
+                        startErrorToThrow = t
+                        return@withLock null
+                    }
+                    if (resolvedSocks == null) {
+                        staleToClose.addAll(internalRelease(carrierId, carrierHoldKey))
+                        publish()
+                        startErrorToThrow = IOException(
+                            "Underlay carrier '${carrierConfig.label}' does not expose a SOCKS5 listener",
+                        )
+                        return@withLock null
+                    }
+                    carrierSocks = resolvedSocks
+                }
                 // Off the caller's thread: starting a tunnel blocks (handshakes,
                 // and for AnyConnect possibly a user typing an SMS code into a
                 // dialog that the main thread has to be free to draw).
-                withContext(Dispatchers.IO) { tunnelFactory.create(config) }
-                    .also { liveTunnels[configId] = it }
+                val created = try {
+                    withContext(Dispatchers.IO) {
+                        if (carrierSocks != null) {
+                            tunnelFactory.create(config, carrierSocks)
+                        } else {
+                            tunnelFactory.create(config)
+                        }
+                    }
+                } catch (t: Throwable) {
+                    if (carrierId != null) {
+                        staleToClose.addAll(internalRelease(carrierId, carrierHoldKey))
+                        publish()
+                    }
+                    startErrorToThrow = t
+                    return@withLock null
+                }
+                liveTunnels[configId] = created
+                created
             }
             dependents.getOrPut(configId) { mutableSetOf() }.add(profileId)
             acquiredBy[profileId] = configId
             publish()
             tunnel
         }
-        staleToClose?.close()
-        staleDead?.close()
+        staleToClose.forEach { runCatching { it.close() } }
         conflictToThrow?.let { throw it }
+        startErrorToThrow?.let { throw it }
         return acquired
     }
 
@@ -186,29 +277,37 @@ class TunnelManager @Inject constructor(
      */
     suspend fun release(profileId: String) {
         val toClose = mutex.withLock {
-            val configId = acquiredBy[profileId] ?: return@withLock null
+            val configId = acquiredBy[profileId] ?: return@withLock emptyList()
             internalRelease(configId, profileId)
         }
         // (internalRelease publishes when it removes a tunnel.)
-        toClose?.close()
+        toClose.forEach { runCatching { it.close() } }
     }
 
     /**
-     * Caller must hold [mutex]. Returns the [Tunnel] that should be closed
-     * outside the lock if this drained the dependent set, or null otherwise.
+     * Caller must hold [mutex]. Returns the [Tunnel]s that should be closed
+     * outside the lock if this drained the dependent set (including any
+     * auto-acquired underlay carrier whose own dependent set also drained).
      */
-    private fun internalRelease(configId: String, profileId: String): Tunnel? {
+    private fun internalRelease(configId: String, profileId: String): List<Tunnel> {
         acquiredBy.remove(profileId)
-        val deps = dependents[configId] ?: return null
+        val deps = dependents[configId] ?: return emptyList()
         deps.remove(profileId)
         if (deps.isEmpty()) {
             dependents.remove(configId)
             // A lingering tunnel (AnyConnect with "Stay connected") stays up
             // with no dependents until disconnect(); the next acquire reuses it.
-            if (liveTunnels[configId]?.lingerAfterRelease == true) return null
-            return liveTunnels.remove(configId).also { publish() }
+            if (liveTunnels[configId]?.lingerAfterRelease == true) return emptyList()
+            val closed = mutableListOf<Tunnel>()
+            liveTunnels.remove(configId)?.let { closed.add(it) }
+            val carrierHoldKey = "underlay:$configId"
+            acquiredBy[carrierHoldKey]?.let { heldCarrierId ->
+                closed.addAll(internalRelease(heldCarrierId, carrierHoldKey))
+            }
+            if (closed.isNotEmpty()) publish()
+            return closed
         }
-        return null
+        return emptyList()
     }
 
     /**
@@ -220,13 +319,19 @@ class TunnelManager @Inject constructor(
      * starts a new one. Returns whether a tunnel was live.
      */
     suspend fun disconnect(configId: String, signOut: Boolean = false): Boolean {
+        val extraToClose = mutableListOf<Tunnel>()
         val tunnel = mutex.withLock {
             val t = liveTunnels.remove(configId) ?: return@withLock null
             dependents.remove(configId)?.forEach { acquiredBy.remove(it) }
+            val carrierHoldKey = "underlay:$configId"
+            acquiredBy[carrierHoldKey]?.let { heldCarrierId ->
+                extraToClose.addAll(internalRelease(heldCarrierId, carrierHoldKey))
+            }
             publish()
             t
         } ?: return false
         if (signOut && tunnel is AnyConnectTunnel) tunnel.signOut() else tunnel.close()
+        extraToClose.forEach { runCatching { it.close() } }
         return true
     }
 
@@ -332,7 +437,12 @@ class DefaultTunnelFactory @Inject constructor(
             SystemVpnAddressProbe.collides(it.configText, systemVpnAddressProbe)
         }
 
-    override fun create(config: TunnelConfig): Tunnel = when (config.typeEnum) {
+    override fun create(config: TunnelConfig): Tunnel = create(config, null)
+
+    override fun create(
+        config: TunnelConfig,
+        carrierSocksAddr: java.net.InetSocketAddress?,
+    ): Tunnel = when (config.typeEnum) {
         TunnelConfigType.WIREGUARD -> {
             val text = String(config.configText)
             // Refuse to run a second WG device on a key the phone's system
@@ -398,7 +508,12 @@ class DefaultTunnelFactory @Inject constructor(
                 ?: throw IOException(
                     "Yggdrasil tunnel '${config.label}' has an invalid config — re-add the tunnel",
                 )
-            YggdrasilTunnel(configJSON = String(parsed.encode(), Charsets.UTF_8))
+            val effective = if (carrierSocksAddr != null) {
+                parsed.withCarrierSocks(carrierSocksAddr.hostString, carrierSocksAddr.port)
+            } else {
+                parsed
+            }
+            YggdrasilTunnel(configJSON = String(effective.encode(), Charsets.UTF_8))
         }
     }
 

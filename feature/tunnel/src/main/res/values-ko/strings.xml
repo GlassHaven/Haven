@@ -93,4 +93,8 @@
     <string name="tunnel_auto_proxy_title">터널을 통해 로컬 Linux 자동 프록시</string>
     <string name="tunnel_auto_proxy_subtitle">PRoot 셸 및 데스크톱에서 활성 터널의 SOCKS5 리스너로 ALL_PROXY / HTTP(S)_PROXY를 내보냅니다(또는 필요 시 `with-tunnel &lt;cmd&gt;` 사용, QEMU에서는 10.0.2.2:&lt;port&gt; 사용).</string>
     <string name="tunnel_close">닫기</string>
+    <string name="tunnel_underlay_carrier_label">언더레이 경유 터널 (선택 사항)</string>
+    <string name="tunnel_underlay_carrier_help">LAN 피어에 직접 연결할 수 없을 때 다른 터널의 SOCKS5 프록시를 통해 TCP/TLS 피어에 연결합니다.</string>
+    <string name="tunnel_underlay_carrier_direct">직접 연결 (휴대폰 네트워크)</string>
+    <string name="tunnel_underlay_via">%1$s 경유</string>
 </resources>

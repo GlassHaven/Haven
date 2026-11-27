@@ -16,7 +16,7 @@ Haven also provides a resizable Saved Connections home-screen widget (with optio
 
 **Per-app WireGuard and Tailscale tunnels** — each profile can route its connection through its own userspace tunnel, with no system VPN slot taken, so other apps keep using the direct network.
 
-**Tunnel underlay reachability** — a per-connection tunnel (WireGuard, Tailscale, NetBird, Yggdrasil) carries the profile's connection traffic, but not the tunnel's own underlay sockets. The tunnel's management server, relays, and peers are dialed over the phone's ordinary network. A LAN-only management or peer address is therefore unreachable when the phone is on a remote network: the phone must be on that LAN, or on a VPN that routes to it. Since v5.94.69/v5.94.70 the NetBird management-dial and Yggdrasil mesh-dial timeout errors name this case explicitly instead of showing a bare deadline.
+**Tunnel underlay reachability** — a per-connection tunnel (WireGuard, Tailscale, NetBird, Yggdrasil) carries the profile's connection traffic, while the tunnel's own underlay sockets dial over the phone's ordinary network by default. For **Yggdrasil** tunnels whose `tcp://` or `tls://` peer is only reachable on a private LAN, **Route underlay through** in the tunnel editor routes outbound TCP/TLS peer links through another saved tunnel's loopback SOCKS5 listener (auto-starting and reference-counting that one-hop carrier tunnel). Non-TCP Yggdrasil peers (`quic://`) and NetBird management/relay endpoints still dial over the phone's direct network, and NetBird/Yggdrasil dial timeout errors name the underlay reachability limit explicitly.
 
 ## Port knocking
 

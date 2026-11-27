@@ -357,4 +357,31 @@ class TunnelViewModelTest {
         viewModel.setAutoProxyGuests(false)
         assertEquals(false, viewModel.autoProxyGuests.value)
     }
+
+    @Test
+    fun updateYggdrasil_roundTripsUnderlayTunnelIdAndRejectsSelfRouting() = runTest {
+        coEvery { repository.getById("t1") } returns existingRow(TunnelConfigType.YGGDRASIL)
+        viewModel.updateYggdrasilConfig(
+            id = "t1",
+            label = "Home Mesh",
+            peers = "tls://192.168.0.180:9001",
+            underlayTunnelId = "t1",
+        )
+        advanceUntilIdle()
+        assertEquals("A tunnel cannot route its underlay through itself", viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+
+        viewModel.dismissError()
+        val saved = slot<TunnelConfig>()
+        coEvery { repository.save(capture(saved)) } just runs
+        viewModel.updateYggdrasilConfig(
+            id = "t1",
+            label = "Home Mesh",
+            peers = "tls://192.168.0.180:9001",
+            underlayTunnelId = "carrier-wg-1",
+        )
+        advanceUntilIdle()
+        val parsed = sh.haven.core.tunnel.YggdrasilConfigBlob.parse(saved.captured.configText)!!
+        assertEquals("carrier-wg-1", parsed.underlayTunnelId)
+    }
 }

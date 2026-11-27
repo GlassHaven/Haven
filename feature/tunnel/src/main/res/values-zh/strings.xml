@@ -95,4 +95,8 @@
     <string name="tunnel_auto_proxy_title">通过隧道自动代理本地 Linux</string>
     <string name="tunnel_auto_proxy_subtitle">在 PRoot 终端和桌面中将 ALL_PROXY / HTTP(S)_PROXY 自动导出到活动隧道的 SOCKS5 监听端口（也可按需使用 `with-tunnel &lt;cmd&gt;`，在 QEMU 中使用 10.0.2.2:&lt;port&gt;）。</string>
     <string name="tunnel_close">关闭</string>
+    <string name="tunnel_underlay_carrier_label">底层连接路由经由（可选）</string>
+    <string name="tunnel_underlay_carrier_help">当无法直接访问局域网节点时，通过另一条隧道的 SOCKS5 代理连接 TCP/TLS 节点。</string>
+    <string name="tunnel_underlay_carrier_direct">直连（手机网络）</string>
+    <string name="tunnel_underlay_via">经由 %1$s</string>
 </resources>

@@ -103,4 +103,8 @@
     <string name="tunnel_anyconnect_prompt_help">Codes sent by SMS or e-mail: leave the OTP secret and second-factor answer empty, and Haven asks for the code when you sign in.</string>
     <string name="tunnel_anyconnect_stay_connected_label">Stay connected</string>
     <string name="tunnel_anyconnect_stay_connected_help">Keep the VPN up after your last connection closes, like Cisco\'s app. Off: it disconnects, and reconnecting soon after resumes the session without a new code.</string>
+    <string name="tunnel_underlay_carrier_label">Route underlay through (optional)</string>
+    <string name="tunnel_underlay_carrier_help">Dial TCP/TLS peers through another tunnel\'s SOCKS5 proxy when LAN peers are unreachable directly.</string>
+    <string name="tunnel_underlay_carrier_direct">Direct (phone network)</string>
+    <string name="tunnel_underlay_via">via %1$s</string>
 </resources>

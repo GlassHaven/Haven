@@ -95,4 +95,8 @@
     <string name="tunnel_auto_proxy_title">توجيه Linux المحلي عبر النفق تلقائياً</string>
     <string name="tunnel_auto_proxy_subtitle">تصدير ALL_PROXY / HTTP(S)_PROXY إلى مستمع SOCKS5 للنفق النشط في جلسات PRoot وأسطح المكتب (أو استخدم `with-tunnel &lt;cmd&gt;` عند الطلب؛ وفي QEMU استخدم 10.0.2.2:&lt;port&gt;).</string>
     <string name="tunnel_close">إغلاق</string>
+    <string name="tunnel_underlay_carrier_label">توجيه الشبكة التحتية عبر (اختياري)</string>
+    <string name="tunnel_underlay_carrier_help">الاتصال بأقران TCP/TLS عبر وكيل SOCKS5 لنفق آخر عندما يتعذر الوصول إلى أقران الشبكة المحلية مباشرةً.</string>
+    <string name="tunnel_underlay_carrier_direct">مباشر (شبكة الهاتف)</string>
+    <string name="tunnel_underlay_via">عبر %1$s</string>
 </resources>

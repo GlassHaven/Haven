@@ -204,12 +204,25 @@ fun TunnelsScreen(
                         val socksPort = socksPorts[tunnel.id]
                         val forwardCount = portForwardRules.count { it.tunnelConfigId == tunnel.id }
                         val isStandaloneCapable = tunnel.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS
+                        val underlayCarrierLabel = remember(tunnel.id, tunnel.configText, tunnels) {
+                            if (tunnel.typeEnum == TunnelConfigType.YGGDRASIL) {
+                                val carrierId = YggdrasilConfigBlob.parse(tunnel.configText)
+                                    ?.underlayTunnelId
+                                    ?.takeIf { it.isNotBlank() }
+                                carrierId?.let { cid ->
+                                    tunnels.firstOrNull { it.id == cid }?.label ?: cid.take(8)
+                                }
+                            } else {
+                                null
+                            }
+                        }
                         TunnelRow(
                             tunnel = tunnel,
                             connected = connected,
                             connecting = connecting,
                             socksPort = socksPort,
                             forwardCount = forwardCount,
+                            underlayCarrierLabel = underlayCarrierLabel,
                             onConnect = if (!connected && isStandaloneCapable) {
                                 { viewModel.connect(tunnel.id) }
                             } else {
@@ -260,6 +273,7 @@ fun TunnelsScreen(
     if (showAddDialog) {
         AddTunnelDialog(
             initialType = effectiveInitialType,
+            carrierTunnels = tunnels.filter { it.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS },
             onDismiss = { showAddDialog = false },
             onSubmitWireguard = { label, configText ->
                 viewModel.addWireguardConfig(label, configText)
@@ -273,8 +287,8 @@ fun TunnelsScreen(
                 viewModel.addNetbirdConfig(label, setupKey, managementUrl, rosenpass)
                 showAddDialog = false
             },
-            onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword ->
-                viewModel.addYggdrasilConfig(label, peers, privateKey, listen, ifMTU, groupPassword)
+            onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword, underlayTunnelId ->
+                viewModel.addYggdrasilConfig(label, peers, privateKey, listen, ifMTU, groupPassword, underlayTunnelId)
                 showAddDialog = false
             },
             onSubmitOpenVpn = { label, ovpnConfigText, username, password ->
@@ -291,6 +305,9 @@ fun TunnelsScreen(
             AddTunnelDialog(
                 initialType = existing.typeEnum,
                 existing = existing,
+                carrierTunnels = tunnels.filter {
+                    it.id != existing.id && it.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS
+                },
                 onDismiss = { editTarget = null; pendingEditId = null },
                 onSubmitWireguard = { label, configText ->
                     viewModel.updateWireguardConfig(existing.id, label, configText)
@@ -304,8 +321,8 @@ fun TunnelsScreen(
                     viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl, rosenpass)
                     editTarget = null; pendingEditId = null
                 },
-                onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword ->
-                    viewModel.updateYggdrasilConfig(existing.id, label, peers, privateKey, listen, ifMTU, groupPassword)
+                onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword, underlayTunnelId ->
+                    viewModel.updateYggdrasilConfig(existing.id, label, peers, privateKey, listen, ifMTU, groupPassword, underlayTunnelId)
                     editTarget = null; pendingEditId = null
                 },
                 onSubmitOpenVpn = { label, config, username, password ->
@@ -393,6 +410,7 @@ private fun TunnelRow(
     connecting: Boolean = false,
     socksPort: Int? = null,
     forwardCount: Int = 0,
+    underlayCarrierLabel: String? = null,
     onConnect: (() -> Unit)? = null,
     onDisconnect: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
@@ -472,7 +490,11 @@ private fun TunnelRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val viaText = underlayCarrierLabel?.let { stringResource(R.string.tunnel_underlay_via, it) }
                 val extras = buildList {
+                    if (viaText != null) {
+                        add(viaText)
+                    }
                     if (socksPort != null) {
                         add("SOCKS5 127.0.0.1:$socksPort · QEMU 10.0.2.2:$socksPort")
                     }
@@ -697,11 +719,12 @@ private fun TunnelPortForwardsDialog(
 private fun AddTunnelDialog(
     initialType: TunnelConfigType,
     existing: TunnelConfig? = null,
+    carrierTunnels: List<TunnelConfig> = emptyList(),
     onDismiss: () -> Unit,
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String, rosenpass: Boolean) -> Unit,
-    onSubmitYggdrasil: (label: String, peers: String, privateKey: String, listen: String, ifMTU: Int, groupPassword: String) -> Unit,
+    onSubmitYggdrasil: (label: String, peers: String, privateKey: String, listen: String, ifMTU: Int, groupPassword: String, underlayTunnelId: String) -> Unit,
     onSubmitOpenVpn: (label: String, ovpnConfigText: String, username: String, password: String) -> Unit,
     onSubmitAnyConnect: (label: String, form: AnyConnectForm) -> Unit,
 ) {
@@ -771,6 +794,10 @@ private fun AddTunnelDialog(
     var yggGroupPassword by remember(existing?.id) {
         mutableStateOf(existingYggdrasil?.groupPassword.orEmpty())
     }
+    var yggUnderlayTunnelId by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.underlayTunnelId.orEmpty())
+    }
+    var yggCarrierExpanded by remember { mutableStateOf(false) }
     val existingOpenVpn = remember(existing?.id, existing?.configText) {
         existing?.takeIf { it.typeEnum == TunnelConfigType.OPENVPN }
             ?.let { OpenVpnConfigBlob.parse(it.configText) }
@@ -1040,74 +1067,130 @@ private fun AddTunnelDialog(
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 }
                 TunnelConfigType.YGGDRASIL -> {
-                    Text(
-                        stringResource(R.string.tunnel_yggdrasil_help),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    OutlinedTextField(
-                        value = yggPeers,
-                        onValueChange = { yggPeers = it },
-                        label = { Text(stringResource(R.string.tunnel_yggdrasil_peers_label)) },
-                        placeholder = {
-                            Text("tls://192.168.0.180:9001", fontFamily = FontFamily.Monospace)
-                        },
-                        supportingText = {
-                            Text(
-                                stringResource(R.string.tunnel_yggdrasil_peers_help),
-                                style = MaterialTheme.typography.bodySmall,
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.tunnel_yggdrasil_help),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = yggPeers,
+                            onValueChange = { yggPeers = it },
+                            label = { Text(stringResource(R.string.tunnel_yggdrasil_peers_label)) },
+                            placeholder = {
+                                Text("tls://192.168.0.180:9001", fontFamily = FontFamily.Monospace)
+                            },
+                            supportingText = {
+                                Text(
+                                    stringResource(R.string.tunnel_yggdrasil_peers_help),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            },
+                            singleLine = false,
+                            minLines = 2,
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                            ),
+                        )
+                        val directLabel = stringResource(R.string.tunnel_underlay_carrier_direct)
+                        val selectedCarrierLabel = carrierTunnels
+                            .firstOrNull { it.id == yggUnderlayTunnelId }
+                            ?.label
+                            ?: if (yggUnderlayTunnelId.isBlank()) directLabel else yggUnderlayTunnelId.take(8)
+                        ExposedDropdownMenuBox(
+                            expanded = yggCarrierExpanded,
+                            onExpandedChange = { yggCarrierExpanded = it },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            OutlinedTextField(
+                                value = selectedCarrierLabel,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.tunnel_underlay_carrier_label)) },
+                                supportingText = {
+                                    Text(
+                                        stringResource(R.string.tunnel_underlay_carrier_help),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(yggCarrierExpanded) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             )
-                        },
-                        singleLine = false,
-                        minLines = 2,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                        ),
-                    )
-                    sh.haven.core.ui.PasswordField(
-                        value = yggPrivateKey,
-                        onValueChange = { yggPrivateKey = it },
-                        label = stringResource(R.string.tunnel_yggdrasil_private_key_label),
-                        supportingText = stringResource(R.string.tunnel_yggdrasil_private_key_help),
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                        ),
-                    )
-                    OutlinedTextField(
-                        value = yggListen,
-                        onValueChange = { yggListen = it },
-                        label = { Text(stringResource(R.string.tunnel_yggdrasil_listen_label)) },
-                        placeholder = {
-                            Text("tls://0.0.0.0:0", fontFamily = FontFamily.Monospace)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                        ),
-                    )
-                    OutlinedTextField(
-                        value = yggIfMTU,
-                        onValueChange = { yggIfMTU = it.filter { c -> c.isDigit() } },
-                        label = { Text(stringResource(R.string.tunnel_yggdrasil_mtu_label)) },
-                        placeholder = {
-                            Text("65535", fontFamily = FontFamily.Monospace)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                        ),
-                    )
-                    sh.haven.core.ui.PasswordField(
-                        value = yggGroupPassword,
-                        onValueChange = { yggGroupPassword = it },
-                        label = stringResource(R.string.tunnel_yggdrasil_group_password_label),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                            ExposedDropdownMenu(
+                                expanded = yggCarrierExpanded,
+                                onDismissRequest = { yggCarrierExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(directLabel) },
+                                    onClick = {
+                                        yggUnderlayTunnelId = ""
+                                        yggCarrierExpanded = false
+                                    },
+                                )
+                                carrierTunnels.forEach { candidate ->
+                                    DropdownMenuItem(
+                                        text = { Text("${candidate.label} (${tunnelTypeLabel(candidate.typeEnum)})") },
+                                        onClick = {
+                                            yggUnderlayTunnelId = candidate.id
+                                            yggCarrierExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        sh.haven.core.ui.PasswordField(
+                            value = yggPrivateKey,
+                            onValueChange = { yggPrivateKey = it },
+                            label = stringResource(R.string.tunnel_yggdrasil_private_key_label),
+                            supportingText = stringResource(R.string.tunnel_yggdrasil_private_key_help),
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                            ),
+                        )
+                        OutlinedTextField(
+                            value = yggListen,
+                            onValueChange = { yggListen = it },
+                            label = { Text(stringResource(R.string.tunnel_yggdrasil_listen_label)) },
+                            placeholder = {
+                                Text("tls://0.0.0.0:0", fontFamily = FontFamily.Monospace)
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                            ),
+                        )
+                        OutlinedTextField(
+                            value = yggIfMTU,
+                            onValueChange = { yggIfMTU = it.filter { c -> c.isDigit() } },
+                            label = { Text(stringResource(R.string.tunnel_yggdrasil_mtu_label)) },
+                            placeholder = {
+                                Text("65535", fontFamily = FontFamily.Monospace)
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                            ),
+                        )
+                        sh.haven.core.ui.PasswordField(
+                            value = yggGroupPassword,
+                            onValueChange = { yggGroupPassword = it },
+                            label = stringResource(R.string.tunnel_yggdrasil_group_password_label),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
                 TunnelConfigType.OPENVPN -> {
                     Text(
@@ -1216,7 +1299,7 @@ private fun AddTunnelDialog(
                             TunnelConfigType.NETBIRD ->
                                 onSubmitNetbird(label, setupKey, managementUrl, rosenpass)
                             TunnelConfigType.YGGDRASIL ->
-                                onSubmitYggdrasil(label, yggPeers, yggPrivateKey, yggListen, yggIfMTU.toIntOrNull() ?: 0, yggGroupPassword)
+                                onSubmitYggdrasil(label, yggPeers, yggPrivateKey, yggListen, yggIfMTU.toIntOrNull() ?: 0, yggGroupPassword, yggUnderlayTunnelId)
                             TunnelConfigType.OPENVPN ->
                                 onSubmitOpenVpn(label, ovpnConfigText, ovpnUsername, ovpnPassword)
                             TunnelConfigType.ANYCONNECT ->

@@ -2010,6 +2010,7 @@ Add a new WireGuard, Tailscale, NetBird, Yggdrasil, OpenVPN, AnyConnect, or Clou
 - `yggdrasilListen` (string) — Whitespace-separated inbound peering listen URIs (e.g. "tls://0.0.0.0:0"). Optional — needed only to accept incoming peerings from non-local nodes.
 - `yggdrasilPeers` (string) — Whitespace-separated outbound Yggdrasil peer URIs (e.g. "tls://192.168.0.180:9001 tls://peer.example.com:443"). Required when type=YGGDRASIL — a node with no reachable peer is isolated.
 - `yggdrasilPrivateKey` (string) — Yggdrasil node private key (hex ed25519). Optional — empty generates a fresh identity, but persist a key to keep the mesh IPv6 address stable across restarts.
+- `yggdrasilUnderlayTunnelId` (string) — Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries Yggdrasil tcp:// and tls:// peer connections when the phone is off-LAN (#876).
 
 </details>
 

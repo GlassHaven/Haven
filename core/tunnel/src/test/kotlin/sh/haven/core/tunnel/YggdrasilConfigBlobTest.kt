@@ -78,4 +78,46 @@ class YggdrasilConfigBlobTest {
         assertNull(YggdrasilConfigBlob.parse(ByteArray(0)))
         assertNull(YggdrasilConfigBlob.parse("   ".toByteArray()))
     }
+
+    @Test
+    fun `underlayTunnelId round-trips and is omitted when blank`() {
+        val directJson = String(YggdrasilConfigBlob(peers = listOf("tls://h:1")).encode(), Charsets.UTF_8)
+        assertTrue(!directJson.contains("havenUnderlayTunnelId"))
+
+        val routed = YggdrasilConfigBlob(
+            peers = listOf("tls://192.168.0.180:9001"),
+            underlayTunnelId = "carrier-wg-1",
+        )
+        val parsed = YggdrasilConfigBlob.parse(routed.encode())!!
+        assertEquals("carrier-wg-1", parsed.underlayTunnelId)
+    }
+
+    @Test
+    fun `withCarrierSocks rewrites tcp and tls peers to socks and sockstls while preserving SNI and non-TCP peers`() {
+        val blob = YggdrasilConfigBlob(
+            peers = listOf(
+                "tcp://192.168.0.180:9001",
+                "tls://192.168.0.180:9002?key=deadbeef",
+                "tls://peer.home.arpa:9003",
+                "tls://peer.home.arpa:9004?key=cafe&sni=override.home.arpa",
+                "tls://[fd00::1]:9005?priority=1",
+                "quic://192.168.0.180:9006",
+                "sockstls://127.0.0.1:9999/already.proxied:9007?sni=already.proxied",
+            ),
+            underlayTunnelId = "carrier-wg-1",
+        )
+        val rewritten = blob.withCarrierSocks("127.0.0.1", 1080)
+        assertEquals(
+            listOf(
+                "socks://127.0.0.1:1080/192.168.0.180:9001",
+                "sockstls://127.0.0.1:1080/192.168.0.180:9002?key=deadbeef",
+                "sockstls://127.0.0.1:1080/peer.home.arpa:9003?sni=peer.home.arpa",
+                "sockstls://127.0.0.1:1080/peer.home.arpa:9004?key=cafe&sni=override.home.arpa",
+                "sockstls://127.0.0.1:1080/[fd00::1]:9005?priority=1",
+                "quic://192.168.0.180:9006",
+                "sockstls://127.0.0.1:9999/already.proxied:9007?sni=already.proxied",
+            ),
+            rewritten.peers,
+        )
+    }
 }

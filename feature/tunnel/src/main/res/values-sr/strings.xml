@@ -93,5 +93,9 @@
     <string name="tunnel_openvpn_config_label">OpenVPN профил (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Корисничко име (није обавезно)</string>
     <string name="tunnel_openvpn_password_label">Лозинка (није обавезна)</string>
+    <string name="tunnel_underlay_carrier_label">Усмери подмрежу преко (опционо)</string>
+    <string name="tunnel_underlay_carrier_help">Повезује се са TCP/TLS чворовима преко SOCKS5 проксија другог тунела када LAN чворови нису директно доступни.</string>
+    <string name="tunnel_underlay_carrier_direct">Директно (мрежа телефона)</string>
+    <string name="tunnel_underlay_via">преко %1$s</string>
 </resources>
 

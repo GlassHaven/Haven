@@ -102,4 +102,8 @@
     <string name="tunnel_auto_proxy_title">ローカルトunnel経由で Linux を自動プロキシ</string>
     <string name="tunnel_auto_proxy_subtitle">PRoot シェルとデスクトップでアクティブなトンネルの SOCKS5 リスナーに ALL_PROXY / HTTP(S)_PROXY をエクスポートします（または必要に応じて `with-tunnel &lt;cmd&gt;` を使用、QEMU では 10.0.2.2:&lt;port&gt; を使用）。</string>
     <string name="tunnel_close">閉じる</string>
+    <string name="tunnel_underlay_carrier_label">アンダーレイの経由先（任意）</string>
+    <string name="tunnel_underlay_carrier_help">LAN 内のピアに直接到達できない場合、別のトンネルの SOCKS5 プロキシ経由で TCP/TLS ピアに接続します。</string>
+    <string name="tunnel_underlay_carrier_direct">直接（端末のネットワーク）</string>
+    <string name="tunnel_underlay_via">%1$s 経由</string>
 </resources>

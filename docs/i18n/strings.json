@@ -53294,6 +53294,88 @@
       "sr": "Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.",
       "zh": "像 Cisco 应用一样，在最后一个连接关闭后仍保持 VPN 连接。关闭时：VPN 会断开，但不久后重新连接可恢复会话而无需新验证码。"
      }
+    },
+    {
+     "name": "tunnel_underlay_carrier_label",
+     "en": "Route underlay through (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "توجيه الشبكة التحتية عبر (اختياري)",
+      "bn": "আন্ডারলে রাউট করুন এর মাধ্যমে (ঐচ্ছিক)",
+      "de": "Underlay leiten über (optional)",
+      "es": "Enrutar red subyacente por (opcional)",
+      "fr": "Acheminer le sous-réseau via (facultatif)",
+      "hi": "अंडरले को इसके माध्यम से रूट करें (वैकल्पिक)",
+      "ja": "アンダーレイの経由先（任意）",
+      "ko": "언더레이 경유 터널 (선택 사항)",
+      "pt": "Encaminhar rede subjacente por (opcional)",
+      "ru": "Маршрутизировать транспорт через (необязательно)",
+      "sr": "Усмери подмрежу преко (опционо)",
+      "zh": "底层连接路由经由（可选）"
+     }
+    },
+    {
+     "name": "tunnel_underlay_carrier_help",
+     "en": "Dial TCP/TLS peers through another tunnel\\'s SOCKS5 proxy when LAN peers are unreachable directly.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الاتصال بأقران TCP/TLS عبر وكيل SOCKS5 لنفق آخر عندما يتعذر الوصول إلى أقران الشبكة المحلية مباشرةً.",
+      "bn": "LAN পিয়ারে সরাসরি পৌঁছানো না গেলে অন্য টানেলের SOCKS5 প্রক্সির মাধ্যমে TCP/TLS পিয়ারে সংযোগ করুন।",
+      "de": "TCP/TLS-Peers über den SOCKS5-Proxy eines anderen Tunnels anwählen, wenn LAN-Peers direkt nicht erreichbar sind.",
+      "es": "Conecta con pares TCP/TLS a través del proxy SOCKS5 de otro túnel cuando los pares de la LAN no sean accesibles directamente.",
+      "fr": "Joint les pairs TCP/TLS via le proxy SOCKS5 d\\'un autre tunnel lorsque les pairs du réseau local sont injoignables directement.",
+      "hi": "जब LAN पीयर सीधे पहुंच योग्य न हों, तो किसी अन्य टनल के SOCKS5 प्रॉक्सी के माध्यम से TCP/TLS पीयर से जुड़ें।",
+      "ja": "LAN 内のピアに直接到達できない場合、別のトンネルの SOCKS5 プロキシ経由で TCP/TLS ピアに接続します。",
+      "ko": "LAN 피어에 직접 연결할 수 없을 때 다른 터널의 SOCKS5 프록시를 통해 TCP/TLS 피어에 연결합니다.",
+      "pt": "Liga a pares TCP/TLS através do proxy SOCKS5 de outro túnel quando os pares da LAN não estão acessíveis diretamente.",
+      "ru": "Подключаться к TCP/TLS-узлам через SOCKS5-прокси другого туннеля, когда узлы локальной сети недоступны напрямую.",
+      "sr": "Повезује се са TCP/TLS чворовима преко SOCKS5 проксија другог тунела када LAN чворови нису директно доступни.",
+      "zh": "当无法直接访问局域网节点时，通过另一条隧道的 SOCKS5 代理连接 TCP/TLS 节点。"
+     }
+    },
+    {
+     "name": "tunnel_underlay_carrier_direct",
+     "en": "Direct (phone network)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "مباشر (شبكة الهاتف)",
+      "bn": "সরাসরি (ফোন নেটওয়ার্ক)",
+      "de": "Direkt (Telefonnetz)",
+      "es": "Directo (red del teléfono)",
+      "fr": "Direct (réseau du téléphone)",
+      "hi": "सीधा (फ़ोन नेटवर्क)",
+      "ja": "直接（端末のネットワーク）",
+      "ko": "직접 연결 (휴대폰 네트워크)",
+      "pt": "Direto (rede do telemóvel)",
+      "ru": "Напрямую (сеть телефона)",
+      "sr": "Директно (мрежа телефона)",
+      "zh": "直连（手机网络）"
+     }
+    },
+    {
+     "name": "tunnel_underlay_via",
+     "en": "via %1$s",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "عبر %1$s",
+      "bn": "%1$s এর মাধ্যমে",
+      "de": "über %1$s",
+      "es": "vía %1$s",
+      "fr": "via %1$s",
+      "hi": "%1$s के माध्यम से",
+      "ja": "%1$s 経由",
+      "ko": "%1$s 경유",
+      "pt": "via %1$s",
+      "ru": "через %1$s",
+      "sr": "преко %1$s",
+      "zh": "经由 %1$s"
+     }
     }
    ]
   },

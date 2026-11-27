@@ -102,4 +102,8 @@
     <string name="tunnel_auto_proxy_title">टनल के माध्यम से लोकल Linux ऑटो-प्रॉक्सी करें</string>
     <string name="tunnel_auto_proxy_subtitle">PRoot शेल और डेस्कटॉप में सक्रिय टनल के SOCKS5 लिसनर पर ALL_PROXY / HTTP(S)_PROXY एक्सपोर्ट करें (या मांग पर `with-tunnel &lt;cmd&gt;` का उपयोग करें; QEMU में 10.0.2.2:&lt;port&gt; का उपयोग करें)।</string>
     <string name="tunnel_close">बंद करें</string>
+    <string name="tunnel_underlay_carrier_label">अंडरले को इसके माध्यम से रूट करें (वैकल्पिक)</string>
+    <string name="tunnel_underlay_carrier_help">जब LAN पीयर सीधे पहुंच योग्य न हों, तो किसी अन्य टनल के SOCKS5 प्रॉक्सी के माध्यम से TCP/TLS पीयर से जुड़ें।</string>
+    <string name="tunnel_underlay_carrier_direct">सीधा (फ़ोन नेटवर्क)</string>
+    <string name="tunnel_underlay_via">%1$s के माध्यम से</string>
 </resources>

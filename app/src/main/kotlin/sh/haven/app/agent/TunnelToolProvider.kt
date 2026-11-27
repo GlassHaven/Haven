@@ -51,6 +51,7 @@ internal class TunnelToolProvider(
                 string("yggdrasilListen", "Whitespace-separated inbound peering listen URIs (e.g. \"tls://0.0.0.0:0\"). Optional — needed only to accept incoming peerings from non-local nodes.")
                 integer("yggdrasilIfMTU", "Yggdrasil mesh MTU. Optional — 0 uses the yggdrasil default (65535); minimum 1280.")
                 string("yggdrasilGroupPassword", "Yggdrasil group password for a private sub-network. Optional — empty permits public connectivity; set the same password on all group members.")
+                string("yggdrasilUnderlayTunnelId", "Optional saved carrier tunnel id (from list_tunnels) whose SOCKS5 listener carries Yggdrasil tcp:// and tls:// peer connections when the phone is off-LAN (#876).")
                 string("ovpnConfigText", "Full .ovpn profile text (client, dev tun, remote, inline ca/cert/key or tls-auth blocks, ...). Required when type=OPENVPN.")
                 string("ovpnUsername", "auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.")
                 string("ovpnPassword", "auth-user-pass password. Optional, same condition as ovpnUsername.")
@@ -205,6 +206,7 @@ internal class TunnelToolProvider(
                     listen = listen,
                     ifMTU = args.optInt("yggdrasilIfMTU", 0),
                     groupPassword = args.optString("yggdrasilGroupPassword").trim(),
+                    underlayTunnelId = args.optString("yggdrasilUnderlayTunnelId").trim(),
                 ).encode()
             }
             TunnelConfigType.OPENVPN -> {

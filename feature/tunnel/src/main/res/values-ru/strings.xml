@@ -102,4 +102,8 @@
     <string name="tunnel_auto_proxy_title">Автопрокси локального Linux через туннель</string>
     <string name="tunnel_auto_proxy_subtitle">Экспортировать ALL_PROXY / HTTP(S)_PROXY на SOCKS5-прокси активного туннеля в оболочках и рабочих столах PRoot (или используйте `with-tunnel &lt;cmd&gt;`; в QEMU используйте 10.0.2.2:&lt;port&gt;).</string>
     <string name="tunnel_close">Закрыть</string>
+    <string name="tunnel_underlay_carrier_label">Маршрутизировать транспорт через (необязательно)</string>
+    <string name="tunnel_underlay_carrier_help">Подключаться к TCP/TLS-узлам через SOCKS5-прокси другого туннеля, когда узлы локальной сети недоступны напрямую.</string>
+    <string name="tunnel_underlay_carrier_direct">Напрямую (сеть телефона)</string>
+    <string name="tunnel_underlay_via">через %1$s</string>
 </resources>

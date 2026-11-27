@@ -93,4 +93,8 @@
     <string name="tunnel_auto_proxy_title">টানেলের মাধ্যমে লোকাল Linux অটো-প্রক্সি করুন</string>
     <string name="tunnel_auto_proxy_subtitle">PRoot শেল ও ডেস্কটপে সক্রিয় টানেলের SOCKS5 লিসেনারে ALL_PROXY / HTTP(S)_PROXY এক্সপোর্ট করুন (অথবা প্রয়োজনে `with-tunnel &lt;cmd&gt;` ব্যবহার করুন; QEMU-তে 10.0.2.2:&lt;port&gt; ব্যবহার করুন)।</string>
     <string name="tunnel_close">বন্ধ করুন</string>
+    <string name="tunnel_underlay_carrier_label">আন্ডারলে রাউট করুন এর মাধ্যমে (ঐচ্ছিক)</string>
+    <string name="tunnel_underlay_carrier_help">LAN পিয়ারে সরাসরি পৌঁছানো না গেলে অন্য টানেলের SOCKS5 প্রক্সির মাধ্যমে TCP/TLS পিয়ারে সংযোগ করুন।</string>
+    <string name="tunnel_underlay_carrier_direct">সরাসরি (ফোন নেটওয়ার্ক)</string>
+    <string name="tunnel_underlay_via">%1$s এর মাধ্যমে</string>
 </resources>

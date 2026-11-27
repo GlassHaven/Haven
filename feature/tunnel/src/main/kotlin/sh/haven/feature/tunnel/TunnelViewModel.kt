@@ -681,6 +681,7 @@ class TunnelViewModel @Inject constructor(
         listen: String = "",
         ifMTU: Int = 0,
         groupPassword: String = "",
+        underlayTunnelId: String = "",
     ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
@@ -697,11 +698,12 @@ class TunnelViewModel @Inject constructor(
             listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
             ifMTU = ifMTU,
             groupPassword = groupPassword.trim(),
+            underlayTunnelId = underlayTunnelId.trim(),
         )
         save(label, TunnelConfigType.YGGDRASIL, blob.encode())
     }
 
-    /** Overwrite an existing Yggdrasil tunnel's label / peers / key / listen / MTU / group password. */
+    /** Overwrite an existing Yggdrasil tunnel's label / peers / key / listen / MTU / group password / underlay carrier (#876). */
     fun updateYggdrasilConfig(
         id: String,
         label: String,
@@ -710,6 +712,7 @@ class TunnelViewModel @Inject constructor(
         listen: String = "",
         ifMTU: Int = 0,
         groupPassword: String = "",
+        underlayTunnelId: String = "",
     ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
@@ -720,12 +723,18 @@ class TunnelViewModel @Inject constructor(
             _error.value = "At least one peer URI is required (e.g. tls://host:port)"
             return
         }
+        val trimmedUnderlay = underlayTunnelId.trim()
+        if (trimmedUnderlay.isNotEmpty() && trimmedUnderlay == id) {
+            _error.value = "A tunnel cannot route its underlay through itself"
+            return
+        }
         val blob = sh.haven.core.tunnel.YggdrasilConfigBlob(
             privateKey = privateKey.trim(),
             peers = peerList,
             listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
             ifMTU = ifMTU,
             groupPassword = groupPassword.trim(),
+            underlayTunnelId = trimmedUnderlay,
         )
         update(id, label, blob.encode())
     }

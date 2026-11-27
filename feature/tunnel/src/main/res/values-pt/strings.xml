@@ -95,4 +95,8 @@
     <string name="tunnel_auto_proxy_title">Proxy automático para Linux local pelo túnel</string>
     <string name="tunnel_auto_proxy_subtitle">Exporta ALL_PROXY / HTTP(S)_PROXY para o ouvinte SOCKS5 do túnel ativo em shells e desktops PRoot (ou use `with-tunnel &lt;cmd&gt;` sob demanda; no QEMU use 10.0.2.2:&lt;port&gt;).</string>
     <string name="tunnel_close">Fechar</string>
+    <string name="tunnel_underlay_carrier_label">Encaminhar rede subjacente por (opcional)</string>
+    <string name="tunnel_underlay_carrier_help">Liga a pares TCP/TLS através do proxy SOCKS5 de outro túnel quando os pares da LAN não estão acessíveis diretamente.</string>
+    <string name="tunnel_underlay_carrier_direct">Direto (rede do telemóvel)</string>
+    <string name="tunnel_underlay_via">via %1$s</string>
 </resources>

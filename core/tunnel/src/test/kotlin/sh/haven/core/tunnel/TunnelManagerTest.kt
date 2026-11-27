@@ -332,6 +332,112 @@ class TunnelManagerTest {
         assertTrue(manager.live.value.isEmpty())
     }
 
+    @Test
+    fun yggdrasilWithUnderlayCarrierAutoAcquiresCarrierPassesSocksAndReleasesCleanly() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-wg") } returns wgConfig("cfg-wg")
+        coEvery { repo.getById("cfg-ygg") } returns TunnelConfig(
+            id = "cfg-ygg",
+            label = "home ygg",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(
+                peers = listOf("tls://192.168.0.180:9001"),
+                underlayTunnelId = "cfg-wg",
+            ).encode(),
+        )
+        val carrierSocks = java.net.InetSocketAddress("127.0.0.1", 41080)
+        val createdOrder = mutableListOf<Pair<String, java.net.InetSocketAddress?>>()
+        val createdTunnels = mutableMapOf<String, FakeTunnel>()
+        val factory = object : TunnelFactory {
+            override fun create(config: TunnelConfig): Tunnel = create(config, null)
+            override fun create(config: TunnelConfig, carrierSocksAddr: java.net.InetSocketAddress?): Tunnel {
+                createdOrder.add(config.id to carrierSocksAddr)
+                val t = FakeTunnel(
+                    socksAddr = if (config.id == "cfg-wg") carrierSocks else null,
+                )
+                createdTunnels[config.id] = t
+                return t
+            }
+        }
+        val manager = TunnelManager(repo, factory)
+
+        val overlay = manager.acquire("cfg-ygg", "p1")
+        assertNotNull(overlay)
+        assertEquals(listOf("cfg-wg" to null, "cfg-ygg" to carrierSocks), createdOrder)
+        assertEquals(1, manager.dependentCount("cfg-wg"))
+        assertEquals(1, manager.dependentCount("cfg-ygg"))
+
+        // Releasing p1 tears down cfg-ygg AND releases its underlay hold on cfg-wg.
+        manager.release("p1")
+        assertTrue(createdTunnels.getValue("cfg-ygg").closed)
+        assertTrue(createdTunnels.getValue("cfg-wg").closed)
+        assertEquals(0, manager.dependentCount("cfg-wg"))
+        assertEquals(0, manager.dependentCount("cfg-ygg"))
+    }
+
+    @Test
+    fun underlayRejectsSelfRoutingMultiHopMissingCarrierAndRollsBackOnStartFailure() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-self") } returns TunnelConfig(
+            id = "cfg-self",
+            label = "self",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(peers = listOf("tls://h:1"), underlayTunnelId = "cfg-self").encode(),
+        )
+        coEvery { repo.getById("cfg-hop1") } returns TunnelConfig(
+            id = "cfg-hop1",
+            label = "hop1",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(peers = listOf("tls://h:1"), underlayTunnelId = "cfg-wg").encode(),
+        )
+        coEvery { repo.getById("cfg-hop2") } returns TunnelConfig(
+            id = "cfg-hop2",
+            label = "hop2",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(peers = listOf("tls://h:2"), underlayTunnelId = "cfg-hop1").encode(),
+        )
+        coEvery { repo.getById("cfg-missing-carrier") } returns TunnelConfig(
+            id = "cfg-missing-carrier",
+            label = "orphan",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(peers = listOf("tls://h:3"), underlayTunnelId = "gone").encode(),
+        )
+        coEvery { repo.getById("gone") } returns null
+        coEvery { repo.getById("cfg-wg") } returns wgConfig("cfg-wg")
+        coEvery { repo.getById("cfg-fail-overlay") } returns TunnelConfig(
+            id = "cfg-fail-overlay",
+            label = "broken overlay",
+            type = TunnelConfigType.YGGDRASIL.name,
+            configText = YggdrasilConfigBlob(peers = listOf("tls://h:4"), underlayTunnelId = "cfg-wg").encode(),
+        )
+
+        var wgTunnel: FakeTunnel? = null
+        val factory = object : TunnelFactory {
+            override fun create(config: TunnelConfig): Tunnel = create(config, null)
+            override fun create(config: TunnelConfig, carrierSocksAddr: java.net.InetSocketAddress?): Tunnel {
+                if (config.id == "cfg-fail-overlay") throw IOException("ygg start boom")
+                return FakeTunnel(socksAddr = java.net.InetSocketAddress("127.0.0.1", 41080)).also {
+                    if (config.id == "cfg-wg") wgTunnel = it
+                }
+            }
+        }
+        val manager = TunnelManager(repo, factory)
+
+        val selfErr = runCatching { manager.acquire("cfg-self", "p1") }.exceptionOrNull()
+        assertTrue("expected self-routing error, got $selfErr", selfErr?.message?.contains("itself") == true)
+
+        val hopErr = runCatching { manager.acquire("cfg-hop2", "p1") }.exceptionOrNull()
+        assertTrue("expected one-hop error, got $hopErr", hopErr?.message?.contains("one underlay hop") == true)
+
+        val missingErr = runCatching { manager.acquire("cfg-missing-carrier", "p1") }.exceptionOrNull()
+        assertTrue("expected missing carrier error, got $missingErr", missingErr?.message?.contains("carrier") == true)
+
+        val boomErr = runCatching { manager.acquire("cfg-fail-overlay", "p1") }.exceptionOrNull()
+        assertTrue(boomErr?.message?.contains("ygg start boom") == true)
+        assertEquals("failed overlay start must roll back carrier dependent", 0, manager.dependentCount("cfg-wg"))
+        assertTrue("carrier acquired only for failed overlay must close on rollback", wgTunnel?.closed == true)
+    }
+
     private fun wgConfig(id: String) = TunnelConfig(
         id = id,
         label = "test",
@@ -346,9 +452,13 @@ class TunnelManagerTest {
         configText = """{"setupKey":"NBSETUPKEY-123"}""".toByteArray(),
     )
 
-    private class FakeTunnel(override val lingerAfterRelease: Boolean = false) : Tunnel {
+    private class FakeTunnel(
+        override val lingerAfterRelease: Boolean = false,
+        private val socksAddr: java.net.InetSocketAddress? = null,
+    ) : Tunnel {
         var closed = false
         override var isDead: Boolean = false
+        override fun socksAddress(): java.net.InetSocketAddress? = socksAddr
         override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection =
             throw UnsupportedOperationException("fake")
 

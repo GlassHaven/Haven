@@ -5,9 +5,12 @@ title: "Design: Routing a tunnel's underlay through a reachable path"
 
 # Tunnel underlay routing
 
-> **Status:** design / forward-looking. Not built. The legible-error and
-> documentation half of [#876](https://github.com/GlassHaven/Haven/issues/876)
-> shipped in v5.94.69/v5.94.70; this note designs the routing half.
+> **Status:** partially built. The legible-error and documentation half of
+> [#876](https://github.com/GlassHaven/Haven/issues/876) shipped in
+> v5.94.69/v5.94.70, and **Yggdrasil TCP/TLS carrier SOCKS5 underlay routing**
+> (`Route underlay through` + `TunnelManager` one-hop carrier refcounting) is
+> implemented. NetBird `nbbridge` SOCKS5 dialing and Android network binding
+> remain open.
 
 ## 1. The problem
 

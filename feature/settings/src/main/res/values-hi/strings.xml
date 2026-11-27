@@ -625,4 +625,10 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_update_installed_shizuku">Shizuku द्वारा अपडेट इंस्टॉल किया गया। पूरा करने के लिए Haven को पुनः आरंभ करें।</string>
     <string name="settings_update_installer_opened">सत्यापित APK सिस्टम इंस्टॉलर को सौंप दिया गया।</string>
     <string name="settings_update_install_failed">अपडेट विफल: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">डेस्कटॉप पर दो उंगलियों से स्क्रॉल की गति</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — दो उंगलियों से स्क्रॉल रिमोट पेज को कितना खिसकाता है</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">अधिक मान हर स्वाइप में अधिक दूर स्क्रॉल करता है। तब लागू होता है जब डेस्कटॉप टूलबार का दो-उंगली मोड स्क्रॉल पर हो।</string>
+    <string name="settings_desktop_scroll_inertia_title">डेस्कटॉप स्क्रॉल मोमेंटम</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">दो उंगलियों से तेज़ स्वाइप करने पर रिमोट स्क्रॉल चलता रहता है और धीरे-धीरे रुकता है, लैपटॉप ट्रैकपैड की तरह</string>
 </resources>

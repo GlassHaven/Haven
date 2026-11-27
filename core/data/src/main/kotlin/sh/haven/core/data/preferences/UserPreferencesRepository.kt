@@ -173,6 +173,10 @@ class UserPreferencesRepository @Inject constructor(
     private val desktopLongPressActionKey = stringPreferencesKey("desktop_long_press_action")
     private val desktopTwoFingerTapActionKey = stringPreferencesKey("desktop_two_finger_tap_action")
     private val desktopThreeFingerTapActionKey = stringPreferencesKey("desktop_three_finger_tap_action")
+    // Two-finger remote scrolling: speed, momentum, and the drag-mode toggle's last choice.
+    private val desktopScrollSpeedKey = floatPreferencesKey("desktop_scroll_speed")
+    private val desktopScrollInertiaKey = booleanPreferencesKey("desktop_scroll_inertia")
+    private val desktopTwoFingerScrollKey = booleanPreferencesKey("desktop_two_finger_scroll")
     // Experimental GPU stack for accelerated Wayland/cage desktops. Off (default)
     // = virgl/virpipe (GL 2.1, present works on every path). On = venus
     // (Vulkan→Mali) + zink (modern GL, ~3.2 core) with the wl_shm CPU-copy WSI
@@ -862,6 +866,42 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDesktopTouchpadSensitivity(value: Float) {
         dataStore.edit { prefs ->
             prefs[desktopTouchpadSensitivityKey] = value
+        }
+    }
+
+    /** Two-finger remote scroll speed multiplier (0.5–3, default 1). */
+    val desktopScrollSpeed: Flow<Float> = dataStore.data.map { prefs ->
+        prefs.floatSafe(desktopScrollSpeedKey) ?: 1f
+    }
+
+    suspend fun setDesktopScrollSpeed(value: Float) {
+        dataStore.edit { prefs ->
+            prefs[desktopScrollSpeedKey] = value
+        }
+    }
+
+    /** Whether a two-finger flick keeps the remote scrolling, trackpad-style (default on). */
+    val desktopScrollInertia: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[desktopScrollInertiaKey] ?: true
+    }
+
+    suspend fun setDesktopScrollInertia(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[desktopScrollInertiaKey] = enabled
+        }
+    }
+
+    /**
+     * The desktop toolbar's two-finger drag mode, remembered across sessions:
+     * true = scroll the remote, false = pan the zoomed view (default).
+     */
+    val desktopTwoFingerScroll: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[desktopTwoFingerScrollKey] ?: false
+    }
+
+    suspend fun setDesktopTwoFingerScroll(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[desktopTwoFingerScrollKey] = enabled
         }
     }
 

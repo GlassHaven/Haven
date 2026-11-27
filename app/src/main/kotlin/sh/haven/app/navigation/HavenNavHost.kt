@@ -550,10 +550,20 @@ fun HavenNavHost(
         .collectAsState(initial = "MIDDLE_CLICK")
     val desktopThreeFingerTapAction by preferencesRepository.desktopThreeFingerTapAction
         .collectAsState(initial = "NONE")
+    val desktopScrollSpeed by preferencesRepository.desktopScrollSpeed
+        .collectAsState(initial = 1f)
+    val desktopScrollInertia by preferencesRepository.desktopScrollInertia
+        .collectAsState(initial = true)
+    // Seeds the desktop toolbar's two-finger scroll/pan toggle; each flip is
+    // written back, so the next desktop opens the way the last one was left.
+    val desktopTwoFingerScroll by preferencesRepository.desktopTwoFingerScroll
+        .collectAsState(initial = false)
     val desktopMouseGestures = remember(
         desktopLongPressAction,
         desktopTwoFingerTapAction,
         desktopThreeFingerTapAction,
+        desktopScrollSpeed,
+        desktopScrollInertia,
     ) {
         sh.haven.core.ui.DesktopMouseGestureConfig(
             longPressAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
@@ -567,6 +577,10 @@ fun HavenNavHost(
             threeFingerTapAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
                 desktopThreeFingerTapAction,
                 sh.haven.core.ui.DesktopGestureAction.NONE,
+            ),
+            scroll = sh.haven.core.ui.RemoteScrollConfig(
+                speed = desktopScrollSpeed,
+                inertia = desktopScrollInertia,
             ),
         )
     }
@@ -890,50 +904,58 @@ fun HavenNavHost(
                         if (waylandRunning) desktopViewModel.addWaylandTab()
                         else desktopViewModel.removeWaylandTab()
                     }
-                    DesktopScreen(
-                        desktopViewModel = desktopViewModel,
-                        toolbarLayout = toolbarLayout,
-                        navBlockMode = navBlockMode,
-                        toolbarUniformGrid = toolbarUniformGrid,
-                        toolbarMinKeyWidth = toolbarMinKeyWidth,
-                        toolbarKeyScale = toolbarKeyScale,
-                        editModeControlsPlacement = editModeControlsPlacement,
-                        snippetLibrary = snippetLibrary,
-                        onToolbarLayoutChanged = { newLayout ->
-                            coroutineScope.launch {
-                                preferencesRepository.setToolbarLayout(newLayout)
-                            }
-                        },
-                        onSnippetLibraryChanged = { newLibrary ->
-                            coroutineScope.launch {
-                                preferencesRepository.setSnippetLibrary(newLibrary)
-                            }
-                        },
-                        onOpenToolbarSettings = {
-                            openToolbarConfig = true
-                            coroutineScope.launch {
-                                requestScreen(Screen.Settings)
-                            }
-                        },
-                        rdpChipAnchor = rdpChipAnchor,
-                        onRdpChipAnchorChange = {
-                            coroutineScope.launch { preferencesRepository.setRdpChipAnchor(it) }
-                        },
-                        inputMode = desktopInputMode,
-                        onSetInputMode = { mode ->
-                            coroutineScope.launch { preferencesRepository.setDesktopInputMode(mode) }
-                        },
-                        touchpadSensitivity = desktopTouchpadSensitivity,
-                        onSetTouchpadSensitivity = { value ->
-                            coroutineScope.launch { preferencesRepository.setDesktopTouchpadSensitivity(value) }
-                        },
-                        mouseGestures = desktopMouseGestures,
-                        isActive = pagerState.settledPage == pageOf(Screen.Desktop),
-                        fullscreen = desktopFullscreen,
-                        onFullscreenChanged = { desktopFullscreen = it },
-                        onConnectedChanged = { desktopConnected = it },
-                        onNavigateToAgentActivity = { showAgentActivityOverlay = true },
-                    )
+                    // The VNC/RDP toolbar's two-finger scroll/pan toggle is remembered.
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        sh.haven.core.ui.LocalRemoteTwoFingerScroll provides
+                            sh.haven.core.ui.RemoteTwoFingerScrollPreference(desktopTwoFingerScroll) { enabled ->
+                                coroutineScope.launch { preferencesRepository.setDesktopTwoFingerScroll(enabled) }
+                            },
+                    ) {
+                        DesktopScreen(
+                            desktopViewModel = desktopViewModel,
+                            toolbarLayout = toolbarLayout,
+                            navBlockMode = navBlockMode,
+                            toolbarUniformGrid = toolbarUniformGrid,
+                            toolbarMinKeyWidth = toolbarMinKeyWidth,
+                            toolbarKeyScale = toolbarKeyScale,
+                            editModeControlsPlacement = editModeControlsPlacement,
+                            snippetLibrary = snippetLibrary,
+                            onToolbarLayoutChanged = { newLayout ->
+                                coroutineScope.launch {
+                                    preferencesRepository.setToolbarLayout(newLayout)
+                                }
+                            },
+                            onSnippetLibraryChanged = { newLibrary ->
+                                coroutineScope.launch {
+                                    preferencesRepository.setSnippetLibrary(newLibrary)
+                                }
+                            },
+                            onOpenToolbarSettings = {
+                                openToolbarConfig = true
+                                coroutineScope.launch {
+                                    requestScreen(Screen.Settings)
+                                }
+                            },
+                            rdpChipAnchor = rdpChipAnchor,
+                            onRdpChipAnchorChange = {
+                                coroutineScope.launch { preferencesRepository.setRdpChipAnchor(it) }
+                            },
+                            inputMode = desktopInputMode,
+                            onSetInputMode = { mode ->
+                                coroutineScope.launch { preferencesRepository.setDesktopInputMode(mode) }
+                            },
+                            touchpadSensitivity = desktopTouchpadSensitivity,
+                            onSetTouchpadSensitivity = { value ->
+                                coroutineScope.launch { preferencesRepository.setDesktopTouchpadSensitivity(value) }
+                            },
+                            mouseGestures = desktopMouseGestures,
+                            isActive = pagerState.settledPage == pageOf(Screen.Desktop),
+                            fullscreen = desktopFullscreen,
+                            onFullscreenChanged = { desktopFullscreen = it },
+                            onConnectedChanged = { desktopConnected = it },
+                            onNavigateToAgentActivity = { showAgentActivityOverlay = true },
+                        )
+                    }
                 }
                 Screen.Sftp -> {
                     // Share one SftpViewModel instance between the flick

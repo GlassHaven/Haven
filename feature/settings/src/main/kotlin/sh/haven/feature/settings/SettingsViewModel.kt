@@ -820,6 +820,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.setDesktopTwoFingerTapAction(action.storageValue) }
     }
 
+    val desktopScrollSpeed: StateFlow<Float> = preferencesRepository.desktopScrollSpeed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1f)
+
+    fun setDesktopScrollSpeed(value: Float) {
+        viewModelScope.launch { preferencesRepository.setDesktopScrollSpeed(value) }
+    }
+
+    val desktopScrollInertia: StateFlow<Boolean> = preferencesRepository.desktopScrollInertia
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setDesktopScrollInertia(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setDesktopScrollInertia(enabled) }
+    }
+
     val desktopThreeFingerTapAction: StateFlow<sh.haven.core.ui.DesktopGestureAction> =
         preferencesRepository.desktopThreeFingerTapAction
             .map { sh.haven.core.ui.DesktopGestureAction.fromStorage(it, sh.haven.core.ui.DesktopGestureAction.NONE) }

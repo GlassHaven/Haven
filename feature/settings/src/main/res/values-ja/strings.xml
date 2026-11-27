@@ -624,4 +624,10 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_update_installed_shizuku">Shizuku で更新をインストールしました。Haven を再起動して完了してください。</string>
     <string name="settings_update_installer_opened">検証済み APK をシステムインストーラーに渡しました。</string>
     <string name="settings_update_install_failed">更新に失敗しました: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">デスクトップの2本指スクロール速度</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — 2本指スクロールでリモートのページが動く量</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">値が大きいほど1回のスワイプで遠くまでスクロールします。デスクトップツールバーの2本指モードがスクロールのときに適用されます。</string>
+    <string name="settings_desktop_scroll_inertia_title">デスクトップの慣性スクロール</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">2本指ではじくとリモートのスクロールが続き、ノートPCのトラックパッドのように徐々に止まります</string>
 </resources>

@@ -624,4 +624,10 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_update_installed_shizuku">Shizuku를 통해 업데이트를 설치했습니다. 완료하려면 Haven을 다시 시작하세요.</string>
     <string name="settings_update_installer_opened">검증된 APK를 시스템 설치 프로그램으로 전달했습니다.</string>
     <string name="settings_update_install_failed">업데이트 실패: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">데스크톱 두 손가락 스크롤 속도</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — 두 손가락 스크롤로 원격 페이지가 움직이는 거리</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">값이 클수록 한 번 밀 때 더 멀리 스크롤됩니다. 데스크톱 도구 모음의 두 손가락 모드가 스크롤일 때 적용됩니다.</string>
+    <string name="settings_desktop_scroll_inertia_title">데스크톱 관성 스크롤</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">두 손가락으로 빠르게 밀면 원격 스크롤이 계속되다가 노트북 트랙패드처럼 서서히 멈춥니다</string>
 </resources>

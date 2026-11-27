@@ -1059,6 +1059,17 @@ fun HavenNavHost(
         }
     }
 
+    val appBarSurface = MaterialTheme.colorScheme.background
+    val effectiveStatusBarSurface = if (!terminalTransparent && terminalBackground != null) {
+        terminalBackground!!
+    } else {
+        appBarSurface
+    }
+    sh.haven.core.ui.theme.SyncSystemBarsAppearance(
+        statusBarDarkIcons = sh.haven.core.ui.theme.isLightSystemBarSurface(effectiveStatusBarSurface),
+        navigationBarDarkIcons = sh.haven.core.ui.theme.isLightSystemBarSurface(appBarSurface),
+    )
+
     Scaffold(
         // This app Scaffold owns the single translucent background layer.
         // - A translucent terminal pane handles its own per-tab blend, so we

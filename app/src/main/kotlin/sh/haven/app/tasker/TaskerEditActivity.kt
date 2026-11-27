@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -64,6 +66,7 @@ class TaskerEditActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         // Seed from an existing config when the host is editing an action.
         val existing = intent.getBundleExtra(TaskerPlugin.EXTRA_BUNDLE)
@@ -73,7 +76,16 @@ class TaskerEditActivity : ComponentActivity() {
         val seedBlock = existing?.getBoolean(TaskerPlugin.BUNDLE_BLOCK, false) ?: false
 
         setContent {
-            HavenTheme {
+            val themeMode by preferencesRepository.theme.collectAsState(
+                initial = sh.haven.core.data.preferences.UserPreferencesRepository.ThemeMode.SYSTEM,
+            )
+            val darkTheme = when (themeMode) {
+                sh.haven.core.data.preferences.UserPreferencesRepository.ThemeMode.LIGHT -> false
+                sh.haven.core.data.preferences.UserPreferencesRepository.ThemeMode.DARK -> true
+                sh.haven.core.data.preferences.UserPreferencesRepository.ThemeMode.SYSTEM ->
+                    androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            HavenTheme(darkTheme = darkTheme) {
                 val saveScope = rememberCoroutineScope()
                 val profiles by produceState<List<ConnectionProfile>?>(initialValue = null) {
                     value = connectionRepository.getAll().filter { it.isSsh }

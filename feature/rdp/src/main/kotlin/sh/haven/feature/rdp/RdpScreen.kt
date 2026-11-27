@@ -1,6 +1,7 @@
 package sh.haven.feature.rdp
 
 import android.graphics.Bitmap
+import sh.haven.core.ui.findWindow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -199,7 +200,7 @@ fun RdpSessionContent(
 
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    val window = (view.context as? android.app.Activity)?.window
+    val window = view.context.findWindow()
 
     LaunchedEffect(fullscreen) {
         onFullscreenChanged(fullscreen)

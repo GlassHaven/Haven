@@ -3,6 +3,7 @@ package sh.haven.feature.terminal
 import sh.haven.core.toolbar.KeyboardToolbar
 import sh.haven.core.toolbar.shortcutToolbarBaseVisible
 import sh.haven.core.toolbar.shortcutToolbarVisible
+import sh.haven.core.ui.findWindow
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -171,17 +172,6 @@ private val TAB_STRIP_PADDING = 4.dp
 private const val MAX_JUSTIFIED_TABS = 3
 
 /** Distinct colors for grouping tabs by connection profile. */
-/**
- * Above this relative luminance a background counts as bright enough to need
- * dark system-bar icons (#523).
- *
- * Compose's [luminance] is already perceptual (Rec. 709, gamma-corrected), so
- * a mid grey lands near 0.2 rather than 0.5 — the halfway point of the scale
- * is well above mid grey, which is what we want: only genuinely light
- * backgrounds such as Solarized Light flip the icons dark.
- */
-private const val BRIGHT_BACKGROUND_LUMINANCE = 0.5f
-
 /**
  * How recently the IME must have gone away for the backgrounding to be the cause (#515).
  *
@@ -669,7 +659,7 @@ fun TerminalScreen(
     // pattern in VncScreen / RdpScreen.
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    val window = (view.context as? android.app.Activity)?.window
+    val window = view.context.findWindow()
     LaunchedEffect(fullscreen) {
         onFullscreenChanged(fullscreen)
         if (window != null) {
@@ -1069,7 +1059,7 @@ fun TerminalScreen(
             android.content.res.Configuration.HARDKEYBOARDHIDDEN_NO
 
     LaunchedEffect(isActive, physicalKeyboardAttached, autoShowKeyboardInTerminal) {
-        val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
+        val window = view.context.findWindow() ?: return@LaunchedEffect
         val controller = WindowCompat.getInsetsController(window, view)
         if (isActive && tabs.isNotEmpty()) {
             // #675: with the setting off the keyboard stays down when a session
@@ -1351,24 +1341,6 @@ fun TerminalScreen(
     val statusBarBg = if (isActive && effectiveBgOpacity >= 1f) terminalBg else null
     LaunchedEffect(statusBarBg) { onBackgroundColorChanged(statusBarBg) }
     DisposableEffect(Unit) { onDispose { onBackgroundColorChanged(null) } }
-
-    // Icon contrast follows the colour scheme's measured luminance rather than
-    // the app's light/dark theme. Deciding from the theme would put dark icons
-    // on a black terminal whenever the app is in light mode, which is the
-    // reported bug in mirror image; deciding from a scheme's *name* would fail
-    // for the light schemes (Solarized Light, Modern Light) that need the
-    // opposite treatment. `isAppearanceLightStatusBars` means "light
-    // background, so draw dark icons".
-    // Falling back to the app's own background when this pane isn't showing
-    // keeps it symmetric: the icons always contrast whatever is actually
-    // painted behind them, so leaving the terminal restores the theme's
-    // treatment without having to remember what it was.
-    val appBg = MaterialTheme.colorScheme.background
-    LaunchedEffect(statusBarBg, appBg, window) {
-        if (window == null) return@LaunchedEffect
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-            (statusBarBg ?: appBg).luminance() > BRIGHT_BACKGROUND_LUMINANCE
-    }
 
     val saveConnectionUi by viewModel.saveConnectionUi.collectAsState()
     saveConnectionUi?.let { ui ->
@@ -2547,7 +2519,7 @@ private fun TerminalPaneHost(
     // pane on the active Terminal page binds the IME's InputConnection.
     LaunchedEffect(isActive, isFocusedPane) {
         if (!isActive || !isFocusedPane) return@LaunchedEffect
-        val root = (view.context as? Activity)?.window?.decorView
+        val root = view.context.findWindow()?.decorView
         if (root == null) {
             focusRequester.requestFocus()
         } else {
@@ -2713,7 +2685,7 @@ private fun TerminalPaneHost(
                 },
                 onTerminalDoubleTap = {
                     if (!isFocusedPane) onRequestPaneFocus()
-                    val window = (view.context as? Activity)?.window ?: return@HavenTerminal
+                    val window = view.context.findWindow() ?: return@HavenTerminal
                     val controller = WindowCompat.getInsetsController(window, view)
                     val rootView = window.decorView
                     val imeShowing = androidx.core.view.ViewCompat

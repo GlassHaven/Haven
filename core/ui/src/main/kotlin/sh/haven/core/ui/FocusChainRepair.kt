@@ -1,9 +1,27 @@
 package sh.haven.core.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.view.inputmethod.InputMethodManager
+
+/**
+ * Unwrap nested [ContextWrapper] layers (such as `AppCompatActivity`'s
+ * `ContextThemeWrapper` or Hilt's `@AndroidEntryPoint` wrapper) to locate the
+ * hosting [Activity], or null when detached (#898).
+ */
+tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+/** Convenience lookup for the hosting [Activity]'s [Window] (#898). */
+fun Context.findWindow(): Window? = findActivity()?.window
 
 /**
  * Re-link a view that still holds focus but has dropped out of its ancestors'

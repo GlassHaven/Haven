@@ -1,6 +1,7 @@
 package sh.haven.feature.vnc
 
 import android.graphics.Bitmap
+import sh.haven.core.ui.findWindow
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -210,7 +211,7 @@ fun VncSessionContent(
     var localFullscreen by rememberSaveable { mutableStateOf(false) }
     val fullscreen = fullscreenOverride ?: localFullscreen
     val view = LocalView.current
-    val window = (view.context as? android.app.Activity)?.window
+    val window = view.context.findWindow()
 
     LaunchedEffect(fullscreen) {
         if (fullscreenOverride != null) return@LaunchedEffect

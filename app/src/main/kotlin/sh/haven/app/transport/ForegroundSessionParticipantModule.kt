@@ -163,16 +163,16 @@ object ForegroundSessionParticipantModule {
     }
 
     @Provides @IntoSet
-    fun prootDesktops(m: DesktopManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+    fun prootDesktops(m: Lazy<DesktopManager>): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
         override val activeSessions
-            get() = m.desktops.value.values
+            get() = m.get().desktops.value.values
                 .filter {
                     it.state == DesktopManager.DesktopState.RUNNING ||
                         it.state == DesktopManager.DesktopState.STARTING
                 }
                 .map { SessionInfo("desktop-${it.de.spec.id}", "Local Desktop (${it.de.spec.label})") }
-        override val changes get() = m.desktops.map { }
-        override fun disconnectAll() = m.stopAll()
+        override val changes get() = m.get().desktops.map { }
+        override fun disconnectAll() = m.get().stopAll()
     }
 
     @Provides @IntoSet

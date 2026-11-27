@@ -90,9 +90,12 @@ class DesktopManager @Inject constructor(
     private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // Kill orphaned Xvnc processes from previous app instances off the main thread
-    // so Hilt singleton construction does not fork/wait on /proc scans.
+    // so Hilt singleton construction does not fork/wait on /proc scans, and skip
+    // scanning /proc altogether when no PRoot distro rootfs is installed (#893).
     internal val orphanReapJob: Job = initScope.launch {
-        killAllOrphanedXvnc()
+        if (hasInstalledProotRootfs(context.filesDir, prootManager)) {
+            killAllOrphanedXvnc()
+        }
     }
 
     // Synchronized: concurrent app windows (multiple cages) can call
@@ -1794,15 +1797,11 @@ class DesktopManager @Inject constructor(
 
     private fun killAppWindowSession(display: Int) {
         val xdg = "/tmp/xdg-runtime-$display"
-        val scanScript = appWindowSessionScanScript(xdg)
         try {
-            val proc = ProcessBuilder("sh", "-c", scanScript)
-                .redirectErrorStream(true).start()
-            val pids = proc.inputStream.bufferedReader().readText().trim()
-            proc.waitFor()
+            val pids = findAppWindowSessionPids(xdg)
             if (pids.isNotEmpty()) {
-                Log.d(TAG, "Killing app-window session (display $display): ${pids.replace('\n', ' ')}")
-                terminateThenKillPids(pids.lines())
+                Log.d(TAG, "Killing app-window session (display $display): ${pids.joinToString(" ")}")
+                terminateThenKillPids(pids)
             } else {
                 Log.d(TAG, "No app-window processes for display $display")
             }
@@ -2141,15 +2140,11 @@ class DesktopManager @Inject constructor(
         // PREFIX match (`token*`) so wrapper binaries are caught too — e.g.
         // the `imv` launcher execs `imv-wayland`, which an exact match misses.
         val targets = listOf(compositorCmd, "wayvnc", "foot", "swaynag")
-        val scanScript = nestedWaylandScanScript(targets)
         try {
-            val proc = ProcessBuilder("sh", "-c", scanScript)
-                .redirectErrorStream(true).start()
-            val pids = proc.inputStream.bufferedReader().readText().trim()
-            proc.waitFor()
+            val pids = findNestedWaylandPids(targets)
             if (pids.isNotEmpty()) {
-                Log.d(TAG, "Killing nested-wayland orphans ($compositorCmd tree): ${pids.replace('\n', ' ')}")
-                terminateThenKillPids(pids.lines())
+                Log.d(TAG, "Killing nested-wayland orphans ($compositorCmd tree): ${pids.joinToString(" ")}")
+                terminateThenKillPids(pids)
             } else {
                 Log.d(TAG, "No nested-wayland orphans for $compositorCmd")
             }
@@ -2165,23 +2160,11 @@ class DesktopManager @Inject constructor(
 
     /**
      * Every readable process as (pid, full command line), argv separated by
-     * spaces.
-     *
-     * `ps -A` cannot be used for this. It prints the command *name* and no
-     * arguments, so a filter on an Xvnc display (`:1`) matched nothing, ever
-     * — which is why the desktop's stop button appeared to do nothing and
-     * left Xvnc running (#501). `/proc/<pid>/cmdline` is also what
-     * [killOrphanedNestedWayland] already had to switch to, because Android
-     * shows proot-launched binaries under a bracketed COMM.
+     * spaces, read directly in-process from `/proc/<pid>/cmdline` without
+     * spawning `sh` or `tr` child processes (#501, #893).
      */
     private fun scanCmdlines(): List<ProcessCmdline> = try {
-        val proc = ProcessBuilder("sh", "-c", CMDLINE_SCAN_SCRIPT).redirectErrorStream(true).start()
-        val text = proc.inputStream.bufferedReader().readText()
-        proc.waitFor()
-        text.lineSequence().mapNotNull { line ->
-            val tab = line.indexOf('\t')
-            if (tab <= 0) null else ProcessCmdline(line.substring(0, tab), line.substring(tab + 1).trim())
-        }.filter { it.cmdline.isNotEmpty() }.toList()
+        scanProcCmdlines()
     } catch (e: Exception) {
         Log.w(TAG, "scanCmdlines failed: ${e.message}")
         emptyList()
@@ -2430,47 +2413,104 @@ internal fun buildProotKioskRunScript(execCommand: String, display: Int): String
 }
 
 /**
- * The /proc scanners are shell source assembled by interpolation, and shell
- * that reads correctly is not necessarily shell that parses — a splice that
- * looked fine turned out to be invalid while fixing #501. Kept as pure
- * functions of their inputs so a test can hand each one to `sh -n`, which is
- * the only check that covers generated shell.
+ * True when at least one PRoot distro rootfs exists on disk or is registered
+ * in [prootManager] (#893). Used to skip the startup orphaned-Xvnc `/proc`
+ * sweep on devices where Local Linux has never been installed.
  */
-
-/** PIDs whose environment names [xdg] as XDG_RUNTIME_DIR — one app-window session. */
-internal fun appWindowSessionScanScript(xdg: String): String = """
-    for p in /proc/[0-9]*; do
-        [ -r ${'$'}p/environ ] || continue
-        if tr '\0' '\n' < ${'$'}p/environ 2>/dev/null | grep -qx "XDG_RUNTIME_DIR=$xdg"; then
-            echo "${'$'}{p##*/}"
-        fi
-    done
-""".trimIndent()
+internal fun hasInstalledProotRootfs(filesDir: File, prootManager: ProotManager): Boolean =
+    File(filesDir, "proot/rootfs").listFiles()?.any { it.isDirectory } == true ||
+        prootManager.installedDistros.isNotEmpty()
 
 /**
- * PIDs whose argv[0] basename starts with any of [targets].
- *
- * Prefix match, so a wrapper binary is caught too — the `imv` launcher execs
- * `imv-wayland`, which an exact match misses.
+ * Read every readable `/proc/<pid>/cmdline` directly in-process in Kotlin
+ * without forking `sh` or `tr` subprocesses (#893). Kernel threads (empty
+ * `cmdline`) and processes whose `/proc/<pid>/cmdline` is unreadable or exits
+ * mid-scan are skipped silently.
  */
-internal fun nestedWaylandScanScript(targets: List<String>): String {
-    val caseArm = targets.joinToString("|") { "\"$it\"*" }
-    return """
-        for p in /proc/[0-9]*; do
-            [ -r ${'$'}p/cmdline ] || continue
-            first=${'$'}(tr '\0' ' ' < ${'$'}p/cmdline 2>/dev/null | awk '{print ${'$'}1}')
-            case "${'$'}{first##*/}" in $caseArm) echo "${'$'}{p##*/}";; esac
-        done
-    """.trimIndent()
+internal fun scanProcCmdlines(procRoot: File = File("/proc")): List<ProcessCmdline> {
+    val entries = procRoot.listFiles() ?: return emptyList()
+    val result = ArrayList<ProcessCmdline>()
+    for (entry in entries) {
+        val pid = entry.name
+        if (pid.isEmpty() || !pid.all { it.isDigit() }) continue
+        val raw = runCatching { File(entry, "cmdline").readBytes() }.getOrNull() ?: continue
+        if (raw.isEmpty()) continue
+        for (i in raw.indices) {
+            if (raw[i] == 0.toByte()) raw[i] = ' '.code.toByte()
+        }
+        val cmdline = String(raw, Charsets.UTF_8).trim()
+        if (cmdline.isNotEmpty()) {
+            result.add(ProcessCmdline(pid, cmdline))
+        }
+    }
+    return result
 }
 
-/** Every readable process as `pid<TAB>argv`, argv separated by spaces. */
-internal val CMDLINE_SCAN_SCRIPT: String = """
-    for p in /proc/[0-9]*; do
-        [ -r ${'$'}p/cmdline ] || continue
-        echo "${'$'}{p##*/}\t${'$'}(tr '\0' ' ' < ${'$'}p/cmdline 2>/dev/null)"
-    done
-""".trimIndent()
+/**
+ * PIDs whose `/proc/<pid>/environ` contains an exact NUL-delimited
+ * `XDG_RUNTIME_DIR=<xdg>` entry (#893).
+ */
+internal fun findAppWindowSessionPids(
+    xdg: String,
+    procRoot: File = File("/proc"),
+): List<String> {
+    val needle = "XDG_RUNTIME_DIR=$xdg".toByteArray(Charsets.UTF_8)
+    val entries = procRoot.listFiles() ?: return emptyList()
+    val matches = ArrayList<String>()
+    for (entry in entries) {
+        val pid = entry.name
+        if (pid.isEmpty() || !pid.all { it.isDigit() }) continue
+        val raw = runCatching { File(entry, "environ").readBytes() }.getOrNull() ?: continue
+        if (raw.isEmpty()) continue
+        if (containsNullDelimitedEntry(raw, needle)) {
+            matches.add(pid)
+        }
+    }
+    return matches
+}
+
+private fun containsNullDelimitedEntry(haystack: ByteArray, needle: ByteArray): Boolean {
+    var start = 0
+    while (start < haystack.size) {
+        var end = start
+        while (end < haystack.size && haystack[end] != 0.toByte()) {
+            end++
+        }
+        if (end - start == needle.size) {
+            var eq = true
+            for (i in needle.indices) {
+                if (haystack[start + i] != needle[i]) {
+                    eq = false
+                    break
+                }
+            }
+            if (eq) return true
+        }
+        start = end + 1
+    }
+    return false
+}
+
+/**
+ * PIDs whose `argv[0]` basename starts with any of [targets] (#893).
+ *
+ * Prefix match catches wrapper binaries too (e.g. `imv` execs `imv-wayland`).
+ */
+internal fun findNestedWaylandPids(
+    targets: List<String>,
+    procRoot: File = File("/proc"),
+): List<String> {
+    if (targets.isEmpty()) return emptyList()
+    return scanProcCmdlines(procRoot).mapNotNull { proc ->
+        val firstToken = proc.cmdline.trimStart().takeWhile { !it.isWhitespace() }
+        val basename = firstToken.substringAfterLast('/')
+        if (basename.isNotEmpty() && targets.any { target -> target.isNotEmpty() && basename.startsWith(target) }) {
+            proc.pid
+        } else {
+            null
+        }
+    }
+}
 
 /** A process id paired with its full command line, argv separated by spaces. */
 internal data class ProcessCmdline(val pid: String, val cmdline: String)

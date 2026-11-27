@@ -107,6 +107,20 @@ class ProotSetupForegroundTest {
             every { state } returns vmFlow
         }
 
+        var desktopsConstructed = false
+        val desktopsParticipant = ForegroundSessionParticipantModule.prootDesktops(
+            dagger.Lazy {
+                desktopsConstructed = true
+                desktops
+            },
+        )
+        assertFalse(
+            "Registering prootDesktops must not eagerly construct DesktopManager (#893)",
+            desktopsConstructed,
+        )
+        assertTrue(desktopsParticipant.activeSessions.isEmpty())
+        assertTrue(desktopsConstructed)
+
         val participant = ForegroundSessionParticipantModule.prootSetup(proot)
         val keepAlive = ForegroundSessionParticipantModule.localWorkKeepAlive(
             proot = dagger.Lazy { proot },

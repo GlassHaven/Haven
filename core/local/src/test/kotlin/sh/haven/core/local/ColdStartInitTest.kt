@@ -79,4 +79,23 @@ class ColdStartInitTest {
             forceDeleteRecursively(tmpBase)
         }
     }
+
+    @Test
+    fun `DesktopManager skips startup orphan proc scan when no PRoot distro rootfs exists (#893)`() {
+        val tmpBase = Files.createTempDirectory("desktop-no-rootfs-893").toFile()
+        val filesDir = File(tmpBase, "files").apply { mkdirs() }
+        val cacheDir = File(tmpBase, "cache").apply { mkdirs() }
+        val ctx = mockk<Context>(relaxed = true) {
+            every { this@mockk.filesDir } returns filesDir
+            every { this@mockk.cacheDir } returns cacheDir
+        }
+        try {
+            org.junit.Assert.assertFalse(hasInstalledProotRootfs(filesDir, mockk<ProotManager>(relaxed = true)))
+            File(filesDir, "proot/rootfs/alpine-3.21").mkdirs()
+            org.junit.Assert.assertTrue(hasInstalledProotRootfs(filesDir, mockk<ProotManager>(relaxed = true)))
+        } finally {
+            forceDeleteRecursively(tmpBase)
+        }
+        assertFalse(ctx.filesDir.exists())
+    }
 }

@@ -5,69 +5,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Every shell script Haven assembles for /proc scanning must parse.
+ * Every shell script Haven assembles for PRoot guest launches must parse.
  *
- * Added after a fix for #501 spliced a multi-line `if … fi` into a `|| { … }`
- * branch: it read correctly, described the right behaviour, and was not valid
- * shell. Nothing in a string-contains assertion notices that, and a script
- * that fails to parse simply finds nothing — which is the same silent
- * no-op that made #501 invisible for as long as it was.
- *
- * `sh -n` parses without executing, so this is safe to run over scripts that
- * would otherwise walk /proc and kill things.
+ * `sh -n` parses without executing, catching quote/control-flow syntax errors
+ * that string-contains assertions miss. (Host-side `/proc` scanning moved to
+ * pure Kotlin in #893 and is covered in [XvncScanEndToEndTest].)
  */
 class GeneratedShellSyntaxTest {
 
     private fun parses(script: String): Boolean =
         ProcessBuilder("sh", "-n", "-c", script).redirectErrorStream(true).start().waitFor() == 0
 
-    @Test
-    fun `the app-window session scanner parses`() {
-        listOf("/tmp/xdg-runtime-1", "/tmp/xdg-runtime-11").forEach {
-            assertTrue("rejected for xdg=$it", parses(appWindowSessionScanScript(it)))
-        }
-    }
-
-    @Test
-    fun `the nested-wayland scanner parses for every compositor we launch`() {
-        // The case arm is built from these, so each is a chance to emit
-        // something `case` cannot parse.
-        listOf("sway", "labwc", "Hyprland", "niri", "cage").forEach { compositor ->
-            val script = nestedWaylandScanScript(listOf(compositor, "wayvnc", "foot", "swaynag"))
-            assertTrue("rejected for compositor=$compositor", parses(script))
-        }
-    }
-
-    @Test
-    fun `the cmdline scanner parses`() {
-        assertTrue(parses(CMDLINE_SCAN_SCRIPT))
-    }
-
     /**
      * Guards the test itself: `sh -n` has to actually reject something, or
-     * every assertion above passes for the wrong reason.
+     * every assertion below passes for the wrong reason.
      */
     @Test
     fun `sh -n rejects a script that does not parse`() {
         assertTrue("unbalanced quote must be rejected", !parses("echo \"unterminated"))
         assertTrue("dangling then must be rejected", !parses("if true; then"))
-    }
-
-    @Test
-    fun `the cmdline scanner emits a tab between pid and argv`() {
-        // The Kotlin side splits on the first tab, so a literal `\t` reaching
-        // the shell as the two characters backslash-t would silently produce
-        // no usable rows.
-        val out = ProcessBuilder("sh", "-c", CMDLINE_SCAN_SCRIPT)
-            .redirectErrorStream(true).start()
-        val text = out.inputStream.bufferedReader().readText()
-        out.waitFor()
-        val rows = text.lineSequence().filter { it.contains('\t') }.toList()
-        assertTrue("scanned /proc and found no tab-separated rows", rows.isNotEmpty())
-        rows.take(20).forEach { row ->
-            val pid = row.substringBefore('\t')
-            assertEquals("first field must be a pid: '$row'", pid, pid.filter { it.isDigit() })
-        }
     }
 
     @Test

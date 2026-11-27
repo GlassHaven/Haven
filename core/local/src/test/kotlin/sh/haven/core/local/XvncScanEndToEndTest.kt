@@ -1,38 +1,23 @@
 package sh.haven.core.local
 
 import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.nio.file.Files
 
 /**
- * #501 end-to-end: the scanner has to find a real process in /proc, not just
- * agree with a hand-written string.
- *
- * The bug it replaces was not a wrong match, it was **no match ever** — the
- * old filter looked for the display in `ps -A` output, which prints no
- * arguments. A unit test over literal command lines cannot tell those apart,
- * because both agree on what an Xvnc command line looks like. So this spawns
- * a process whose argv really is an Xvnc argv, runs the production scan
- * script against live /proc, and requires it to come back.
- *
- * `exec -a` sets argv[0], which is how the shape is produced without needing
- * TigerVNC installed on the machine running the tests.
+ * #501 & #893 end-to-end: the pure-Kotlin `/proc` scanner has to find a real
+ * process in `/proc` without forking `sh` or `tr` subprocesses, and handle
+ * synthetic `/proc` fixtures for cmdline, environ, and nested-Wayland matching.
  */
 class XvncScanEndToEndTest {
 
     private val display = 77
 
-    private fun scan(): List<ProcessCmdline> {
-        val proc = ProcessBuilder("sh", "-c", CMDLINE_SCAN_SCRIPT).redirectErrorStream(true).start()
-        val text = proc.inputStream.bufferedReader().readText()
-        proc.waitFor()
-        return text.lineSequence().mapNotNull { line ->
-            val tab = line.indexOf('\t')
-            if (tab <= 0) null else ProcessCmdline(line.substring(0, tab), line.substring(tab + 1).trim())
-        }.filter { it.cmdline.isNotEmpty() }.toList()
-    }
+    private fun scan(): List<ProcessCmdline> = scanProcCmdlines()
 
     @Test
     fun `the scan finds a live process whose argv is an Xvnc argv`() {
@@ -85,6 +70,53 @@ class XvncScanEndToEndTest {
         } finally {
             talker.destroyForcibly()
             talker.waitFor()
+        }
+    }
+
+    @Test
+    fun `pure Kotlin proc scanners parse NUL-delimited cmdline environ and nested-wayland basenames (#893)`() {
+        val fakeProc = Files.createTempDirectory("fake-proc-893").toFile()
+        try {
+            File(fakeProc, "self").mkdirs()
+            File(fakeProc, "stat").writeText("cpu 0 0 0")
+
+            File(fakeProc, "101").apply {
+                mkdirs()
+                File(this, "cmdline").writeBytes("/usr/bin/Xvnc\u0000:1\u0000-geometry\u00001280x720\u0000".toByteArray())
+                File(this, "environ").writeBytes("HOME=/root\u0000XDG_RUNTIME_DIR=/tmp/xdg-runtime-1\u0000".toByteArray())
+            }
+            File(fakeProc, "102").apply {
+                mkdirs()
+                File(this, "cmdline").writeBytes("/usr/sbin/wayvnc\u00000.0.0.0\u00005901\u0000".toByteArray())
+                File(this, "environ").writeBytes("HOME=/root\u0000XDG_RUNTIME_DIR=/tmp/xdg-runtime-11\u0000".toByteArray())
+            }
+            File(fakeProc, "103").apply {
+                mkdirs()
+                File(this, "cmdline").writeBytes("/usr/libexec/imv-wayland\u0000/root/pic.png\u0000".toByteArray())
+            }
+            File(fakeProc, "104").apply {
+                mkdirs()
+                // Mentioning wayvnc in argv[2], not argv[0] — must NOT match nested-wayland targets.
+                File(this, "cmdline").writeBytes("/bin/sh\u0000-c\u0000echo wayvnc\u0000".toByteArray())
+            }
+            File(fakeProc, "105").apply {
+                mkdirs()
+                // Kernel thread: empty cmdline
+                File(this, "cmdline").writeBytes(ByteArray(0))
+            }
+
+            val cmdlines = scanProcCmdlines(fakeProc).associate { it.pid to it.cmdline }
+            assertEquals("/usr/bin/Xvnc :1 -geometry 1280x720", cmdlines["101"])
+            assertEquals("/usr/sbin/wayvnc 0.0.0.0 5901", cmdlines["102"])
+            assertFalse("kernel thread with empty cmdline must be skipped", cmdlines.containsKey("105"))
+
+            assertEquals(listOf("101"), findAppWindowSessionPids("/tmp/xdg-runtime-1", fakeProc))
+            assertEquals(listOf("102"), findAppWindowSessionPids("/tmp/xdg-runtime-11", fakeProc))
+
+            val waylandHits = findNestedWaylandPids(listOf("sway", "wayvnc", "imv"), fakeProc).sorted()
+            assertEquals(listOf("102", "103"), waylandHits)
+        } finally {
+            forceDeleteRecursively(fakeProc)
         }
     }
 }

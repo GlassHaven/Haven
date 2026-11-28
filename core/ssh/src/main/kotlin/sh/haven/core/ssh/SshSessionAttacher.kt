@@ -143,8 +143,9 @@ class SshSessionAttacher @Inject constructor(
     suspend fun listRemoteSessions(profileId: String): List<String>? {
         val profile = connectionRepository.getById(profileId) ?: return null
         val manager = resolveSessionManager(profile)
-        val listCmd = manager.listCommand ?: return null
+        if (manager.listCommand == null) return null
         val client = sessionManager.getSshClientForProfile(profileId) ?: return null
+        val listCmd = manager.listCommandOn(client) ?: return null
         return try {
             val result = client.execCommand(listCmd)
             if (result.exitStatus == 0) {

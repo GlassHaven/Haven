@@ -59,6 +59,8 @@ import sh.haven.core.ssh.sshEngineFromOptionsText
 import sh.haven.core.ssh.SshConnectionService
 import sh.haven.core.ssh.SshKeyExporter
 import sh.haven.core.ssh.SessionManager
+import sh.haven.core.ssh.killCommandOn
+import sh.haven.core.ssh.listCommandOn
 import sh.haven.core.session.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshVerboseLogger
@@ -4809,7 +4811,7 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 // If session manager supports listing, check for existing sessions
-                val listCmd = sshSessionMgr.listCommand
+                val listCmd = sshSessionMgr.listCommandOn(client)
                 if (preselectedSessionName == null && listCmd != null) {
                     val existingSessions = withContext(Dispatchers.IO) {
                         try {
@@ -5553,7 +5555,7 @@ class ConnectionsViewModel @Inject constructor(
      */
     fun killRemoteSession(sessionName: String) {
         val sel = _sessionSelection.value ?: return
-        val killCmd = sel.manager.killCommand?.invoke(sessionName) ?: return
+        if (sel.manager.killCommand == null) return
         val client = when (sel.transportType) {
             "MOSH" -> moshPendingClient
             "ET" -> etPendingClient
@@ -5564,10 +5566,11 @@ class ConnectionsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
+                    val killCmd = sel.manager.killCommandOn(client, sessionName) ?: return@withContext
                     client.execCommand(killCmd)
                 }
                 // Refresh the session list
-                val listCmd = sel.manager.listCommand ?: return@launch
+                val listCmd = sel.manager.listCommandOn(client) ?: return@launch
                 val updated = withContext(Dispatchers.IO) {
                     try {
                         val result = client.execCommand(listCmd)
@@ -5616,7 +5619,7 @@ class ConnectionsViewModel @Inject constructor(
                 // Give the session manager a moment to propagate the rename
                 kotlinx.coroutines.delay(500)
                 // Refresh the session list
-                val listCmd = sel.manager.listCommand ?: return@launch
+                val listCmd = sel.manager.listCommandOn(client) ?: return@launch
                 val updated = withContext(Dispatchers.IO) {
                     try {
                         val result = client.execCommand(listCmd)
@@ -6859,7 +6862,7 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 // Check for existing tmux/screen sessions
-                val listCmd = sshSessionMgr.listCommand
+                val listCmd = sshSessionMgr.listCommandOn(session.client)
                 if (listCmd != null) {
                     val existingSessions = withContext(Dispatchers.IO) {
                         try {

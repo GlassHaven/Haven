@@ -74,6 +74,52 @@ enum class SessionManager(
         { old, new -> "${EXEC_SH}rmux rename-session -t $old $new'" },
     );
 
+    /**
+     * Attach-or-create command for [platform]'s shell. Windows-native managers
+     * (Herdr, psmux) get cmd / PowerShell syntax there; everything else keeps
+     * the POSIX template, which is also what [RemotePlatform.UNKNOWN] uses.
+     */
+    fun startCommand(name: String, platform: RemotePlatform): String? = when (platform) {
+        RemotePlatform.WINDOWS_CMD -> when (this) {
+            // cmd has no `command -v`; `where /q` sets ERRORLEVEL instead.
+            // The echo text must stay free of parentheses (they close the
+            // `if (…)` block).
+            HERDR -> "where /q herdr & if errorlevel 1 (echo Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.) else herdr --session $name"
+            PSMUX -> "where /q psmux & if errorlevel 1 (echo Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.) else psmux attach -t $name || psmux new-session -s $name"
+            else -> command?.invoke(name)
+        }
+        RemotePlatform.WINDOWS_POWERSHELL -> when (this) {
+            HERDR -> "if (Get-Command herdr -ErrorAction SilentlyContinue) { herdr --session $name } else { echo 'Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.' }"
+            // Windows PowerShell 5.1 has no `||`; branch on $LASTEXITCODE.
+            PSMUX -> "if (Get-Command psmux -ErrorAction SilentlyContinue) { psmux attach -t $name; if (\$LASTEXITCODE -ne 0) { psmux new-session -s $name } } else { echo 'Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.' }"
+            else -> command?.invoke(name)
+        }
+        else -> command?.invoke(name)
+    }
+
+    /**
+     * Session list command for [platform]. On Windows the exec channel runs
+     * through the same cmd / PowerShell as the login, so the POSIX
+     * `sh -c '…'` wrapper fails there even when the manager is installed.
+     */
+    fun listCommandFor(platform: RemotePlatform): String? = when {
+        platform == RemotePlatform.WINDOWS_CMD && this == HERDR -> "herdr session list --json 2>nul"
+        platform == RemotePlatform.WINDOWS_POWERSHELL && this == HERDR -> "herdr session list --json 2>\$null"
+        platform == RemotePlatform.WINDOWS_CMD && this == PSMUX -> "psmux ls -F \"#{session_name}\" 2>nul"
+        platform == RemotePlatform.WINDOWS_POWERSHELL && this == PSMUX -> "psmux ls -F '#{session_name}' 2>\$null"
+        else -> listCommand
+    }
+
+    /** Kill/delete command for [platform]; see [listCommandFor]. */
+    fun killCommandFor(name: String, platform: RemotePlatform): String? = when {
+        platform == RemotePlatform.WINDOWS_CMD && this == HERDR ->
+            "herdr session stop $name --json >nul 2>&1 & herdr session delete $name --json >nul 2>&1"
+        platform == RemotePlatform.WINDOWS_POWERSHELL && this == HERDR ->
+            "herdr session stop $name --json *> \$null; herdr session delete $name --json *> \$null"
+        platform.isWindowsShell && this == PSMUX -> "psmux kill-session -t $name"
+        else -> killCommand?.invoke(name)
+    }
+
     companion object {
         /**
          * Sanitize a raw label for use as a tmux/screen/zellij session name.

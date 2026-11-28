@@ -3459,21 +3459,27 @@ private fun AttachNoticeBanner(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(8.dp))
+                // weight(fill = false): without it a two-line message (e.g.
+                // the Chinese translation on a phone) takes the whole row and
+                // measures the close button at zero width, so the banner
+                // could not be dismissed at all.
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                Spacer(Modifier.width(4.dp))
                 // The banner has no auto-dismiss; without this the notice only
                 // cleared on re-attach or session removal, so it could not be
                 // gotten rid of (#731 follow-up).
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         Icons.Filled.Close,
                         contentDescription = stringResource(R.string.terminal_attach_notice_dismiss),
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

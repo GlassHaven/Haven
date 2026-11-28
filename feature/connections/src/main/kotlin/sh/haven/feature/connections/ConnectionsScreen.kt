@@ -106,6 +106,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -1947,49 +1961,24 @@ private fun ConnectionTreeItem(
     }
 
     Box(modifier = dragModifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Drag handle (hidden when filtering). Dependents get one too, ahead
-            // of their tree connector so every handle sits in the same column.
-            if (enableDrag) {
-                val currentOnDragStart by rememberUpdatedState(onDragStart)
-                val currentOnDrag by rememberUpdatedState(onDrag)
-                val currentOnDragEnd by rememberUpdatedState(onDragEnd)
-                val haptics = LocalHapticFeedback.current
-                Icon(
-                    Icons.Filled.DragHandle,
-                    contentDescription = stringResource(R.string.connections_reorder),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(start = 4.dp)
-                        .pointerInput(Unit) {
-                            // Long-press to arm, rather than dragging on touch
-                            // slop. The handle is a 32dp target sitting in the
-                            // scroll path, so a thumb that lands on it while
-                            // flinging the list used to reorder a connection
-                            // by accident (#489). A press-and-hold cannot be
-                            // produced by scrolling, and the haptic tick says
-                            // the row is now yours to move.
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    currentOnDragStart()
-                                },
-                                onDragEnd = { currentOnDragEnd() },
-                                onDragCancel = { currentOnDragEnd() },
-                                onDrag = { _, dragAmount -> currentOnDrag(dragAmount.y) },
-                            )
-                        },
-                )
-            }
+        // IntrinsicSize.Min so the tree connector can fill the row's height:
+        // rows grow when the host text wraps, and a fixed-height connector
+        // left gaps in the line between one row and the next.
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .padding(start = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (indent > 0) {
-                // Tree connector
+                // One status-dot slot of indent per level, so a chain steps in
+                // as it deepens and each connector hangs under its parent's dot.
+                if (indent > 1) Spacer(Modifier.width(STATUS_SLOT_WIDTH * (indent - 1)))
                 val lineColor = MaterialTheme.colorScheme.outlineVariant
                 androidx.compose.foundation.Canvas(
                     modifier = Modifier
-                        .width(24.dp)
-                        .height(56.dp)
-                        .padding(start = 12.dp),
+                        .width(STATUS_SLOT_WIDTH)
+                        .fillMaxHeight(),
                 ) {
                     val midX = size.width / 2
                     val midY = size.height / 2
@@ -2011,11 +2000,10 @@ private fun ConnectionTreeItem(
             }
 
             // Status dot lives in the outer Row (which centres vertically — same reason
-            // the drag handle is centred) rather than ListItem.leadingContent, which
-            // Material top-aligns on three-line items, floating the dot above the row's
-            // midline when the host text wraps to two lines. Fixed-width slot so the
+            // the drag handle is centred), so it stays on the row's midline when the
+            // host text wraps to two lines. Fixed-width slot so the
             // headline doesn't shift between the 12dp dot and the 24dp connecting spinner.
-            Box(Modifier.width(28.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(STATUS_SLOT_WIDTH), contentAlignment = Alignment.Center) {
                 when {
                     isConnecting -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     profileStatus == ProfileStatus.RECONNECTING ->
@@ -2045,9 +2033,28 @@ private fun ConnectionTreeItem(
                 }
             }
 
-            ListItem(
-                headlineContent = { Text(profile.label) },
-                supportingContent = {
+            // Label over address, at the type styles a two-line ListItem uses but
+            // without its 72dp minimum: a dozen connections should not need a scroll.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+                    .combinedClickable(
+                        onClick = onTap,
+                        onLongClick = { showMenu = true },
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    profile.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                CompositionLocalProvider(
+                    LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                    LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                ) {
                     if (profile.isLocal) {
                         Text(
                             stringResource(
@@ -2091,26 +2098,60 @@ private fun ConnectionTreeItem(
                         }
                         Text("${profile.username}@${profile.host}:${profile.port}$via")
                     }
-                },
-                trailingContent = {
-                    // The single per-connection MCP element (the old "carries the MCP
-                    // endpoint" badge was dropped in favour of robot-only): a tri-state
-                    // robot — hidden when the agent has never used this connection, a
-                    // slashed grey robot when MCP is disabled for it, and red-eyed while
-                    // the agent is operating on it. Tap toggles MCP access.
-                    ConnectionMcpIndicator(
-                        lastActiveAt = agentActiveProfiles[profile.id],
-                        mcpEnabled = profile.mcpEnabled,
-                        onToggle = { onToggleMcp(!profile.mcpEnabled) },
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .combinedClickable(
-                        onClick = onTap,
-                        onLongClick = { showMenu = true },
-                    ),
+                }
+            }
+
+            // The single per-connection MCP element (the old "carries the MCP
+            // endpoint" badge was dropped in favour of robot-only): a tri-state
+            // robot — hidden when the agent has never used this connection, a
+            // slashed grey robot when MCP is disabled for it, and red-eyed while
+            // the agent is operating on it. Tap toggles MCP access.
+            ConnectionMcpIndicator(
+                lastActiveAt = agentActiveProfiles[profile.id],
+                mcpEnabled = profile.mcpEnabled,
+                onToggle = { onToggleMcp(!profile.mcpEnabled) },
             )
+
+            // Drag handle (hidden when filtering), at the end of the row for
+            // top-level connections and dependents alike. That leaves the status
+            // dot as the only thing ahead of the label, so indentation alone
+            // shows the tree.
+            if (enableDrag) {
+                val currentOnDragStart by rememberUpdatedState(onDragStart)
+                val currentOnDrag by rememberUpdatedState(onDrag)
+                val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+                val haptics = LocalHapticFeedback.current
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(48.dp)
+                        .pointerInput(Unit) {
+                            // Long-press to arm, rather than dragging on touch
+                            // slop. The handle sits in the scroll path, so a
+                            // thumb that lands on it while flinging the list
+                            // used to reorder a connection by accident (#489).
+                            // A press-and-hold cannot be produced by scrolling,
+                            // and the haptic tick says the row is now yours to
+                            // move.
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    currentOnDragStart()
+                                },
+                                onDragEnd = { currentOnDragEnd() },
+                                onDragCancel = { currentOnDragEnd() },
+                                onDrag = { _, dragAmount -> currentOnDrag(dragAmount.y) },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.DragHandle,
+                        contentDescription = stringResource(R.string.connections_reorder),
+                        tint = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
         }
 
         DropdownMenu(
@@ -2533,6 +2574,9 @@ private fun ConnectionGroupHeader(
     }
     HorizontalDivider()
 }
+
+/** Width of the status-dot slot, and of one level of tree indent. */
+private val STATUS_SLOT_WIDTH = 28.dp
 
 /** One dependent row queued for the connection list's depth-first walk. */
 private data class DependentRow(

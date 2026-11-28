@@ -8,6 +8,7 @@ import sh.haven.core.vnc.protocol.PointerEvent
 import sh.haven.core.vnc.protocol.ClientCutText
 import sh.haven.core.vnc.protocol.ProtocolVersion
 import sh.haven.core.vnc.protocol.ServerInit
+import sh.haven.core.vnc.protocol.VncAuthMethod
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.locks.ReentrantLock
@@ -27,6 +28,14 @@ class VncSession(
         internal set
 
     var protocolVersion: ProtocolVersion? = null
+
+    /** RFB security types the server offered (3.3 servers: the single type it chose). */
+    var offeredSecurityTypes: List<Int> = emptyList()
+        internal set
+
+    /** The credential check the handshake settled on. */
+    var authMethod: VncAuthMethod = VncAuthMethod.UNKNOWN
+        internal set
     var serverInit: ServerInit? = null
     var pixelFormat: PixelFormat? = null
 

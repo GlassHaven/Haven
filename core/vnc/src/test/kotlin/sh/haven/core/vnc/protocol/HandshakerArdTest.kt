@@ -93,5 +93,39 @@ class HandshakerArdTest {
             Handshaker.handshake(session(server, ByteArrayOutputStream(), "alice", "wrong"), Socket(), "mac.local")
         }
         assertEquals(reason, e.message)
+        assertEquals(VncAuthMethod.MACOS_ACCOUNT, e.method)
+        assertEquals(macTypes, e.offeredSecurityTypes)
+    }
+
+    @Test
+    fun `a rejected VNC password is tagged as VncAuth with the offered types`() {
+        val reason = "Authentication failure"
+        val server = serverScript {
+            banner(macTypes)
+            write(ByteArray(16)) // VncAuth challenge
+            writeInt(1)
+            writeInt(reason.length)
+            write(reason.toByteArray(Charsets.US_ASCII))
+        }
+
+        val e = assertThrows(AuthenticationFailedException::class.java) {
+            Handshaker.handshake(session(server, ByteArrayOutputStream(), null, "wrong"), Socket(), "mac.local")
+        }
+        assertEquals(VncAuthMethod.VNC_PASSWORD, e.method)
+        assertEquals(macTypes, e.offeredSecurityTypes)
+    }
+
+    @Test
+    fun `an over-long macOS password is tagged as an account login`() {
+        val ard = ArdAuthTest.FakeArdServer()
+        val server = serverScript {
+            banner(macTypes)
+            write(ard.wireParams())
+        }
+
+        val e = assertThrows(AuthenticationFailedException::class.java) {
+            Handshaker.handshake(session(server, ByteArrayOutputStream(), "alice", "x".repeat(64)), Socket(), "mac.local")
+        }
+        assertEquals(VncAuthMethod.MACOS_ACCOUNT, e.method)
     }
 }

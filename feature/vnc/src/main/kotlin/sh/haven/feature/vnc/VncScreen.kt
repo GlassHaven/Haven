@@ -109,6 +109,7 @@ import sh.haven.core.ui.RemoteTrackpadSensitivityDialog
 import sh.haven.core.ui.rememberRemoteDesktopViewportState
 import sh.haven.core.vnc.protocol.AuthenticationFailedException
 import sh.haven.core.vnc.protocol.HandshakingFailedException
+import sh.haven.core.vnc.protocol.VncAuthMethod
 import sh.haven.core.vnc.protocol.VncException
 import sh.haven.feature.vnc.R
 
@@ -1846,6 +1847,40 @@ internal fun androidKeyToKeySym(key: Key): Int? = when (key) {
     else -> null
 }
 
+/** RFB security type 30: Apple Remote Desktop, offered by macOS Screen Sharing. */
+private const val SEC_TYPE_ARD = 30
+
+/**
+ * Troubleshooting text for an auth failure, matched to the credential check
+ * the server actually ran: the 8-character VNC password limit only applies
+ * to classic VncAuth, not to a macOS account login.
+ */
+internal fun authFailureHint(e: AuthenticationFailedException): String = when (e.method) {
+    VncAuthMethod.MACOS_ACCOUNT -> buildString {
+        append("The Mac rejected the account login (Apple Remote Desktop authentication; ")
+        append("the 8-character VNC password limit does not apply).\n")
+        append("Check:\n")
+        append("  - Username is the account's short name (run whoami on the Mac)\n")
+        append("  - Password is that account's login password, not the separate VNC password\n")
+        append("  - System Settings > General > Sharing > Screen Sharing (i) > Allow access for ")
+        append("includes this user (with Remote Management on, the user needs Observe and Control)")
+    }
+    VncAuthMethod.USERNAME_PASSWORD -> buildString {
+        append("The server rejected the username or password (VeNCrypt Plain).\n")
+        append("Check both, and that the server's authentication (e.g. PAM or wayvnc's config) accepts this user.")
+    }
+    VncAuthMethod.VNC_PASSWORD -> buildString {
+        append("Check your VNC password. VNC passwords are limited to 8 characters.\n")
+        if (SEC_TYPE_ARD in e.offeredSecurityTypes) {
+            append("This server is macOS Screen Sharing: set Username to your macOS account ")
+            append("to log in with the account password instead.")
+        } else {
+            append("To reset: vncpasswd ~/.vnc/passwd")
+        }
+    }
+    VncAuthMethod.NONE, VncAuthMethod.UNKNOWN -> "Check the username and password for this connection."
+}
+
 /** Map VNC/network exceptions to user-friendly messages with troubleshooting hints. */
 fun describeVncError(e: Exception, host: String? = null, port: Int? = null): String {
     val portStr = port?.toString() ?: "5900"
@@ -1878,8 +1913,7 @@ fun describeVncError(e: Exception, host: String? = null, port: Int? = null): Str
             val msg = e.message
             if (msg != null && msg != "Authentication failed") append(": $msg")
             append(".\n\n")
-            append("Check your VNC password. VNC passwords are limited to 8 characters.\n")
-            append("To reset: vncpasswd ~/.vnc/passwd")
+            append(authFailureHint(e))
         }
         is HandshakingFailedException -> buildString {
             append("VNC handshake failed: ${e.message}\n\n")

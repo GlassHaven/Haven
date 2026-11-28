@@ -266,5 +266,33 @@ object ServerCutText {
 }
 
 open class VncException(message: String, cause: Throwable? = null) : Exception(message, cause)
-class AuthenticationFailedException(message: String) : VncException(message)
+
+/** Which credential check the server ran — decides what an auth failure should tell the user. */
+enum class VncAuthMethod {
+    /** Not negotiated yet (failure before a security type was chosen). */
+    UNKNOWN,
+
+    /** No credential check (security type None, or VeNCrypt TLSNone/X509None). */
+    NONE,
+
+    /** Classic VncAuth DES challenge (type 2, or VeNCrypt TLSVnc/X509Vnc): 8-character password. */
+    VNC_PASSWORD,
+
+    /** Apple Remote Desktop (type 30): macOS account short name and login password. */
+    MACOS_ACCOUNT,
+
+    /** VeNCrypt Plain/TLSPlain/X509Plain: username and password checked by the server. */
+    USERNAME_PASSWORD,
+}
+
+/**
+ * [method] is the credential check that failed and [offeredSecurityTypes] the
+ * RFB security types the server listed; [Handshaker] fills both in so the UI
+ * can explain the failure for the scheme actually used.
+ */
+class AuthenticationFailedException(
+    message: String,
+    val method: VncAuthMethod = VncAuthMethod.UNKNOWN,
+    val offeredSecurityTypes: List<Int> = emptyList(),
+) : VncException(message)
 class HandshakingFailedException(message: String) : VncException(message)

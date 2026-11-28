@@ -82,7 +82,24 @@ object Handshaker {
         session.protocolVersion = clientVersion
     }
 
+    /**
+     * Rethrows auth failures tagged with the scheme that ran and the types the
+     * server offered, so the UI can tell a macOS account rejection apart from a
+     * classic 8-character VNC password mismatch.
+     */
     private fun negotiateSecurityType(session: VncSession, socket: Socket, host: String) {
+        try {
+            selectSecurityType(session, socket, host)
+        } catch (e: AuthenticationFailedException) {
+            throw AuthenticationFailedException(
+                e.message ?: "Authentication failed",
+                method = session.authMethod,
+                offeredSecurityTypes = session.offeredSecurityTypes,
+            )
+        }
+    }
+
+    private fun selectSecurityType(session: VncSession, socket: Socket, host: String) {
         val version = session.protocolVersion!!
         val d = DataInputStream(session.inputStream)
 
@@ -97,6 +114,7 @@ object Handshaker {
             }
             val types = (0 until count).map { d.readUnsignedByte() }
             Log.d(TAG, "Server security types: $types")
+            session.offeredSecurityTypes = types
 
             // Preference order: VeNCrypt > VncAuth > None
             // Prefer VeNCrypt only when the user supplied a username (otherwise
@@ -115,11 +133,13 @@ object Handshaker {
                 SEC_ARD in types && hasUsername -> {
                     session.outputStream.write(SEC_ARD)
                     session.outputStream.flush()
+                    session.authMethod = VncAuthMethod.MACOS_ACCOUNT
                     authenticateArd(session)
                 }
                 SEC_VNC_AUTH in types -> {
                     session.outputStream.write(SEC_VNC_AUTH)
                     session.outputStream.flush()
+                    session.authMethod = VncAuthMethod.VNC_PASSWORD
                     authenticateVnc(session)
                 }
                 SEC_VENCRYPT in types -> {
@@ -132,6 +152,7 @@ object Handshaker {
                 SEC_NONE in types -> {
                     session.outputStream.write(SEC_NONE)
                     session.outputStream.flush()
+                    session.authMethod = VncAuthMethod.NONE
                     warnUnauthenticated(session)
                 }
                 else -> throw HandshakingFailedException("No supported security types: $types")
@@ -143,6 +164,7 @@ object Handshaker {
         } else {
             // 3.3: server selects a single type
             val type = d.readInt()
+            session.offeredSecurityTypes = listOf(type)
             when (type) {
                 0 -> {
                     val errLen = d.readInt()
@@ -150,8 +172,14 @@ object Handshaker {
                     d.readFully(errBytes)
                     throw HandshakingFailedException(String(errBytes, Charsets.US_ASCII))
                 }
-                SEC_NONE -> warnUnauthenticated(session)
-                SEC_VNC_AUTH -> authenticateVnc(session)
+                SEC_NONE -> {
+                    session.authMethod = VncAuthMethod.NONE
+                    warnUnauthenticated(session)
+                }
+                SEC_VNC_AUTH -> {
+                    session.authMethod = VncAuthMethod.VNC_PASSWORD
+                    authenticateVnc(session)
+                }
                 else -> throw HandshakingFailedException("Unsupported security type: $type")
             }
         }
@@ -238,12 +266,14 @@ object Handshaker {
         // Sub-type-specific auth now runs over the (possibly) TLS-wrapped streams
         when (chosen) {
             VENCRYPT_TLS_NONE, VENCRYPT_X509_NONE -> {
-                // no further auth
+                session.authMethod = VncAuthMethod.NONE
             }
             VENCRYPT_PLAIN, VENCRYPT_TLS_PLAIN, VENCRYPT_X509_PLAIN -> {
+                session.authMethod = VncAuthMethod.USERNAME_PASSWORD
                 authenticatePlain(session)
             }
             VENCRYPT_TLS_VNC, VENCRYPT_X509_VNC -> {
+                session.authMethod = VncAuthMethod.VNC_PASSWORD
                 authenticateVnc(session)
             }
         }

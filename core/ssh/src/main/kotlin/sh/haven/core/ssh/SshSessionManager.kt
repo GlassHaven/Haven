@@ -217,6 +217,13 @@ class SshSessionManager @Inject constructor(
          * sessions on a profile that's normally wrapped in a multiplexer.
          */
         val bypassSessionManager: Boolean = false,
+        /**
+         * The host's shell family, probed over an exec channel before the
+         * first shell opens. Decides whether the session-manager command is
+         * typed as POSIX `sh -c '…'` or as cmd / PowerShell (Windows OpenSSH).
+         * Kept across reconnects, which reach the same host.
+         */
+        val remotePlatform: RemotePlatform = RemotePlatform.UNKNOWN,
         val postLoginCommand: String? = null,
         val postLoginBeforeSessionManager: Boolean = false,
         /** SSH exec request configured by the profile; null means shell. */
@@ -616,6 +623,18 @@ class SshSessionManager @Inject constructor(
     ): ShellOutcome {
         val session = _sessions.value[sessionId]
             ?: return ShellOutcome.Failed(sessionId, "session not found")
+        // Learn the host's shell before the session-manager command is built:
+        // a Windows OpenSSH login is cmd or PowerShell, where the POSIX
+        // `exec sh -c '…'` template fails even with the manager installed.
+        if (session.sessionManager != SessionManager.NONE && session.remoteCommand == null &&
+            session.remotePlatform == RemotePlatform.UNKNOWN
+        ) {
+            val platform = RemotePlatform.detect(session.client)
+            _sessions.update { map ->
+                val existing = map[sessionId] ?: return@update map
+                map + (sessionId to existing.copy(remotePlatform = platform))
+            }
+        }
         val channel = try {
             session.client.openTerminalChannel(session.remoteCommand, session.requestPty)
         } catch (e: Exception) {
@@ -680,7 +699,7 @@ class SshSessionManager @Inject constructor(
         // so any non-blank value — per-profile or global — means "we can't
         // verify this attach".
         if (!session.sessionCommandOverride.isNullOrBlank()) return
-        val listCommand = manager.listCommand ?: return
+        val listCommand = manager.listCommandFor(session.remotePlatform) ?: return
         val rawName = session.chosenSessionName ?: session.label ?: sessionId.take(8)
         val expected = SessionManager.sanitizeSessionName(rawName)
         // A fresh attach attempt clears any notice from a previous one (e.g.
@@ -2417,7 +2436,7 @@ class SshSessionManager @Inject constructor(
         // Per-session bypass wins over both the manager template and any
         // sessionCommandOverride — this is the "Plain shell" picker path.
         if (session?.bypassSessionManager == true) return null
-        val commandTemplate = manager.command ?: return null
+        if (manager.command == null) return null
         val rawName = session?.chosenSessionName
             ?: session?.label ?: sessionId.take(8)
         val sessionName = SessionManager.sanitizeSessionName(rawName)
@@ -2429,7 +2448,7 @@ class SshSessionManager @Inject constructor(
         if (!override.isNullOrBlank()) {
             return override.replace("{name}", sessionName)
         }
-        return commandTemplate(sessionName)
+        return manager.startCommand(sessionName, session?.remotePlatform ?: RemotePlatform.UNKNOWN)
     }
 
     companion object {

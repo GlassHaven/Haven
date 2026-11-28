@@ -21,6 +21,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.connectbot.terminal.TerminalEmulator
 import org.connectbot.terminal.TerminalEmulatorFactory
+import sh.haven.core.ssh.killCommandOn
+import sh.haven.core.ssh.listCommandOn
 import sh.haven.core.ssh.ConnectionConfig
 import sh.haven.core.ssh.HostKeyResult
 import sh.haven.core.ssh.HostKeyVerifier
@@ -939,7 +941,8 @@ class TerminalViewModel @Inject constructor(
         val client = session.client
         viewModelScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) { client.execCommand(listCmd) }
+                val platformListCmd = sshSessionMgr.listCommandOn(client) ?: listCmd
+                val result = withContext(Dispatchers.IO) { client.execCommand(platformListCmd) }
                 _remoteSessionNames.value = if (result.exitStatus == 0) {
                     SessionManager.parseSessionList(sshSessionMgr, result.stdout)
                 } else {
@@ -3265,7 +3268,7 @@ class TerminalViewModel @Inject constructor(
                     finishNewSshTab(sessionId)
                     return@launch
                 }
-                val listCmd = sshSessionMgr.listCommand
+                val listCmd = sshSessionMgr.listCommandOn(activeClient)
                 if (preselectedSessionName == null && listCmd != null) {
                     val existingSessions = withContext(Dispatchers.IO) {
                         try {
@@ -3573,15 +3576,17 @@ class TerminalViewModel @Inject constructor(
         // Session names come from server-controlled `tmux ls`/`screen -ls` output
         // and a free-form rename field; sanitize before they reach the `sh -c '…'`
         // command template, mirroring buildSessionManagerCommand. (#208 finding 5)
-        val killCmd = sel.manager.killCommand?.invoke(sanitizeSessionName(sessionName)) ?: return
+        if (sel.manager.killCommand == null) return
         val session = sessionManager.getSession(sel.sessionId) ?: return
 
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
+                    val killCmd = sel.manager.killCommandOn(session.client, sanitizeSessionName(sessionName))
+                        ?: return@withContext
                     session.client.execCommand(killCmd)
                 }
-                val listCmd = sel.manager.listCommand ?: return@launch
+                val listCmd = sel.manager.listCommandOn(session.client) ?: return@launch
                 val updated = withContext(Dispatchers.IO) {
                     try {
                         val result = session.client.execCommand(listCmd)
@@ -3625,7 +3630,7 @@ class TerminalViewModel @Inject constructor(
                 } else null
                 // Give the session manager a moment to propagate the rename
                 kotlinx.coroutines.delay(500)
-                val listCmd = sel.manager.listCommand ?: return@launch
+                val listCmd = sel.manager.listCommandOn(session.client) ?: return@launch
                 val updated = withContext(Dispatchers.IO) {
                     try {
                         val result = session.client.execCommand(listCmd)

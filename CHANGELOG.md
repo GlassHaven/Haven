@@ -7,6 +7,8 @@ compare link is appended automatically — don't add it here.
 
 ## v5.94.92
 
+- Fit more of `Connections` on one screen: connection rows drop from 72dp to 56dp with the drag handle moved to the end of the row and each level of a jump-host chain indented under its parent, the `user@host or host:port` and `Filter connections…` bars merge into one 48dp field that filters as you type (now also by `user@host:port`) and offers `Connect to …` for an address — `Go` dials only when no saved connection matches — and the empty `Workspaces` section shrinks to its header row, its explanation moving into `Save as workspace` (#906, thanks boyce-ywr).
+- Reorder the connections nested under a jump host by long-pressing their new drag handle in `Connections`: jump-host children and VNC/RDP/SMB-over-SSH profiles under the same SSH profile swap places with each other, carry any deeper chain with them, and stay under their parent, while a connection newly created, duplicated, or moved under a jump host now lands after its siblings instead of into the arranged order (#905, thanks boyce-ywr).
 - Sync status and navigation bar icon contrast with the active theme (`Light`, `Dark`, and `System Default`) inside `HavenTheme`, track opaque terminal background luminance across color schemes in `HavenNavHost`, unwrap `ContextWrapper` chains when looking up the host `Window` in `TerminalScreen`, `RdpScreen`, and `VncScreen`, and enable edge-to-edge system bar contrast in `TaskerEditActivity` (#898, thanks iptsh).
 
 ## v5.94.91

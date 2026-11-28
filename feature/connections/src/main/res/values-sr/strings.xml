@@ -29,10 +29,10 @@
     <string name="common_unlock">Откључај</string>
     <string name="connections_title">Везе</string>
     <string name="connections_add">Додај везу</string>
-    <string name="connections_quick_connect_placeholder">корисник@хост или хост:порт</string>
+    <string name="connections_filter_or_connect_placeholder">Филтер или корисник@хост</string>
     <string name="connections_quick_connect_button">Повежи</string>
     <string name="connections_quick_connect_error">Користите формат: корисник@хост или хост:порт</string>
-    <string name="connections_filter_placeholder">Филтер веза…</string>
+    <string name="connections_connect_directly">Повежи се на %1$s</string>
     <string name="connections_filter_clear">Обриши филтер</string>
     <string name="connections_reorder">Промени редослед</string>
     <string name="connections_empty_title">Још увек нема веза</string>

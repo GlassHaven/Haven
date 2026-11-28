@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">Conexiones</string>
     <string name="connections_add">Agregar conexión</string>
-    <string name="connections_quick_connect_placeholder">user@host o host:port</string>
+    <string name="connections_filter_or_connect_placeholder">Filtrar, o user@host</string>
     <string name="connections_quick_connect_button">Conectar</string>
     <string name="connections_quick_connect_error">Usa el formato: user@host o user@host:port</string>
-    <string name="connections_filter_placeholder">Filtrar conexiones\u2026</string>
+    <string name="connections_connect_directly">Conectar a %1$s</string>
     <string name="connections_filter_clear">Borrar filtro</string>
     <string name="connections_reorder">Reordenar</string>
 

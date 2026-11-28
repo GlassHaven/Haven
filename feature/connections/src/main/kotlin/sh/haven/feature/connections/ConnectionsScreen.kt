@@ -106,7 +106,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -336,7 +351,6 @@ fun ConnectionsScreen(
     var deployingProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     var portForwardProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     // (setupDesktopDe removed in 3c — Desktop install UI moved to top-level Desktop tab.)
-    var quickConnectText by rememberSaveable { mutableStateOf("") }
     var filterText by rememberSaveable { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1175,64 +1189,48 @@ fun ConnectionsScreen(
                 }
             }
 
-            // Quick connect bar
+            // One field for both jobs the two bars above the list used to
+            // split: it filters the saved connections as you type, and dials
+            // what you typed when that is an address rather than a search.
             val quickConnectError = stringResource(R.string.connections_quick_connect_error)
-            OutlinedTextField(
-                value = quickConnectText,
-                onValueChange = { quickConnectText = it },
-                placeholder = { Text(stringResource(R.string.connections_quick_connect_placeholder)) },
-                singleLine = true,
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            quickConnectAction(
-                                quickConnectText, viewModel, sshKeys,
-                                { connectingProfile = it },
-                                { quickConnectText = "" },
-                                quickConnectError,
-                            )
-                        },
-                        enabled = quickConnectText.isNotBlank(),
-                    ) {
-                        Icon(Icons.Filled.Cable, contentDescription = stringResource(R.string.connections_quick_connect_button))
+            val keyboard = LocalSoftwareKeyboardController.current
+            val connectDirectly = {
+                quickConnectAction(
+                    filterText, viewModel, sshKeys,
+                    { connectingProfile = it },
+                    { filterText = "" },
+                    quickConnectError,
+                )
+            }
+            // Offered only for input the quick-connect parser accepts, so a
+            // plain search word never grows a "connect" row.
+            val directTarget = filterText.trim()
+                .takeIf { it.isNotEmpty() && viewModel.parseQuickConnect(it) != null }
+            FilterOrConnectField(
+                value = filterText,
+                onValueChange = { filterText = it },
+                onConnect = connectDirectly,
+                onGo = {
+                    // Go dials only when nothing saved matches: someone
+                    // narrowing the list must not be connected to their
+                    // search term, while user@host for a new machine matches
+                    // nothing and connects as it always has.
+                    if (directTarget != null && connections.none { matchesConnectionFilter(it, filterText) }) {
+                        connectDirectly()
+                    } else {
+                        keyboard?.hide()
                     }
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                keyboardActions = KeyboardActions(
-                    onGo = {
-                        quickConnectAction(
-                            quickConnectText, viewModel, sshKeys,
-                            { connectingProfile = it },
-                            { quickConnectText = "" },
-                            quickConnectError,
-                        )
-                    },
-                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 8.dp),
             )
-
-            // Filter/search bar
-            if (connections.isNotEmpty()) {
-                OutlinedTextField(
-                    value = filterText,
-                    onValueChange = { filterText = it },
-                    placeholder = { Text(stringResource(R.string.connections_filter_placeholder)) },
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (filterText.isNotEmpty()) {
-                            IconButton(onClick = { filterText = "" }) {
-                                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.connections_filter_clear))
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp),
-                )
+            // Outside the list on purpose: as its first item it would be
+            // inserted above the row the list is anchored to, and land
+            // scrolled out of view.
+            if (directTarget != null) {
+                DirectConnectRow(target = directTarget, onClick = connectDirectly)
             }
 
             // Linux VM card — shown when Terminal app is installed and not hidden in settings
@@ -1241,20 +1239,31 @@ fun ConnectionsScreen(
             } else {
                 // Build tree: top-level profiles first, then dependents nested beneath.
                 val profileMap = connections.associateBy { it.id }
-                val dependentsByParent = connections
-                    .mapNotNull { profile ->
-                        // Nest a profile under the SSH profile that carries its
-                        // tunnel: a jump-host chain, or a VNC/RDP/SMB-over-SSH
-                        // forward. VNC/SMB are gated by their forward flag
-                        // (vncSshForward defaults true) so a direct connection
-                        // with a stale sshProfileId isn't wrongly nested.
-                        val parentId = profile.jumpProfileId
-                            ?: profile.vncSshProfileId?.takeIf { profile.vncSshForward }
-                            ?: profile.rdpSshProfileId
-                            ?: profile.smbSshProfileId?.takeIf { profile.smbSshForward }
-                        if (parentId != null && parentId in profileMap) parentId to profile else null
-                    }
-                    .groupBy({ it.first }, { it.second })
+                // Children nest under the SSH profile that carries their tunnel;
+                // see dependentParentId for what counts.
+                val storedDependents = groupDependents(connections)
+
+                // Drag-to-reorder state for dependents. A dependent only ever
+                // changes places with its siblings, so the state is one order
+                // per parent rather than a second flat list.
+                var draggedChildId by remember { mutableStateOf<String?>(null) }
+                var childDragOffset by remember { mutableFloatStateOf(0f) }
+                // The sibling orders we last wrote, each held until the
+                // database echoes it back — the same in-flight handshake the
+                // top-level list needs, for the same reason (#488).
+                val siblingOverrides = remember { mutableStateMapOf<String, List<String>>() }
+                if (draggedChildId == null) {
+                    siblingOverrides.entries
+                        .filter { (parentId, order) ->
+                            val stored = storedDependents[parentId].orEmpty().map { it.id }
+                            // Caught up, or the children changed underneath us.
+                            stored == order || stored.toSet() != order.toSet()
+                        }
+                        .forEach { siblingOverrides.remove(it.key) }
+                }
+                fun orderedDependents(parentId: String): List<ConnectionProfile> =
+                    applySiblingOrder(storedDependents[parentId].orEmpty(), siblingOverrides[parentId])
+                val dependentsByParent = storedDependents.mapValues { orderedDependents(it.key) }
                 val renderedAsChild = dependentsByParent.values.flatten().map { it.id }.toSet()
                 // Local profiles show in the list like every other transport.
                 // The topbar Terminal icon is a quick-launch convenience for
@@ -1270,11 +1279,7 @@ fun ConnectionsScreen(
                 // Filter by search text (match label, host, username)
                 val isFiltering = filterText.isNotBlank()
                 val query = filterText.lowercase()
-                fun matchesFilter(p: ConnectionProfile): Boolean =
-                    isFiltering && (
-                        p.label.lowercase().contains(query) ||
-                            p.host.lowercase().contains(query) ||
-                            p.username.lowercase().contains(query))
+                fun matchesFilter(p: ConnectionProfile): Boolean = matchesConnectionFilter(p, filterText)
 
                 // Build a unified flat list: ungrouped connections + (group header + its connections) ...
                 // Group headers use key "group-{id}", connections use their profile id.
@@ -1406,7 +1411,13 @@ fun ConnectionsScreen(
                     displayedRows(reorderedIds, collapsedGroupIds, dragged = draggedId)
                 }
 
-                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
+                    // Room to scroll the last rows — and their drag handles —
+                    // clear of the FAB.
+                    contentPadding = PaddingValues(bottom = 88.dp),
+                ) {
                     item(key = "workspace-section") { workspaceSection() }
                     displayIds.forEach { key ->
                         if (key.startsWith("group-")) {
@@ -1557,15 +1568,26 @@ fun ConnectionsScreen(
                             // someone manages to create a jumpProfileId cycle. (#116)
                             val ancestorDragged = draggedId == profile.id
                             val visited = mutableSetOf<String>(profile.id)
-                            // Triple: (profile, indent, isLastSibling-at-this-level)
-                            val stack = ArrayDeque<Triple<ConnectionProfile, Int, Boolean>>()
+                            val stack = ArrayDeque<DependentRow>()
                             val topKids = dependentsByParent[profile.id].orEmpty()
                             // Push in reverse so the popped order matches sibling order.
                             for (i in topKids.indices.reversed()) {
-                                stack.addFirst(Triple(topKids[i], 1, i == topKids.lastIndex))
+                                stack.addFirst(
+                                    DependentRow(
+                                        profile = topKids[i],
+                                        parentId = profile.id,
+                                        indent = 1,
+                                        isLastAtLevel = i == topKids.lastIndex,
+                                        lifted = topKids[i].id == draggedChildId,
+                                    ),
+                                )
                             }
                             while (stack.isNotEmpty()) {
-                                val (dep, depIndent, isLastAtLevel) = stack.removeFirst()
+                                val row = stack.removeFirst()
+                                val dep = row.profile
+                                val depIndent = row.indent
+                                val isLastAtLevel = row.isLastAtLevel
+                                val parentId = row.parentId
                                 if (!visited.add(dep.id)) continue
                                 item(key = dep.id) {
                                     ConnectionTreeItem(
@@ -1602,19 +1624,70 @@ fun ConnectionsScreen(
                                         onReauthRclone = { viewModel.reauthRcloneProfile(dep) },
                                         onCancelOAuth = { viewModel.cancelPendingOAuth(dep) },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
-                                        dragModifier = if (ancestorDragged) Modifier
+                                        enableDrag = !isFiltering,
+                                        // Follows a dragged top-level ancestor, or
+                                        // the dependent being dragged above it.
+                                        dragModifier = if (ancestorDragged || row.lifted) Modifier
                                             .zIndex(1f)
                                             .offset(
                                                 y = with(LocalDensity.current) {
-                                                    dragOffset.roundToInt().toDp()
+                                                    (if (ancestorDragged) dragOffset else childDragOffset)
+                                                        .roundToInt().toDp()
                                                 },
                                             ) else Modifier,
+                                        onDragStart = {
+                                            draggedChildId = dep.id
+                                            childDragOffset = 0f
+                                        },
+                                        onDrag = { delta ->
+                                            childDragOffset += delta
+                                            if (childDragOffset == 0f) return@ConnectionTreeItem
+                                            // Read from state rather than the composed
+                                            // dependentsByParent, which is a frame behind
+                                            // once a swap has already happened this gesture.
+                                            val siblings = orderedDependents(parentId).map { it.id }
+                                            val down = childDragOffset > 0
+                                            val neighbour = siblings
+                                                .getOrNull(siblings.indexOf(dep.id) + if (down) 1 else -1)
+                                                ?: return@ConnectionTreeItem
+                                            // The neighbour moves with everything nested
+                                            // under it, so that whole block is the step.
+                                            val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
+                                            val dist = subtreeIds(neighbour) { id ->
+                                                orderedDependents(id).map { it.id }
+                                            }.sumOf { id -> visibleItems.find { it.key == id }?.size ?: 0 }
+                                            if (dist <= 0 || abs(childDragOffset) <= dist / 2) {
+                                                return@ConnectionTreeItem
+                                            }
+                                            val moved = moveSibling(siblings, dep.id, down)
+                                                ?: return@ConnectionTreeItem
+                                            siblingOverrides[parentId] = moved
+                                            // Same continuity correction as the top-level drag.
+                                            childDragOffset += if (down) -dist else dist
+                                        },
+                                        onDragEnd = {
+                                            draggedChildId = null
+                                            childDragOffset = 0f
+                                            // Siblings only compare with each other, so
+                                            // renumbering them from zero touches nothing else.
+                                            siblingOverrides[parentId]?.forEachIndexed { idx, id ->
+                                                viewModel.updateSortOrder(id, idx)
+                                            }
+                                        },
                                     )
                                 }
                                 // Push this dep's children at the next indent level.
                                 val grandKids = dependentsByParent[dep.id].orEmpty()
                                 for (i in grandKids.indices.reversed()) {
-                                    stack.addFirst(Triple(grandKids[i], depIndent + 1, i == grandKids.lastIndex))
+                                    stack.addFirst(
+                                        DependentRow(
+                                            profile = grandKids[i],
+                                            parentId = dep.id,
+                                            indent = depIndent + 1,
+                                            isLastAtLevel = i == grandKids.lastIndex,
+                                            lifted = row.lifted || grandKids[i].id == draggedChildId,
+                                        ),
+                                    )
                                 }
                             }
                         }
@@ -1622,6 +1695,114 @@ fun ConnectionsScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * The search field above the list, which doubles as the quick-connect bar.
+ *
+ * An outlined text field at 48dp rather than the 56dp minimum of
+ * [OutlinedTextField]: it is always on screen, and most visits to this screen
+ * are a tap on a saved connection that never touches it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterOrConnectField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onConnect: () -> Unit,
+    onGo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.height(48.dp),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+        keyboardActions = KeyboardActions(onGo = { onGo() }),
+        interactionSource = interactionSource,
+    ) { innerTextField ->
+        OutlinedTextFieldDefaults.DecorationBox(
+            value = value,
+            innerTextField = innerTextField,
+            enabled = true,
+            singleLine = true,
+            visualTransformation = VisualTransformation.None,
+            interactionSource = interactionSource,
+            placeholder = {
+                Text(
+                    stringResource(R.string.connections_filter_or_connect_placeholder),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                Row {
+                    if (value.isNotEmpty()) {
+                        IconButton(onClick = { onValueChange("") }) {
+                            Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = stringResource(R.string.connections_filter_clear),
+                            )
+                        }
+                    }
+                    IconButton(onClick = onConnect, enabled = value.isNotBlank()) {
+                        Icon(
+                            Icons.Filled.Cable,
+                            contentDescription = stringResource(R.string.connections_quick_connect_button),
+                        )
+                    }
+                }
+            },
+            // The icons supply the horizontal inset; the default vertical
+            // padding is what forces the field to 56dp.
+            contentPadding = PaddingValues(0.dp),
+            container = {
+                OutlinedTextFieldDefaults.Container(
+                    enabled = true,
+                    isError = false,
+                    interactionSource = interactionSource,
+                )
+            },
+        )
+    }
+}
+
+/**
+ * Shown under the field while it holds something that parses as an
+ * address: tap to dial it without saving a profile.
+ */
+@Composable
+private fun DirectConnectRow(target: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(start = 8.dp, end = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(STATUS_SLOT_WIDTH), contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Filled.Cable,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(
+            stringResource(R.string.connections_connect_directly, target),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
     }
 }
 
@@ -1873,48 +2054,24 @@ private fun ConnectionTreeItem(
     }
 
     Box(modifier = dragModifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Drag handle for top-level items (hidden when filtering)
-            if (indent == 0 && enableDrag) {
-                val currentOnDragStart by rememberUpdatedState(onDragStart)
-                val currentOnDrag by rememberUpdatedState(onDrag)
-                val currentOnDragEnd by rememberUpdatedState(onDragEnd)
-                val haptics = LocalHapticFeedback.current
-                Icon(
-                    Icons.Filled.DragHandle,
-                    contentDescription = stringResource(R.string.connections_reorder),
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(start = 4.dp)
-                        .pointerInput(Unit) {
-                            // Long-press to arm, rather than dragging on touch
-                            // slop. The handle is a 32dp target sitting in the
-                            // scroll path, so a thumb that lands on it while
-                            // flinging the list used to reorder a connection
-                            // by accident (#489). A press-and-hold cannot be
-                            // produced by scrolling, and the haptic tick says
-                            // the row is now yours to move.
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    currentOnDragStart()
-                                },
-                                onDragEnd = { currentOnDragEnd() },
-                                onDragCancel = { currentOnDragEnd() },
-                                onDrag = { _, dragAmount -> currentOnDrag(dragAmount.y) },
-                            )
-                        },
-                )
-            }
+        // IntrinsicSize.Min so the tree connector can fill the row's height:
+        // rows grow when the host text wraps, and a fixed-height connector
+        // left gaps in the line between one row and the next.
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .padding(start = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (indent > 0) {
-                // Tree connector
+                // One status-dot slot of indent per level, so a chain steps in
+                // as it deepens and each connector hangs under its parent's dot.
+                if (indent > 1) Spacer(Modifier.width(STATUS_SLOT_WIDTH * (indent - 1)))
                 val lineColor = MaterialTheme.colorScheme.outlineVariant
                 androidx.compose.foundation.Canvas(
                     modifier = Modifier
-                        .width(24.dp)
-                        .height(56.dp)
-                        .padding(start = 12.dp),
+                        .width(STATUS_SLOT_WIDTH)
+                        .fillMaxHeight(),
                 ) {
                     val midX = size.width / 2
                     val midY = size.height / 2
@@ -1936,11 +2093,10 @@ private fun ConnectionTreeItem(
             }
 
             // Status dot lives in the outer Row (which centres vertically — same reason
-            // the drag handle is centred) rather than ListItem.leadingContent, which
-            // Material top-aligns on three-line items, floating the dot above the row's
-            // midline when the host text wraps to two lines. Fixed-width slot so the
+            // the drag handle is centred), so it stays on the row's midline when the
+            // host text wraps to two lines. Fixed-width slot so the
             // headline doesn't shift between the 12dp dot and the 24dp connecting spinner.
-            Box(Modifier.width(28.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(STATUS_SLOT_WIDTH), contentAlignment = Alignment.Center) {
                 when {
                     isConnecting -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     profileStatus == ProfileStatus.RECONNECTING ->
@@ -1970,9 +2126,28 @@ private fun ConnectionTreeItem(
                 }
             }
 
-            ListItem(
-                headlineContent = { Text(profile.label) },
-                supportingContent = {
+            // Label over address, at the type styles a two-line ListItem uses but
+            // without its 72dp minimum: a dozen connections should not need a scroll.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+                    .combinedClickable(
+                        onClick = onTap,
+                        onLongClick = { showMenu = true },
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    profile.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                CompositionLocalProvider(
+                    LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                    LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                ) {
                     if (profile.isLocal) {
                         Text(
                             stringResource(
@@ -2016,26 +2191,60 @@ private fun ConnectionTreeItem(
                         }
                         Text("${profile.username}@${profile.host}:${profile.port}$via")
                     }
-                },
-                trailingContent = {
-                    // The single per-connection MCP element (the old "carries the MCP
-                    // endpoint" badge was dropped in favour of robot-only): a tri-state
-                    // robot — hidden when the agent has never used this connection, a
-                    // slashed grey robot when MCP is disabled for it, and red-eyed while
-                    // the agent is operating on it. Tap toggles MCP access.
-                    ConnectionMcpIndicator(
-                        lastActiveAt = agentActiveProfiles[profile.id],
-                        mcpEnabled = profile.mcpEnabled,
-                        onToggle = { onToggleMcp(!profile.mcpEnabled) },
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .combinedClickable(
-                        onClick = onTap,
-                        onLongClick = { showMenu = true },
-                    ),
+                }
+            }
+
+            // The single per-connection MCP element (the old "carries the MCP
+            // endpoint" badge was dropped in favour of robot-only): a tri-state
+            // robot — hidden when the agent has never used this connection, a
+            // slashed grey robot when MCP is disabled for it, and red-eyed while
+            // the agent is operating on it. Tap toggles MCP access.
+            ConnectionMcpIndicator(
+                lastActiveAt = agentActiveProfiles[profile.id],
+                mcpEnabled = profile.mcpEnabled,
+                onToggle = { onToggleMcp(!profile.mcpEnabled) },
             )
+
+            // Drag handle (hidden when filtering), at the end of the row for
+            // top-level connections and dependents alike. That leaves the status
+            // dot as the only thing ahead of the label, so indentation alone
+            // shows the tree.
+            if (enableDrag) {
+                val currentOnDragStart by rememberUpdatedState(onDragStart)
+                val currentOnDrag by rememberUpdatedState(onDrag)
+                val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+                val haptics = LocalHapticFeedback.current
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(48.dp)
+                        .pointerInput(Unit) {
+                            // Long-press to arm, rather than dragging on touch
+                            // slop. The handle sits in the scroll path, so a
+                            // thumb that lands on it while flinging the list
+                            // used to reorder a connection by accident (#489).
+                            // A press-and-hold cannot be produced by scrolling,
+                            // and the haptic tick says the row is now yours to
+                            // move.
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    currentOnDragStart()
+                                },
+                                onDragEnd = { currentOnDragEnd() },
+                                onDragCancel = { currentOnDragEnd() },
+                                onDrag = { _, dragAmount -> currentOnDrag(dragAmount.y) },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.DragHandle,
+                        contentDescription = stringResource(R.string.connections_reorder),
+                        tint = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
         }
 
         DropdownMenu(
@@ -2458,6 +2667,20 @@ private fun ConnectionGroupHeader(
     }
     HorizontalDivider()
 }
+
+/** Width of the status-dot slot, and of one level of tree indent. */
+private val STATUS_SLOT_WIDTH = 28.dp
+
+/** One dependent row queued for the connection list's depth-first walk. */
+private data class DependentRow(
+    val profile: ConnectionProfile,
+    /** The profile this row is drawn under, whose children it reorders among. */
+    val parentId: String,
+    val indent: Int,
+    val isLastAtLevel: Boolean,
+    /** This row, or a dependent above it, is the one being dragged. */
+    val lifted: Boolean,
+)
 
 /**
  * Swap a group with the group above or below it, carrying its connections

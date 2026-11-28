@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">Подключения</string>
     <string name="connections_add">Добавить подключение</string>
-    <string name="connections_quick_connect_placeholder">user@host или host:port</string>
+    <string name="connections_filter_or_connect_placeholder">Фильтр или user@host</string>
     <string name="connections_quick_connect_button">Подключить</string>
     <string name="connections_quick_connect_error">Формат: user@host или user@host:port</string>
-    <string name="connections_filter_placeholder">Фильтр подключений\u2026</string>
+    <string name="connections_connect_directly">Подключиться к %1$s</string>
     <string name="connections_filter_clear">Очистить фильтр</string>
     <string name="connections_reorder">Изменить порядок</string>
 

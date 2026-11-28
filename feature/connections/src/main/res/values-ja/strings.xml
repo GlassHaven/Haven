@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">接続</string>
     <string name="connections_add">接続を追加</string>
-    <string name="connections_quick_connect_placeholder">user@host または host:port</string>
+    <string name="connections_filter_or_connect_placeholder">フィルター、または user@host</string>
     <string name="connections_quick_connect_button">接続</string>
     <string name="connections_quick_connect_error">形式: user@host または user@host:port</string>
-    <string name="connections_filter_placeholder">接続をフィルター\u2026</string>
+    <string name="connections_connect_directly">%1$s に接続</string>
     <string name="connections_filter_clear">フィルターをクリア</string>
     <string name="connections_reorder">並び替え</string>
 

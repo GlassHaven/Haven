@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">कनेक्शन</string>
     <string name="connections_add">कनेक्शन जोड़ें</string>
-    <string name="connections_quick_connect_placeholder">user@host या host:port</string>
+    <string name="connections_filter_or_connect_placeholder">फ़िल्टर, या user@host</string>
     <string name="connections_quick_connect_button">कनेक्ट करें</string>
     <string name="connections_quick_connect_error">प्रारूप का उपयोग करें: user@host या user@host:port</string>
-    <string name="connections_filter_placeholder">कनेक्शन फ़िल्टर करें\u2026</string>
+    <string name="connections_connect_directly">%1$s से कनेक्ट करें</string>
     <string name="connections_filter_clear">फ़िल्टर साफ़ करें</string>
     <string name="connections_reorder">क्रम बदलें</string>
 

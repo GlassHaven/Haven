@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">连接</string>
     <string name="connections_add">添加连接</string>
-    <string name="connections_quick_connect_placeholder">user@host 或 host:port</string>
+    <string name="connections_filter_or_connect_placeholder">筛选，或输入 user@host</string>
     <string name="connections_quick_connect_button">连接</string>
     <string name="connections_quick_connect_error">请使用格式：user@host 或 user@host:port</string>
-    <string name="connections_filter_placeholder">筛选连接\u2026</string>
+    <string name="connections_connect_directly">连接到 %1$s</string>
     <string name="connections_filter_clear">清除筛选</string>
     <string name="connections_reorder">排序</string>
 

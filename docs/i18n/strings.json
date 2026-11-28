@@ -42753,6 +42753,120 @@
       "sr": "Ажурирање није успело: %1$s",
       "zh": "更新失败：%1$s"
      }
+    },
+    {
+     "name": "settings_desktop_scroll_speed_title",
+     "en": "Desktop two-finger scroll speed",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "سرعة التمرير بإصبعين في سطح المكتب",
+      "bn": "ডেস্কটপে দুই আঙুলে স্ক্রলের গতি",
+      "de": "Desktop-Bildlaufgeschwindigkeit mit zwei Fingern",
+      "es": "Velocidad de desplazamiento con dos dedos en el escritorio",
+      "fr": "Vitesse de défilement à deux doigts du bureau",
+      "hi": "डेस्कटॉप पर दो उंगलियों से स्क्रॉल की गति",
+      "ja": "デスクトップの2本指スクロール速度",
+      "ko": "데스크톱 두 손가락 스크롤 속도",
+      "pt": "Velocidade de rolagem com dois dedos na área de trabalho",
+      "ru": "Скорость прокрутки двумя пальцами на рабочем столе",
+      "zh": "桌面双指滚动速度"
+     }
+    },
+    {
+     "name": "settings_desktop_scroll_speed_subtitle",
+     "en": "%1$.2f× — how far a two-finger scroll moves the remote page",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "%1$.2f× — مدى تحريك التمرير بإصبعين للصفحة البعيدة",
+      "bn": "%1$.2f× — দুই আঙুলে স্ক্রল দূরবর্তী পৃষ্ঠাকে কতটা সরায়",
+      "de": "%1$.2f× — wie weit ein Zwei-Finger-Bildlauf die entfernte Seite bewegt",
+      "es": "%1$.2f× — cuánto mueve la página remota un desplazamiento con dos dedos",
+      "fr": "%1$.2f× — distance parcourue par la page distante lors d\\'un défilement à deux doigts",
+      "hi": "%1$.2f× — दो उंगलियों से स्क्रॉल रिमोट पेज को कितना खिसकाता है",
+      "ja": "%1$.2f× — 2本指スクロールでリモートのページが動く量",
+      "ko": "%1$.2f× — 두 손가락 스크롤로 원격 페이지가 움직이는 거리",
+      "pt": "%1$.2f× — quanto a rolagem com dois dedos move a página remota",
+      "ru": "%1$.2f× — насколько прокрутка двумя пальцами сдвигает удалённую страницу",
+      "zh": "%1$.2f× — 双指滚动时远程页面移动的距离"
+     }
+    },
+    {
+     "name": "settings_desktop_scroll_speed_value",
+     "en": "%1$.2f×",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "%1$.2f×",
+      "bn": "%1$.2f×",
+      "de": "%1$.2f×",
+      "es": "%1$.2f×",
+      "fr": "%1$.2f×",
+      "hi": "%1$.2f×",
+      "ja": "%1$.2f×",
+      "ko": "%1$.2f×",
+      "pt": "%1$.2f×",
+      "ru": "%1$.2f×",
+      "zh": "%1$.2f×"
+     }
+    },
+    {
+     "name": "settings_desktop_scroll_speed_hint",
+     "en": "Higher scrolls further per swipe. Applies when the desktop toolbar\\'s two-finger mode is set to scroll.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "القيمة الأعلى تمرّر مسافة أكبر في كل سحبة. تنطبق عندما يكون وضع الإصبعين في شريط أدوات سطح المكتب مضبوطًا على التمرير.",
+      "bn": "বেশি মান প্রতি সোয়াইপে বেশি দূর স্ক্রল করে। ডেস্কটপ টুলবারের দুই আঙুল মোড স্ক্রলে সেট থাকলে প্রযোজ্য।",
+      "de": "Höhere Werte scrollen pro Wischen weiter. Gilt, wenn der Zwei-Finger-Modus der Desktop-Leiste auf Bildlauf steht.",
+      "es": "Un valor mayor desplaza más por cada gesto. Se aplica cuando el modo de dos dedos de la barra del escritorio está en desplazamiento.",
+      "fr": "Une valeur plus élevée fait défiler plus loin à chaque geste. S\\'applique quand le mode à deux doigts de la barre du bureau est réglé sur le défilement.",
+      "hi": "अधिक मान हर स्वाइप में अधिक दूर स्क्रॉल करता है। तब लागू होता है जब डेस्कटॉप टूलबार का दो-उंगली मोड स्क्रॉल पर हो।",
+      "ja": "値が大きいほど1回のスワイプで遠くまでスクロールします。デスクトップツールバーの2本指モードがスクロールのときに適用されます。",
+      "ko": "값이 클수록 한 번 밀 때 더 멀리 스크롤됩니다. 데스크톱 도구 모음의 두 손가락 모드가 스크롤일 때 적용됩니다.",
+      "pt": "Valores maiores rolam mais a cada gesto. Aplica-se quando o modo de dois dedos da barra da área de trabalho está em rolagem.",
+      "ru": "Чем больше значение, тем дальше прокрутка за один жест. Действует, когда режим двух пальцев на панели рабочего стола — прокрутка.",
+      "zh": "数值越大，每次滑动滚动得越远。在桌面工具栏的双指模式设为“滚动”时生效。"
+     }
+    },
+    {
+     "name": "settings_desktop_scroll_inertia_title",
+     "en": "Desktop scroll momentum",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "زخم التمرير في سطح المكتب",
+      "bn": "ডেস্কটপ স্ক্রল মোমেন্টাম",
+      "de": "Desktop-Bildlauf mit Schwung",
+      "es": "Inercia del desplazamiento en el escritorio",
+      "fr": "Défilement avec inertie du bureau",
+      "hi": "डेस्कटॉप स्क्रॉल मोमेंटम",
+      "ja": "デスクトップの慣性スクロール",
+      "ko": "데스크톱 관성 스크롤",
+      "pt": "Inércia da rolagem na área de trabalho",
+      "ru": "Инерционная прокрутка рабочего стола",
+      "zh": "桌面惯性滚动"
+     }
+    },
+    {
+     "name": "settings_desktop_scroll_inertia_subtitle",
+     "en": "A two-finger flick keeps the remote scrolling and eases to a stop, like a laptop trackpad",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "النقر السريع بإصبعين يواصل التمرير البعيد ثم يتباطأ حتى يتوقف، مثل لوحة لمس الحاسوب المحمول",
+      "bn": "দুই আঙুলে দ্রুত সোয়াইপ করলে দূরবর্তী স্ক্রল চলতে থাকে এবং ধীরে থামে, ল্যাপটপ ট্র্যাকপ্যাডের মতো",
+      "de": "Ein Zwei-Finger-Wischen lässt die entfernte Seite weiterlaufen und sanft auslaufen, wie bei einem Laptop-Trackpad",
+      "es": "Un deslizamiento rápido con dos dedos sigue desplazando el equipo remoto y se detiene poco a poco, como un trackpad de portátil",
+      "fr": "Un geste rapide à deux doigts continue de faire défiler la page distante puis ralentit jusqu\\'à l\\'arrêt, comme un pavé tactile d\\'ordinateur portable",
+      "hi": "दो उंगलियों से तेज़ स्वाइप करने पर रिमोट स्क्रॉल चलता रहता है और धीरे-धीरे रुकता है, लैपटॉप ट्रैकपैड की तरह",
+      "ja": "2本指ではじくとリモートのスクロールが続き、ノートPCのトラックパッドのように徐々に止まります",
+      "ko": "두 손가락으로 빠르게 밀면 원격 스크롤이 계속되다가 노트북 트랙패드처럼 서서히 멈춥니다",
+      "pt": "Um gesto rápido com dois dedos continua rolando o remoto e desacelera até parar, como o trackpad de um notebook",
+      "ru": "Быстрый жест двумя пальцами продолжает прокрутку удалённой страницы и плавно останавливает её, как тачпад ноутбука",
+      "zh": "双指快速一甩后远程页面继续滚动并逐渐停下，像笔记本触控板一样"
+     }
     }
    ]
   },

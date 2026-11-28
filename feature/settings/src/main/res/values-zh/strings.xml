@@ -623,4 +623,10 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_update_installed_shizuku">已通过 Shizuku 安装更新，重启 Haven 即可完成。</string>
     <string name="settings_update_installer_opened">已将校验通过的 APK 移交系统安装程序。</string>
     <string name="settings_update_install_failed">更新失败：%1$s</string>
+    <string name="settings_desktop_scroll_speed_title">桌面双指滚动速度</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — 双指滚动时远程页面移动的距离</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">数值越大，每次滑动滚动得越远。在桌面工具栏的双指模式设为“滚动”时生效。</string>
+    <string name="settings_desktop_scroll_inertia_title">桌面惯性滚动</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">双指快速一甩后远程页面继续滚动并逐渐停下，像笔记本触控板一样</string>
 </resources>

@@ -627,4 +627,10 @@
     <string name="settings_update_installed_shizuku">Обновление установлено через Shizuku. Перезапустите Haven для завершения.</string>
     <string name="settings_update_installer_opened">Проверенный APK передан системному установщику.</string>
     <string name="settings_update_install_failed">Ошибка обновления: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">Скорость прокрутки двумя пальцами на рабочем столе</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — насколько прокрутка двумя пальцами сдвигает удалённую страницу</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">Чем больше значение, тем дальше прокрутка за один жест. Действует, когда режим двух пальцев на панели рабочего стола — прокрутка.</string>
+    <string name="settings_desktop_scroll_inertia_title">Инерционная прокрутка рабочего стола</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">Быстрый жест двумя пальцами продолжает прокрутку удалённой страницы и плавно останавливает её, как тачпад ноутбука</string>
 </resources>

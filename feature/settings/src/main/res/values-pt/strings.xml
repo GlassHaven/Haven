@@ -625,4 +625,10 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_update_installed_shizuku">Atualização instalada via Shizuku. Reinicie o Haven para concluir.</string>
     <string name="settings_update_installer_opened">APK verificado entregue ao instalador do sistema.</string>
     <string name="settings_update_install_failed">Falha na atualização: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">Velocidade de rolagem com dois dedos na área de trabalho</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — quanto a rolagem com dois dedos move a página remota</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">Valores maiores rolam mais a cada gesto. Aplica-se quando o modo de dois dedos da barra da área de trabalho está em rolagem.</string>
+    <string name="settings_desktop_scroll_inertia_title">Inércia da rolagem na área de trabalho</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">Um gesto rápido com dois dedos continua rolando o remoto e desacelera até parar, como o trackpad de um notebook</string>
 </resources>

@@ -670,4 +670,10 @@ Every private key already stored in Haven will need to be imported or generated 
     <string name="settings_update_installed_shizuku">Update installed via Shizuku. Restart Haven to finish.</string>
     <string name="settings_update_installer_opened">Verified APK handed to the system installer.</string>
     <string name="settings_update_install_failed">Update failed: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">Desktop two-finger scroll speed</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — how far a two-finger scroll moves the remote page</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">Higher scrolls further per swipe. Applies when the desktop toolbar\'s two-finger mode is set to scroll.</string>
+    <string name="settings_desktop_scroll_inertia_title">Desktop scroll momentum</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">A two-finger flick keeps the remote scrolling and eases to a stop, like a laptop trackpad</string>
 </resources>

@@ -239,6 +239,9 @@ fun SettingsScreen(
     val desktopLongPressAction by viewModel.desktopLongPressAction.collectAsState()
     val desktopTwoFingerTapAction by viewModel.desktopTwoFingerTapAction.collectAsState()
     val desktopThreeFingerTapAction by viewModel.desktopThreeFingerTapAction.collectAsState()
+    val desktopScrollSpeed by viewModel.desktopScrollSpeed.collectAsState()
+    val desktopScrollInertia by viewModel.desktopScrollInertia.collectAsState()
+    var showScrollSpeedDialog by remember { mutableStateOf(false) }
     val gpuUseVenus by viewModel.gpuUseVenus.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
@@ -1057,6 +1060,19 @@ fun SettingsScreen(
             selected = desktopThreeFingerTapAction,
             label = { action -> stringResource(desktopGestureActionLabel(action)) },
             onChange = viewModel::setDesktopThreeFingerTapAction,
+        )
+        SettingsItem(
+            icon = Icons.Filled.SwapVert,
+            title = stringResource(R.string.settings_desktop_scroll_speed_title),
+            subtitle = stringResource(R.string.settings_desktop_scroll_speed_subtitle, desktopScrollSpeed),
+            onClick = { showScrollSpeedDialog = true },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.SwapVert,
+            title = stringResource(R.string.settings_desktop_scroll_inertia_title),
+            subtitle = stringResource(R.string.settings_desktop_scroll_inertia_subtitle),
+            checked = desktopScrollInertia,
+            onCheckedChange = viewModel::setDesktopScrollInertia,
         )
         // Selects the GPU stack for the native compositor.
         if (nativeFeatures.wayland) {
@@ -2220,6 +2236,17 @@ fun SettingsScreen(
             onSelect = { selected ->
                 viewModel.setTerminalDarkColorScheme(selected)
                 showDarkColorSchemeDialog = false
+            },
+        )
+    }
+
+    if (showScrollSpeedDialog) {
+        DesktopScrollSpeedDialog(
+            current = desktopScrollSpeed,
+            onDismiss = { showScrollSpeedDialog = false },
+            onConfirm = { value ->
+                viewModel.setDesktopScrollSpeed(value)
+                showScrollSpeedDialog = false
             },
         )
     }
@@ -3592,6 +3619,56 @@ private fun TerminalOpacityDialog(
                 )
                 Text(
                     text = stringResource(R.string.settings_terminal_opacity_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(sliderValue) }) {
+                Text(stringResource(R.string.common_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DesktopScrollSpeedDialog(
+    current: Float,
+    onDismiss: () -> Unit,
+    onConfirm: (Float) -> Unit,
+) {
+    var sliderValue by remember {
+        mutableFloatStateOf(
+            current.coerceIn(sh.haven.core.ui.RemoteScrollConfig.MIN_SPEED, sh.haven.core.ui.RemoteScrollConfig.MAX_SPEED),
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_desktop_scroll_speed_title)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_desktop_scroll_speed_value, sliderValue),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Slider(
+                    value = sliderValue,
+                    // Quarter steps from 0.5× to 3×.
+                    onValueChange = { sliderValue = (it * 4).roundToInt() / 4f },
+                    valueRange = sh.haven.core.ui.RemoteScrollConfig.MIN_SPEED..sh.haven.core.ui.RemoteScrollConfig.MAX_SPEED,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = stringResource(R.string.settings_desktop_scroll_speed_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

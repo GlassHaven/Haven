@@ -625,4 +625,10 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_update_installed_shizuku">Shizuku দিয়ে আপডেট ইনস্টল হয়েছে। শেষ করতে Haven পুনরায় চালু করুন।</string>
     <string name="settings_update_installer_opened">যাচাইকৃত APK সিস্টেম ইনস্টলারে পাঠানো হয়েছে।</string>
     <string name="settings_update_install_failed">আপডেট ব্যর্থ: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">ডেস্কটপে দুই আঙুলে স্ক্রলের গতি</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — দুই আঙুলে স্ক্রল দূরবর্তী পৃষ্ঠাকে কতটা সরায়</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">বেশি মান প্রতি সোয়াইপে বেশি দূর স্ক্রল করে। ডেস্কটপ টুলবারের দুই আঙুল মোড স্ক্রলে সেট থাকলে প্রযোজ্য।</string>
+    <string name="settings_desktop_scroll_inertia_title">ডেস্কটপ স্ক্রল মোমেন্টাম</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">দুই আঙুলে দ্রুত সোয়াইপ করলে দূরবর্তী স্ক্রল চলতে থাকে এবং ধীরে থামে, ল্যাপটপ ট্র্যাকপ্যাডের মতো</string>
 </resources>

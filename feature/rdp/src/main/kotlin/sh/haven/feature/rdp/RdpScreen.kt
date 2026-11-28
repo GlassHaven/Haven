@@ -519,7 +519,9 @@ private fun RdpViewer(
     // Two-finger drag target: false = pan the local viewport (when zoomed),
     // true = forward as remote scroll-wheel. Pinch always zooms. Toolbar
     // toggle (#286 — 3-finger gestures are unreliable on OnePlus/OxygenOS).
-    var twoFingerScroll by rememberSaveable { mutableStateOf(false) }
+    // Remembered across sessions when the host provides the preference.
+    val twoFingerScrollPref = sh.haven.core.ui.LocalRemoteTwoFingerScroll.current
+    var twoFingerScroll by rememberSaveable { mutableStateOf(twoFingerScrollPref?.initial ?: false) }
 
     // #598: the server only sends a cursor SHAPE when the guest first moves its
     // own cursor, so a freshly connected session has input but nothing to draw
@@ -1142,7 +1144,10 @@ private fun RdpViewer(
                         twoFingerScroll = twoFingerScroll,
                         scrollOnDescription = stringResource(R.string.rdp_cd_two_finger_scroll_on),
                         viewportDescription = stringResource(R.string.rdp_cd_two_finger_viewport),
-                    ) { twoFingerScroll = !twoFingerScroll }
+                    ) {
+                        twoFingerScroll = !twoFingerScroll
+                        twoFingerScrollPref?.onChange?.invoke(twoFingerScroll)
+                    }
                 }
                 if (externalDisplay.hasExternalDisplay) {
                     sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
@@ -1296,7 +1301,10 @@ private fun RdpViewer(
                             twoFingerScroll = twoFingerScroll,
                             scrollOnDescription = stringResource(R.string.rdp_cd_two_finger_scroll_on),
                             viewportDescription = stringResource(R.string.rdp_cd_two_finger_viewport),
-                        ) { twoFingerScroll = !twoFingerScroll }
+                        ) {
+                        twoFingerScroll = !twoFingerScroll
+                        twoFingerScrollPref?.onChange?.invoke(twoFingerScroll)
+                    }
                     }
                     if (externalDisplay.hasExternalDisplay) {
                         sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {

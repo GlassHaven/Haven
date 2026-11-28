@@ -625,4 +625,10 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_update_installed_shizuku">Mise à jour installée via Shizuku. Redémarrez Haven pour terminer.</string>
     <string name="settings_update_installer_opened">APK vérifié transmis à l\'installateur système.</string>
     <string name="settings_update_install_failed">Échec de la mise à jour : %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">Vitesse de défilement à deux doigts du bureau</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — distance parcourue par la page distante lors d\'un défilement à deux doigts</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">Une valeur plus élevée fait défiler plus loin à chaque geste. S\'applique quand le mode à deux doigts de la barre du bureau est réglé sur le défilement.</string>
+    <string name="settings_desktop_scroll_inertia_title">Défilement avec inertie du bureau</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">Un geste rapide à deux doigts continue de faire défiler la page distante puis ralentit jusqu\'à l\'arrêt, comme un pavé tactile d\'ordinateur portable</string>
 </resources>

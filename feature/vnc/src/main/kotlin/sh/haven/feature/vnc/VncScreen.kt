@@ -530,7 +530,9 @@ private fun VncViewer(
     // Desktop only: two-finger drag = viewport pan (false) vs remote
     // scroll-wheel (true). Pinch always zooms. Toolbar toggle (#286 —
     // 3-finger gestures are unreliable on OnePlus/OxygenOS).
-    var twoFingerScroll by rememberSaveable { mutableStateOf(false) }
+    // Remembered across sessions when the host provides the preference.
+    val twoFingerScrollPref = sh.haven.core.ui.LocalRemoteTwoFingerScroll.current
+    var twoFingerScroll by rememberSaveable { mutableStateOf(twoFingerScrollPref?.initial ?: false) }
     // 3-finger fullscreen output-scale gesture (app windows): accumulates the
     // pinch and pushes quantized scale changes to the live cage via onChangeScale.
     var outputScale by remember { mutableFloatStateOf(currentScale) }
@@ -1095,7 +1097,10 @@ private fun VncViewer(
                         twoFingerScroll = twoFingerScroll,
                         scrollOnDescription = stringResource(R.string.vnc_cd_two_finger_scroll_on),
                         viewportDescription = stringResource(R.string.vnc_cd_two_finger_viewport),
-                    ) { twoFingerScroll = !twoFingerScroll }
+                    ) {
+                        twoFingerScroll = !twoFingerScroll
+                        twoFingerScrollPref?.onChange?.invoke(twoFingerScroll)
+                    }
                 }
                 if (externalDisplay.hasExternalDisplay) {
                     sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
@@ -1273,7 +1278,10 @@ private fun VncViewer(
                             twoFingerScroll = twoFingerScroll,
                             scrollOnDescription = stringResource(R.string.vnc_cd_two_finger_scroll_on),
                             viewportDescription = stringResource(R.string.vnc_cd_two_finger_viewport),
-                        ) { twoFingerScroll = !twoFingerScroll }
+                        ) {
+                        twoFingerScroll = !twoFingerScroll
+                        twoFingerScrollPref?.onChange?.invoke(twoFingerScroll)
+                    }
                     }
                     if (externalDisplay.hasExternalDisplay) {
                         sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {

@@ -625,4 +625,10 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_update_installed_shizuku">Update über Shizuku installiert. Starten Sie Haven zum Abschließen neu.</string>
     <string name="settings_update_installer_opened">Geprüfte APK an das System-Installationsprogramm übergeben.</string>
     <string name="settings_update_install_failed">Update fehlgeschlagen: %1$s</string>
+    <string name="settings_desktop_scroll_speed_title">Desktop-Bildlaufgeschwindigkeit mit zwei Fingern</string>
+    <string name="settings_desktop_scroll_speed_subtitle">%1$.2f× — wie weit ein Zwei-Finger-Bildlauf die entfernte Seite bewegt</string>
+    <string name="settings_desktop_scroll_speed_value">%1$.2f×</string>
+    <string name="settings_desktop_scroll_speed_hint">Höhere Werte scrollen pro Wischen weiter. Gilt, wenn der Zwei-Finger-Modus der Desktop-Leiste auf Bildlauf steht.</string>
+    <string name="settings_desktop_scroll_inertia_title">Desktop-Bildlauf mit Schwung</string>
+    <string name="settings_desktop_scroll_inertia_subtitle">Ein Zwei-Finger-Wischen lässt die entfernte Seite weiterlaufen und sanft auslaufen, wie bei einem Laptop-Trackpad</string>
 </resources>

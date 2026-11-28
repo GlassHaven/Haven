@@ -122,7 +122,9 @@ internal class PresentationHostViewModel @Inject constructor(
         preferencesRepository.desktopLongPressAction,
         preferencesRepository.desktopTwoFingerTapAction,
         preferencesRepository.desktopThreeFingerTapAction,
-    ) { lp, two, three ->
+        preferencesRepository.desktopScrollSpeed,
+        preferencesRepository.desktopScrollInertia,
+    ) { lp, two, three, speed, inertia ->
         sh.haven.core.ui.DesktopMouseGestureConfig(
             longPressAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
                 lp,
@@ -136,6 +138,7 @@ internal class PresentationHostViewModel @Inject constructor(
                 three,
                 sh.haven.core.ui.DesktopGestureAction.NONE,
             ),
+            scroll = sh.haven.core.ui.RemoteScrollConfig(speed = speed, inertia = inertia),
         )
     }.stateIn(
         viewModelScope,

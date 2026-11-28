@@ -42,6 +42,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -88,6 +90,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** Trackpad sensitivity slider range (#696): 0.2 (fine) up to 3.0 (fast) in 0.1 steps. */
@@ -118,6 +122,8 @@ data class DesktopMouseGestureConfig(
     val longPressAction: DesktopGestureAction = DesktopGestureAction.RIGHT_CLICK,
     val twoFingerTapAction: DesktopGestureAction = DesktopGestureAction.MIDDLE_CLICK,
     val threeFingerTapAction: DesktopGestureAction = DesktopGestureAction.NONE,
+    /** Two-finger remote scrolling: speed and inertia. See [RemoteScrollTracker]. */
+    val scroll: RemoteScrollConfig = RemoteScrollConfig.DEFAULT,
 ) {
     companion object {
         val DEFAULT = DesktopMouseGestureConfig()
@@ -769,6 +775,10 @@ fun RemoteDesktopViewport(
     val currentOnReleaseButton by rememberUpdatedState(onReleaseButton)
     val currentThreeFingerPinch by rememberUpdatedState(onThreeFingerPinchRatio)
     val currentCustomTouchHandler by rememberUpdatedState(customTouchGestureHandler)
+    // Momentum scrolling outlives the gesture that started it; it is cancelled
+    // by the next touch and when the viewport leaves composition.
+    val flingScope = rememberCoroutineScope()
+    var flingJob by remember { mutableStateOf<Job?>(null) }
 
     Box(
         modifier = modifier
@@ -862,7 +872,11 @@ fun RemoteDesktopViewport(
                     var prevSpan = 0f
                     var prevCount = 0
                     var gestureStarted = false
-                    var cumulativeScrollY = 0f
+                    val scrollTracker = RemoteScrollTracker(currentMouseGestures.scroll)
+                    // A new touch stops a running fling, as on a trackpad.
+                    flingJob?.cancel()
+                    flingJob = null
+                    var scrolledThisGesture = false
                     var totalMovement = 0f
                     var twoFingerMovement = 0f
                     var lastSinglePos = firstDown.position
@@ -1002,11 +1016,30 @@ fun RemoteDesktopViewport(
                                             ),
                                         )
                                     } else if (currentTwoFingerScroll || (currentScrollWhenUnzoomed && state.zoom <= 1.01f)) {
-                                        cumulativeScrollY += dy
-                                        if (abs(cumulativeScrollY) > 40f) {
-                                            if (cumulativeScrollY < 0f) currentOnScrollDown() else currentOnScrollUp()
-                                            cumulativeScrollY = 0f
+                                        if (!scrolledThisGesture && !isMouseDevice && inputMode != "TOUCHPAD") {
+                                            // The remote scrolls whatever is under its pointer, so
+                                            // put it under the fingers first — as the hardware wheel
+                                            // path above does. Touchpad mode keeps its cursor where
+                                            // it is, as a laptop trackpad does.
+                                            val pos = screenToRemoteDesktop(
+                                                offset = centroid,
+                                                viewSize = state.viewSize,
+                                                fbWidth = frame.width,
+                                                fbHeight = frame.height,
+                                                zoom = state.zoom,
+                                                panX = state.panX,
+                                                panY = state.panY,
+                                                coverFill = currentCoverFill,
+                                            )
+                                            state.setVirtualCursorPosition(pos)
+                                            currentOnDrag(pos.first, pos.second)
                                         }
+                                        val notches = scrollTracker.drag(
+                                            remoteDy = dy / remoteDesktopScreenScale(state, frame, currentCoverFill),
+                                            uptimeMs = event.changes.first().uptimeMillis,
+                                        )
+                                        scrolledThisGesture = true
+                                        sendWheelNotches(notches, currentOnScrollUp, currentOnScrollDown)
                                     } else if (state.zoom > 1f) {
                                         state.applyTransform(
                                             applyRemoteViewportPan(
@@ -1124,6 +1157,22 @@ fun RemoteDesktopViewport(
                     val activeHeld = currentHeldButton
                     val activeGestures = currentMouseGestures
                     val upUptimeMs = event.changes.maxOfOrNull { it.uptimeMillis } ?: SystemClock.uptimeMillis()
+
+                    // Trackpad momentum: a two-finger flick keeps the remote
+                    // scrolling, decelerating, off the gesture's coroutine so the
+                    // next touch is handled (and cancels it) immediately.
+                    if (scrolledThisGesture) {
+                        scrollTracker.fling(scrollTracker.releaseVelocity(upUptimeMs))?.let { fling ->
+                            flingJob = flingScope.launch {
+                                var last = withFrameMillis { it }
+                                while (fling.isRunning) {
+                                    val now = withFrameMillis { it }
+                                    sendWheelNotches(fling.step(now - last), currentOnScrollUp, currentOnScrollDown)
+                                    last = now
+                                }
+                            }
+                        }
+                    }
                     val gestureDurationMs = (upUptimeMs - downUptimeMs).coerceAtLeast(0L)
                     if (
                         shouldFireRemotePostGestureTap(
@@ -1746,4 +1795,25 @@ fun RemoteMouseButtonToggles(
             Text(label, style = MaterialTheme.typography.labelLarge)
         }
     }
+}
+
+/**
+ * Screen pixels per remote framebuffer pixel at the viewport's current fit and
+ * zoom, so a finger movement can be measured in remote pixels.
+ */
+internal fun remoteDesktopScreenScale(state: RemoteDesktopViewportState, frame: Bitmap, coverFill: Boolean): Float {
+    val viewW = state.viewSize.width.toFloat()
+    val viewH = state.viewSize.height.toFloat()
+    if (viewW <= 0f || viewH <= 0f || frame.width <= 0 || frame.height <= 0) return 1f
+    val fit = if (coverFill) {
+        maxOf(viewW / frame.width, viewH / frame.height)
+    } else {
+        minOf(viewW / frame.width, viewH / frame.height)
+    }
+    return (fit * state.zoom).takeIf { it > 0f } ?: 1f
+}
+
+/** Positive [notches] are wheel-up, negative wheel-down (see [RemoteScrollTracker]). */
+private fun sendWheelNotches(notches: Int, onScrollUp: () -> Unit, onScrollDown: () -> Unit) {
+    if (notches > 0) repeat(notches) { onScrollUp() } else if (notches < 0) repeat(-notches) { onScrollDown() }
 }

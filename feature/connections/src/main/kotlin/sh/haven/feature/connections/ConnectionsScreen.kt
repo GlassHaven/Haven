@@ -107,6 +107,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -1241,20 +1242,31 @@ fun ConnectionsScreen(
             } else {
                 // Build tree: top-level profiles first, then dependents nested beneath.
                 val profileMap = connections.associateBy { it.id }
-                val dependentsByParent = connections
-                    .mapNotNull { profile ->
-                        // Nest a profile under the SSH profile that carries its
-                        // tunnel: a jump-host chain, or a VNC/RDP/SMB-over-SSH
-                        // forward. VNC/SMB are gated by their forward flag
-                        // (vncSshForward defaults true) so a direct connection
-                        // with a stale sshProfileId isn't wrongly nested.
-                        val parentId = profile.jumpProfileId
-                            ?: profile.vncSshProfileId?.takeIf { profile.vncSshForward }
-                            ?: profile.rdpSshProfileId
-                            ?: profile.smbSshProfileId?.takeIf { profile.smbSshForward }
-                        if (parentId != null && parentId in profileMap) parentId to profile else null
-                    }
-                    .groupBy({ it.first }, { it.second })
+                // Children nest under the SSH profile that carries their tunnel;
+                // see dependentParentId for what counts.
+                val storedDependents = groupDependents(connections)
+
+                // Drag-to-reorder state for dependents. A dependent only ever
+                // changes places with its siblings, so the state is one order
+                // per parent rather than a second flat list.
+                var draggedChildId by remember { mutableStateOf<String?>(null) }
+                var childDragOffset by remember { mutableFloatStateOf(0f) }
+                // The sibling orders we last wrote, each held until the
+                // database echoes it back — the same in-flight handshake the
+                // top-level list needs, for the same reason (#488).
+                val siblingOverrides = remember { mutableStateMapOf<String, List<String>>() }
+                if (draggedChildId == null) {
+                    siblingOverrides.entries
+                        .filter { (parentId, order) ->
+                            val stored = storedDependents[parentId].orEmpty().map { it.id }
+                            // Caught up, or the children changed underneath us.
+                            stored == order || stored.toSet() != order.toSet()
+                        }
+                        .forEach { siblingOverrides.remove(it.key) }
+                }
+                fun orderedDependents(parentId: String): List<ConnectionProfile> =
+                    applySiblingOrder(storedDependents[parentId].orEmpty(), siblingOverrides[parentId])
+                val dependentsByParent = storedDependents.mapValues { orderedDependents(it.key) }
                 val renderedAsChild = dependentsByParent.values.flatten().map { it.id }.toSet()
                 // Local profiles show in the list like every other transport.
                 // The topbar Terminal icon is a quick-launch convenience for
@@ -1557,15 +1569,26 @@ fun ConnectionsScreen(
                             // someone manages to create a jumpProfileId cycle. (#116)
                             val ancestorDragged = draggedId == profile.id
                             val visited = mutableSetOf<String>(profile.id)
-                            // Triple: (profile, indent, isLastSibling-at-this-level)
-                            val stack = ArrayDeque<Triple<ConnectionProfile, Int, Boolean>>()
+                            val stack = ArrayDeque<DependentRow>()
                             val topKids = dependentsByParent[profile.id].orEmpty()
                             // Push in reverse so the popped order matches sibling order.
                             for (i in topKids.indices.reversed()) {
-                                stack.addFirst(Triple(topKids[i], 1, i == topKids.lastIndex))
+                                stack.addFirst(
+                                    DependentRow(
+                                        profile = topKids[i],
+                                        parentId = profile.id,
+                                        indent = 1,
+                                        isLastAtLevel = i == topKids.lastIndex,
+                                        lifted = topKids[i].id == draggedChildId,
+                                    ),
+                                )
                             }
                             while (stack.isNotEmpty()) {
-                                val (dep, depIndent, isLastAtLevel) = stack.removeFirst()
+                                val row = stack.removeFirst()
+                                val dep = row.profile
+                                val depIndent = row.indent
+                                val isLastAtLevel = row.isLastAtLevel
+                                val parentId = row.parentId
                                 if (!visited.add(dep.id)) continue
                                 item(key = dep.id) {
                                     ConnectionTreeItem(
@@ -1602,19 +1625,70 @@ fun ConnectionsScreen(
                                         onReauthRclone = { viewModel.reauthRcloneProfile(dep) },
                                         onCancelOAuth = { viewModel.cancelPendingOAuth(dep) },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
-                                        dragModifier = if (ancestorDragged) Modifier
+                                        enableDrag = !isFiltering,
+                                        // Follows a dragged top-level ancestor, or
+                                        // the dependent being dragged above it.
+                                        dragModifier = if (ancestorDragged || row.lifted) Modifier
                                             .zIndex(1f)
                                             .offset(
                                                 y = with(LocalDensity.current) {
-                                                    dragOffset.roundToInt().toDp()
+                                                    (if (ancestorDragged) dragOffset else childDragOffset)
+                                                        .roundToInt().toDp()
                                                 },
                                             ) else Modifier,
+                                        onDragStart = {
+                                            draggedChildId = dep.id
+                                            childDragOffset = 0f
+                                        },
+                                        onDrag = { delta ->
+                                            childDragOffset += delta
+                                            if (childDragOffset == 0f) return@ConnectionTreeItem
+                                            // Read from state rather than the composed
+                                            // dependentsByParent, which is a frame behind
+                                            // once a swap has already happened this gesture.
+                                            val siblings = orderedDependents(parentId).map { it.id }
+                                            val down = childDragOffset > 0
+                                            val neighbour = siblings
+                                                .getOrNull(siblings.indexOf(dep.id) + if (down) 1 else -1)
+                                                ?: return@ConnectionTreeItem
+                                            // The neighbour moves with everything nested
+                                            // under it, so that whole block is the step.
+                                            val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
+                                            val dist = subtreeIds(neighbour) { id ->
+                                                orderedDependents(id).map { it.id }
+                                            }.sumOf { id -> visibleItems.find { it.key == id }?.size ?: 0 }
+                                            if (dist <= 0 || abs(childDragOffset) <= dist / 2) {
+                                                return@ConnectionTreeItem
+                                            }
+                                            val moved = moveSibling(siblings, dep.id, down)
+                                                ?: return@ConnectionTreeItem
+                                            siblingOverrides[parentId] = moved
+                                            // Same continuity correction as the top-level drag.
+                                            childDragOffset += if (down) -dist else dist
+                                        },
+                                        onDragEnd = {
+                                            draggedChildId = null
+                                            childDragOffset = 0f
+                                            // Siblings only compare with each other, so
+                                            // renumbering them from zero touches nothing else.
+                                            siblingOverrides[parentId]?.forEachIndexed { idx, id ->
+                                                viewModel.updateSortOrder(id, idx)
+                                            }
+                                        },
                                     )
                                 }
                                 // Push this dep's children at the next indent level.
                                 val grandKids = dependentsByParent[dep.id].orEmpty()
                                 for (i in grandKids.indices.reversed()) {
-                                    stack.addFirst(Triple(grandKids[i], depIndent + 1, i == grandKids.lastIndex))
+                                    stack.addFirst(
+                                        DependentRow(
+                                            profile = grandKids[i],
+                                            parentId = dep.id,
+                                            indent = depIndent + 1,
+                                            isLastAtLevel = i == grandKids.lastIndex,
+                                            lifted = row.lifted || grandKids[i].id == draggedChildId,
+                                        ),
+                                    )
                                 }
                             }
                         }
@@ -1874,8 +1948,9 @@ private fun ConnectionTreeItem(
 
     Box(modifier = dragModifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Drag handle for top-level items (hidden when filtering)
-            if (indent == 0 && enableDrag) {
+            // Drag handle (hidden when filtering). Dependents get one too, ahead
+            // of their tree connector so every handle sits in the same column.
+            if (enableDrag) {
                 val currentOnDragStart by rememberUpdatedState(onDragStart)
                 val currentOnDrag by rememberUpdatedState(onDrag)
                 val currentOnDragEnd by rememberUpdatedState(onDragEnd)
@@ -2458,6 +2533,17 @@ private fun ConnectionGroupHeader(
     }
     HorizontalDivider()
 }
+
+/** One dependent row queued for the connection list's depth-first walk. */
+private data class DependentRow(
+    val profile: ConnectionProfile,
+    /** The profile this row is drawn under, whose children it reorders among. */
+    val parentId: String,
+    val indent: Int,
+    val isLastAtLevel: Boolean,
+    /** This row, or a dependent above it, is the one being dragged. */
+    val lifted: Boolean,
+)
 
 /**
  * Swap a group with the group above or below it, carrying its connections

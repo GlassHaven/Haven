@@ -141,6 +141,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
@@ -3413,13 +3414,17 @@ private fun StallBanner(
     }
 }
 
+/** How long [AttachNoticeBanner] stays up before dismissing itself. */
+private const val ATTACH_NOTICE_TIMEOUT_MS = 15_000L
+
 /**
  * Top-aligned banner shown over an SSH terminal when the shell came up but
  * the configured session manager didn't (#731): the start command we typed
  * into the PTY failed silently (tmux/screen not installed, or a POSIX
  * one-liner through cmd.exe on a Windows host) and the user landed in a
  * plain login shell. Names the cause instead of leaving it unexplained.
- * Hidden when the flow is null (healthy attach or non-SSH tab).
+ * Hidden when the flow is null (healthy attach or non-SSH tab). Dismissed by
+ * its close button, or by itself after [ATTACH_NOTICE_TIMEOUT_MS].
  */
 @Composable
 private fun AttachNoticeBanner(
@@ -3435,6 +3440,14 @@ private fun AttachNoticeBanner(
         modifier = modifier,
     ) {
         val n = notice ?: return@AnimatedVisibility
+        // The notice explains something that already happened; once read it is
+        // only covering the first lines of the terminal. Keyed on the notice so
+        // a new one after a reconnect gets its own full interval.
+        val currentOnDismiss by rememberUpdatedState(onDismiss)
+        LaunchedEffect(n) {
+            delay(ATTACH_NOTICE_TIMEOUT_MS)
+            currentOnDismiss()
+        }
         val text = when (n) {
             is SessionAttachNotice.ManagerUnavailable ->
                 stringResource(R.string.terminal_attach_notice_unavailable, n.manager.label)
@@ -3462,10 +3475,16 @@ private fun AttachNoticeBanner(
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelMedium,
+                    // Weighted so the close button is measured first. Unweighted,
+                    // the text took the whole row whenever it wrapped — which
+                    // this sentence always does on a phone — and the button
+                    // after it was laid out zero pixels wide: present in the
+                    // tree, invisible and untappable on screen.
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                // The banner has no auto-dismiss; without this the notice only
-                // cleared on re-attach or session removal, so it could not be
-                // gotten rid of (#731 follow-up).
+                Spacer(Modifier.width(8.dp))
+                // Without this the notice only cleared on re-attach or session
+                // removal (#731 follow-up).
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.size(24.dp),

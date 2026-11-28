@@ -7,6 +7,7 @@ compare link is appended automatically — don't add it here.
 
 ## v5.94.92
 
+- Make the `Session manager … did not start` banner over the terminal dismissible: its close button was laid out zero pixels wide whenever the message wrapped (always, on a phone), so the banner could not be closed and sat over the first lines of the terminal until the session ended; the button now keeps its place beside the text, and the banner also dismisses itself after 15 seconds. The same squeeze is closed off for the `Require PIN at every sign-in` switch when registering a security key, where a long translated label could push the switch out of the row.
 - Sync status and navigation bar icon contrast with the active theme (`Light`, `Dark`, and `System Default`) inside `HavenTheme`, track opaque terminal background luminance across color schemes in `HavenNavHost`, unwrap `ContextWrapper` chains when looking up the host `Window` in `TerminalScreen`, `RdpScreen`, and `VncScreen`, and enable edge-to-edge system bar contrast in `TaskerEditActivity` (#898, thanks iptsh).
 
 ## v5.94.91

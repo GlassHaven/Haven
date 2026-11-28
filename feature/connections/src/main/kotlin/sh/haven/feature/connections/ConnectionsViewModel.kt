@@ -2034,7 +2034,12 @@ class ConnectionsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val existing = repository.getById(profile.id)
-                repository.save(profile)
+                // A connection arriving under a jump host goes after the
+                // children already there, not into an order arranged by hand.
+                val toSave = sortOrderAfterSiblings(profile, existing, connections.value)
+                    ?.let { profile.copy(sortOrder = it) }
+                    ?: profile
+                repository.save(toSave)
                 if (existing != null && routingOrEndpointChanged(existing, profile)) {
                     disconnectSessionsOnRouteChange(existing, profile)
                 }
@@ -2504,7 +2509,11 @@ class ConnectionsViewModel @Inject constructor(
                 label = "${profile.label} (copy)",
                 lastConnected = null,
             )
-            repository.save(copy)
+            repository.save(
+                sortOrderAfterSiblings(copy, existing = null, connections.value)
+                    ?.let { copy.copy(sortOrder = it) }
+                    ?: copy,
+            )
         }
     }
 

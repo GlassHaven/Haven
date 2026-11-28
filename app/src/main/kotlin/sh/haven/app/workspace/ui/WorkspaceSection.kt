@@ -24,7 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.app.R
-import sh.haven.app.workspace.WorkspaceLaunchState
 import sh.haven.app.workspace.WorkspaceViewModel
 import sh.haven.core.data.db.entities.WorkspaceProfile
 
@@ -49,7 +48,7 @@ fun WorkspaceSection(
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -74,14 +73,9 @@ fun WorkspaceSection(
             onDismiss = viewModel::acknowledge,
         )
 
-        if (workspaces.isEmpty() && launchState is WorkspaceLaunchState.Idle) {
-            Text(
-                text = stringResource(R.string.workspace_empty_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-        } else {
+        // No empty-state paragraph: with nothing saved the section is just
+        // its header row, and the Save dialog explains what a workspace is.
+        if (workspaces.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (ws in workspaces) {
                     WorkspaceCard(
@@ -92,8 +86,8 @@ fun WorkspaceSection(
                     )
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(8.dp))
     }
 
     if (showSaveDialog) {

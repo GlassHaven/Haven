@@ -67,6 +67,14 @@ fun SaveWorkspaceDialog(
         title = { Text(stringResource(R.string.workspace_save_dialog_title)) },
         text = {
             Column {
+                // What a workspace is for, said where one is made rather
+                // than as a standing paragraph on the Connections screen.
+                Text(
+                    text = stringResource(R.string.workspace_empty_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },

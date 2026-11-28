@@ -11221,23 +11221,23 @@
      }
     },
     {
-     "name": "connections_quick_connect_placeholder",
-     "en": "user@host or host:port",
+     "name": "connections_filter_or_connect_placeholder",
+     "en": "Filter, or user@host",
      "comment": "Connections screen",
      "args": [],
      "t": {
-      "ar": "user@host أو host:port",
-      "bn": "user@host বা host:port",
-      "de": "user@host oder host:port",
-      "es": "user@host o host:port",
-      "fr": "user@host ou host:port",
-      "hi": "user@host या host:port",
-      "ja": "user@host または host:port",
-      "ko": "user@host 또는 host:port",
-      "pt": "user@host ou host:port",
-      "ru": "user@host или host:port",
-      "sr": "корисник@хост или хост:порт",
-      "zh": "user@host 或 host:port"
+      "ar": "تصفية، أو user@host",
+      "bn": "ফিল্টার, বা user@host",
+      "de": "Filtern oder user@host",
+      "es": "Filtrar, o user@host",
+      "fr": "Filtrer, ou user@host",
+      "hi": "फ़िल्टर, या user@host",
+      "ja": "フィルター、または user@host",
+      "ko": "필터 또는 user@host",
+      "pt": "Filtrar, ou user@host",
+      "ru": "Фильтр или user@host",
+      "sr": "Филтер или корисник@хост",
+      "zh": "筛选，或输入 user@host"
      }
     },
     {
@@ -11281,23 +11281,25 @@
      }
     },
     {
-     "name": "connections_filter_placeholder",
-     "en": "Filter connections\\u2026",
+     "name": "connections_connect_directly",
+     "en": "Connect to %1$s",
      "comment": "Connections screen",
-     "args": [],
+     "args": [
+      "%1$s"
+     ],
      "t": {
-      "ar": "تصفية الاتصالات\\u2026",
-      "bn": "সংযোগ ফিল্টার করুন\\u2026",
-      "de": "Verbindungen filtern\\u2026",
-      "es": "Filtrar conexiones\\u2026",
-      "fr": "Filtrer les connexions\\u2026",
-      "hi": "कनेक्शन फ़िल्टर करें\\u2026",
-      "ja": "接続をフィルター\\u2026",
-      "ko": "연결 필터…",
-      "pt": "Filtrar conexões\\u2026",
-      "ru": "Фильтр подключений\\u2026",
-      "sr": "Филтер веза…",
-      "zh": "筛选连接\\u2026"
+      "ar": "الاتصال بـ %1$s",
+      "bn": "%1$s-এ সংযোগ করুন",
+      "de": "Mit %1$s verbinden",
+      "es": "Conectar a %1$s",
+      "fr": "Se connecter à %1$s",
+      "hi": "%1$s से कनेक्ट करें",
+      "ja": "%1$s に接続",
+      "ko": "%1$s에 연결",
+      "pt": "Conectar a %1$s",
+      "ru": "Подключиться к %1$s",
+      "sr": "Повежи се на %1$s",
+      "zh": "连接到 %1$s"
      }
     },
     {

@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">সংযোগ</string>
     <string name="connections_add">সংযোগ যোগ করুন</string>
-    <string name="connections_quick_connect_placeholder">user@host বা host:port</string>
+    <string name="connections_filter_or_connect_placeholder">ফিল্টার, বা user@host</string>
     <string name="connections_quick_connect_button">সংযোগ</string>
     <string name="connections_quick_connect_error">ফরম্যাট: user@host বা user@host:port ব্যবহার করুন</string>
-    <string name="connections_filter_placeholder">সংযোগ ফিল্টার করুন\u2026</string>
+    <string name="connections_connect_directly">%1$s-এ সংযোগ করুন</string>
     <string name="connections_filter_clear">ফিল্টার মুছুন</string>
     <string name="connections_reorder">পুনর্বিন্যাস</string>
 

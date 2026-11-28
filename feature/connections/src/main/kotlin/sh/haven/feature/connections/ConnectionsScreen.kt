@@ -351,7 +351,6 @@ fun ConnectionsScreen(
     var deployingProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     var portForwardProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     // (setupDesktopDe removed in 3c — Desktop install UI moved to top-level Desktop tab.)
-    var quickConnectText by rememberSaveable { mutableStateOf("") }
     var filterText by rememberSaveable { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1190,64 +1189,48 @@ fun ConnectionsScreen(
                 }
             }
 
-            // Quick connect bar
+            // One field for both jobs the two bars above the list used to
+            // split: it filters the saved connections as you type, and dials
+            // what you typed when that is an address rather than a search.
             val quickConnectError = stringResource(R.string.connections_quick_connect_error)
-            OutlinedTextField(
-                value = quickConnectText,
-                onValueChange = { quickConnectText = it },
-                placeholder = { Text(stringResource(R.string.connections_quick_connect_placeholder)) },
-                singleLine = true,
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            quickConnectAction(
-                                quickConnectText, viewModel, sshKeys,
-                                { connectingProfile = it },
-                                { quickConnectText = "" },
-                                quickConnectError,
-                            )
-                        },
-                        enabled = quickConnectText.isNotBlank(),
-                    ) {
-                        Icon(Icons.Filled.Cable, contentDescription = stringResource(R.string.connections_quick_connect_button))
+            val keyboard = LocalSoftwareKeyboardController.current
+            val connectDirectly = {
+                quickConnectAction(
+                    filterText, viewModel, sshKeys,
+                    { connectingProfile = it },
+                    { filterText = "" },
+                    quickConnectError,
+                )
+            }
+            // Offered only for input the quick-connect parser accepts, so a
+            // plain search word never grows a "connect" row.
+            val directTarget = filterText.trim()
+                .takeIf { it.isNotEmpty() && viewModel.parseQuickConnect(it) != null }
+            FilterOrConnectField(
+                value = filterText,
+                onValueChange = { filterText = it },
+                onConnect = connectDirectly,
+                onGo = {
+                    // Go dials only when nothing saved matches: someone
+                    // narrowing the list must not be connected to their
+                    // search term, while user@host for a new machine matches
+                    // nothing and connects as it always has.
+                    if (directTarget != null && connections.none { matchesConnectionFilter(it, filterText) }) {
+                        connectDirectly()
+                    } else {
+                        keyboard?.hide()
                     }
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                keyboardActions = KeyboardActions(
-                    onGo = {
-                        quickConnectAction(
-                            quickConnectText, viewModel, sshKeys,
-                            { connectingProfile = it },
-                            { quickConnectText = "" },
-                            quickConnectError,
-                        )
-                    },
-                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 8.dp),
             )
-
-            // Filter/search bar
-            if (connections.isNotEmpty()) {
-                OutlinedTextField(
-                    value = filterText,
-                    onValueChange = { filterText = it },
-                    placeholder = { Text(stringResource(R.string.connections_filter_placeholder)) },
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (filterText.isNotEmpty()) {
-                            IconButton(onClick = { filterText = "" }) {
-                                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.connections_filter_clear))
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp),
-                )
+            // Outside the list on purpose: as its first item it would be
+            // inserted above the row the list is anchored to, and land
+            // scrolled out of view.
+            if (directTarget != null) {
+                DirectConnectRow(target = directTarget, onClick = connectDirectly)
             }
 
             // Linux VM card — shown when Terminal app is installed and not hidden in settings
@@ -1296,11 +1279,7 @@ fun ConnectionsScreen(
                 // Filter by search text (match label, host, username)
                 val isFiltering = filterText.isNotBlank()
                 val query = filterText.lowercase()
-                fun matchesFilter(p: ConnectionProfile): Boolean =
-                    isFiltering && (
-                        p.label.lowercase().contains(query) ||
-                            p.host.lowercase().contains(query) ||
-                            p.username.lowercase().contains(query))
+                fun matchesFilter(p: ConnectionProfile): Boolean = matchesConnectionFilter(p, filterText)
 
                 // Build a unified flat list: ungrouped connections + (group header + its connections) ...
                 // Group headers use key "group-{id}", connections use their profile id.
@@ -1432,7 +1411,13 @@ fun ConnectionsScreen(
                     displayedRows(reorderedIds, collapsedGroupIds, dragged = draggedId)
                 }
 
-                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
+                    // Room to scroll the last rows — and their drag handles —
+                    // clear of the FAB.
+                    contentPadding = PaddingValues(bottom = 88.dp),
+                ) {
                     item(key = "workspace-section") { workspaceSection() }
                     displayIds.forEach { key ->
                         if (key.startsWith("group-")) {
@@ -1710,6 +1695,114 @@ fun ConnectionsScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * The search field above the list, which doubles as the quick-connect bar.
+ *
+ * An outlined text field at 48dp rather than the 56dp minimum of
+ * [OutlinedTextField]: it is always on screen, and most visits to this screen
+ * are a tap on a saved connection that never touches it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterOrConnectField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onConnect: () -> Unit,
+    onGo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.height(48.dp),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+        keyboardActions = KeyboardActions(onGo = { onGo() }),
+        interactionSource = interactionSource,
+    ) { innerTextField ->
+        OutlinedTextFieldDefaults.DecorationBox(
+            value = value,
+            innerTextField = innerTextField,
+            enabled = true,
+            singleLine = true,
+            visualTransformation = VisualTransformation.None,
+            interactionSource = interactionSource,
+            placeholder = {
+                Text(
+                    stringResource(R.string.connections_filter_or_connect_placeholder),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                Row {
+                    if (value.isNotEmpty()) {
+                        IconButton(onClick = { onValueChange("") }) {
+                            Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = stringResource(R.string.connections_filter_clear),
+                            )
+                        }
+                    }
+                    IconButton(onClick = onConnect, enabled = value.isNotBlank()) {
+                        Icon(
+                            Icons.Filled.Cable,
+                            contentDescription = stringResource(R.string.connections_quick_connect_button),
+                        )
+                    }
+                }
+            },
+            // The icons supply the horizontal inset; the default vertical
+            // padding is what forces the field to 56dp.
+            contentPadding = PaddingValues(0.dp),
+            container = {
+                OutlinedTextFieldDefaults.Container(
+                    enabled = true,
+                    isError = false,
+                    interactionSource = interactionSource,
+                )
+            },
+        )
+    }
+}
+
+/**
+ * Shown under the field while it holds something that parses as an
+ * address: tap to dial it without saving a profile.
+ */
+@Composable
+private fun DirectConnectRow(target: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(start = 8.dp, end = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(STATUS_SLOT_WIDTH), contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Filled.Cable,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(
+            stringResource(R.string.connections_connect_directly, target),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
     }
 }
 

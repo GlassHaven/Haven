@@ -107,3 +107,19 @@ internal fun sortOrderAfterSiblings(
     val siblings = others.filter { dependentParentId(it, knownIds) == parentId }
     return (siblings.maxOfOrNull { it.sortOrder } ?: -1) + 1
 }
+
+/**
+ * Whether [profile] is one the list's search field is asking for: [text]
+ * appears in its label, host, username or `user@host:port`, ignoring case. Blank text matches
+ * nothing — an empty field is not a search.
+ */
+internal fun matchesConnectionFilter(profile: ConnectionProfile, text: String): Boolean {
+    if (text.isBlank()) return false
+    val query = text.lowercase()
+    return profile.label.lowercase().contains(query) ||
+        profile.host.lowercase().contains(query) ||
+        profile.username.lowercase().contains(query) ||
+        // The address as the row shows it, so typing user@host for a machine
+        // that is already saved finds it instead of only offering to dial.
+        "${profile.username}@${profile.host}:${profile.port}".lowercase().contains(query)
+}

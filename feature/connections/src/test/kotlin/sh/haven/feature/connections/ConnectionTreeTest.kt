@@ -1,7 +1,9 @@
 package sh.haven.feature.connections
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.data.db.entities.ConnectionProfile
 
@@ -147,5 +149,31 @@ class ConnectionTreeTest {
     @Test fun topLevelProfilesAreLeftAlone() {
         assertNull(sortOrderAfterSiblings(ssh("fresh"), existing = null, all))
         assertNull(sortOrderAfterSiblings(standalone.copy(sortOrder = 9), existing = standalone, all))
+    }
+
+    // --- search ----------------------------------------------------------
+
+    @Test fun theFilterMatchesLabelHostAndUsernameIgnoringCase() {
+        val p = ConnectionProfile(id = "p", label = "Work Mac", host = "mini.example", port = 2200, username = "ywr")
+        assertTrue(matchesConnectionFilter(p, "mac"))
+        assertTrue(matchesConnectionFilter(p, "MINI"))
+        assertTrue(matchesConnectionFilter(p, "yw"))
+        assertFalse(matchesConnectionFilter(p, "nas"))
+    }
+
+    /**
+     * The field doubles as the quick-connect bar, so an address is a normal
+     * thing to type into it. One that is already saved has to be found.
+     */
+    @Test fun theFilterMatchesAnAddressTypedTheWayTheRowShowsIt() {
+        val p = ConnectionProfile(id = "p", label = "Work Mac", host = "mini.example", port = 2200, username = "ywr")
+        assertTrue(matchesConnectionFilter(p, "ywr@mini.example"))
+        assertTrue(matchesConnectionFilter(p, "mini.example:2200"))
+        assertFalse(matchesConnectionFilter(p, "root@mini.example"))
+    }
+
+    @Test fun anEmptyFieldIsNotASearch() {
+        assertFalse(matchesConnectionFilter(bastion, ""))
+        assertFalse(matchesConnectionFilter(bastion, "   "))
     }
 }

@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">الاتصالات</string>
     <string name="connections_add">إضافة اتصال</string>
-    <string name="connections_quick_connect_placeholder">user@host أو host:port</string>
+    <string name="connections_filter_or_connect_placeholder">تصفية، أو user@host</string>
     <string name="connections_quick_connect_button">اتصال</string>
     <string name="connections_quick_connect_error">استخدم التنسيق: user@host أو user@host:port</string>
-    <string name="connections_filter_placeholder">تصفية الاتصالات\u2026</string>
+    <string name="connections_connect_directly">الاتصال بـ %1$s</string>
     <string name="connections_filter_clear">مسح التصفية</string>
     <string name="connections_reorder">إعادة ترتيب</string>
 

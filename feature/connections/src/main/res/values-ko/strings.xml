@@ -34,10 +34,10 @@
     <!-- Connections screen -->
     <string name="connections_title">연결</string>
     <string name="connections_add">연결 추가</string>
-    <string name="connections_quick_connect_placeholder">user@host 또는 host:port</string>
+    <string name="connections_filter_or_connect_placeholder">필터 또는 user@host</string>
     <string name="connections_quick_connect_button">연결</string>
     <string name="connections_quick_connect_error">형식 사용: user@host 또는 user@host:port</string>
-    <string name="connections_filter_placeholder">연결 필터…</string>
+    <string name="connections_connect_directly">%1$s에 연결</string>
     <string name="connections_filter_clear">필터 지우기</string>
     <string name="connections_reorder">순서 변경</string>
 

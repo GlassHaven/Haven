@@ -1306,7 +1306,13 @@ private fun RegisterOnSecurityKeyDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.keys_register_verify_required))
+                    // Weighted so the switch keeps its width when a translation
+                    // of the label wraps; unweighted text is measured first and
+                    // can leave the control after it nothing.
+                    Text(
+                        stringResource(R.string.keys_register_verify_required),
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    )
                     Switch(checked = verifyRequired, onCheckedChange = { verifyRequired = it })
                 }
                 PasswordField(
